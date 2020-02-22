@@ -1,0 +1,94 @@
+LIB_CFILES = lib/mail.c \
+lib/optns.c \
+lib/parse.c \
+lib/header.c \
+lib/xform.c \
+lib/multi.c \
+lib/cte.c \
+lib/ves.c \
+lib/encrypt.c \
+lib/decrypt.c \
+lib/banner.c \
+lib/util.c
+
+LIB_HFILES = lib/mail.h \
+lib/optns.h \
+lib/parse.h \
+lib/header.h \
+lib/xform.h \
+lib/multi.h \
+lib/cte.h \
+lib/ves.h \
+lib/encrypt.h \
+lib/decrypt.h \
+lib/banner.h \
+lib/util.h
+
+SRV_CFILES = srv/server.c \
+srv/arch.c \
+srv/tls.c \
+srv/sasl.c
+
+SRV_HFILES = srv/server.h \
+srv/arch.h \
+srv/tls.h \
+srv/sasl.h
+
+IMAP_CFILES = imap/imap.c \
+imap/imap_xform.c \
+imap/imap_token.c \
+imap/imap_track.c \
+imap/imap_start.c \
+imap/imap_proxy.c \
+imap/imap_msg.c \
+imap/imap_fetch.c \
+imap/imap_result.c \
+imap/imap_sect.c \
+imap/imap_append.c \
+imap/imap_xves.c
+
+IMAP_HFILES = imap/imap.h \
+imap/imap_xform.h \
+imap/imap_token.h \
+imap/imap_track.h \
+imap/imap_start.h \
+imap/imap_proxy.h \
+imap/imap_msg.h \
+imap/imap_fetch.h \
+imap/imap_result.h \
+imap/imap_sect.h \
+imap/imap_append.h \
+imap/imap_xves.h
+
+SMTP_CFILES = smtp/smtp.c \
+smtp/smtp_cmd.c \
+smtp/smtp_reply.c \
+smtp/smtp_track.c \
+smtp/smtp_start.c \
+smtp/smtp_proxy.c \
+smtp/smtp_xves.c
+
+SMTP_HFILES = smtp/smtp.h \
+smtp/smtp_cmd.h \
+smtp/smtp_reply.h \
+smtp/smtp_track.h \
+smtp/smtp_start.h \
+smtp/smtp_proxy.h \
+smtp/smtp_xves.h
+
+CLI_CFILES = cli/vesmail.c \
+cli/help.c \
+cli/tty.c
+
+CLI_HFILES = cli/vesmail.h \
+cli/help.h \
+cli/tty.h
+
+VESMAIL_HFILES = VESmail.h
+
+bin_PROGRAMS = vesmail
+
+vesmail_LDADD = -lcrypto -lcurl -lVES -lssl
+
+vesmail_SOURCES = $(LIB_CFILES) $(SRV_CFILES) $(IMAP_CFILES) $(SMTP_CFILES) $(CLI_CFILES) \
+$(LIB_HFILES) $(SRV_HFILES) $(IMAP_HFILES) $(SMTP_HFILES) $(CLI_HFILES) $(VESMAIL_HFILES)

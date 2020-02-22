@@ -1,0 +1,14 @@
+service ves-imap
+{
+	disable	= no
+	type		= UNLISTED
+	port		= 7143
+	socket_type     = stream
+	wait            = no
+	user            = mail
+	server          = /usr/local/bin/vesmail
+	server_args     = imap --cert=/etc/exim.crt --pkey=/etc/exim.key --ca=/etc/exim.crt
+	log_on_failure  += USERID
+	instances	= 100
+	per_source	= 25
+}
