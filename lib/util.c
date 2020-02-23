@@ -113,6 +113,13 @@ void VESmail_randstr(int len, char *buf) {
     }
 }
 
+char *VESmail_strndup(const char *s, int len) {
+    char *d = malloc(len + 1);
+    memcpy(d, s, len);
+    d[len] = 0;
+    return d;
+}
+
 char *VESmail_memsplice(char *str, int steml, unsigned long int *strl, int offs, int del, const char *ins, int insl) {
     if (offs > *strl) return str;
     if (offs + del > *strl) del = *strl - offs;

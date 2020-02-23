@@ -1,20 +1,2 @@
-2019-01-01  Jim Zubov <jz@vesvault.com>
-    * * Usage of RAND_bytes() and OPENSSL_cleanup()
-    credits: https://reddit.com/u/skeeto
-2019-01-03  Jim Zubov <jz@vesvault.com>
-    * * Assertions for malloc() returning NULL
-    Compiler warnings cleaned up
-    credits: https://reddit.com/u/hillbull
-2019-01-05  Jim Zubov <jz@vesvault.com>
-    * lib/libVES.c libVES_cleanseJVar(): wipe encrypted metadata
-2019-01-07  Jim Zubov <jz@vesvault.com>
-    * lib/libVES/KeyAlgo_EVP.c uninitialized plaintext length
-    may cause EVP_PKEY_decrypt() to fail
-2019-01-10  Jim Zubov <jz@vesvault.com>
-    * lib/libVES/VaultKey.c correct type for a new app vault key
-    * src/ves-util/hook.c '-u' supplies a VESkey for a new app vault
-2019-08-22  Jim Zubov <jz@vesvault.com>
-    * lib/libVES/CiAlgo.c bug fix: AES256GCM1K HMAC validation was failing in some cases
-2019-09-05  Jim Zubov <jz@vesvault.com>
-    * lib/libVES/VaultItem.c bug fix: metadata was disappearing after saving a VaultItem
-    * lib/jVar.c bug fix: jVar_clone() was ignoring the length of JVAR_OBJECT key
+2020-02-22  Jim Zubov <jz@vesvault.com>
+    * *  The first public alpha release

@@ -1,0 +1,14 @@
+[02/22/2020] jz@vesvault.com:
+        The first public alpha release
+        Known issues at the moment:
+        - TLS clean up deprecated calls, refine the high security options
+        - MIME content type message/rfc822 handling (nested messages)
+        - IMAP fetch very large messages (double pass instead of buffering?)
+        - IMAP SASL client (only LOGIN cmd is used now, works fine with all major servers)
+        - SMTP MAIL TO: AUTH extension (does any client use it?)
+        - Internal daemonizer (needed to run on non-server platforms)
+        - TLS option for the server - starttls|persistent|none
+        - Server inactivity timeout needed
+        - Drop connection to a server with specific capabilities (XVES)
+        - Hide specific IMAP server capabilities (COMPRESS)
+

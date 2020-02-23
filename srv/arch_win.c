@@ -30,18 +30,38 @@
  *
  ***************************************************************************/
 
-
-// Internal undocumented functions of libVES
-#define libVES_b64decsize(len)		((len) * 3 / 4)
-#define libVES_b64encsize(len)		(((len) + 2) / 3 * 4 + 1)
-char *libVES_b64encode(const char *data, size_t len, char *b64);
-
+#include <winsock2.h>
+#include <fcntl.h>
+#include <signal.h>
+#include <stdarg.h>
 
 
-int VESmail_b64decode(char **dst, const char *src, int *srclen, const char **error);
-#define VESmail_b64decsize(len)		libVES_b64decsize(len)
-#define VESmail_b64encode(data, len, b64)	libVES_b64encode(data, len, b64)
-#define VESmail_b64encsize(len)		libVES_b64encsize(len)
-void VESmail_randstr(int len, char *buf);
-char *VESmail_strndup(const char *s, int len);
-char *VESmail_memsplice(char *str, int steml, unsigned long int *strl, int offs, int del, const char *ins, int insl);
+const char *VESmail_arch_NAME = "Win32";
+
+void VESmail_arch_init() {
+}
+
+int VESmail_arch_set_nb(int fd, int nb) {
+    u_long flags = nb ? 0 : 1;
+    return NO_ERROR == ioctlsocket(fd, FIONBIO, &flags) ? 0 : -1;
+}
+
+int VESmail_arch_thread(VESmail_server *srv, void (* threadfn)(void *)) {
+    return VESMAIL_E_PARAM;
+}
+
+int VESmail_arch_poll(int len, ...) {
+    return VESMAIL_E_PARAM;
+}
+
+char *VESmail_arch_gethostname() {
+    return NULL;
+}
+
+int VESmail_arch_read(int fd, char *buf, int len) {
+    return read(fd, buf, len);
+}
+
+int VESmail_arch_write(int fd, const char *src, int len) {
+    return write(fd, src, len);
+}

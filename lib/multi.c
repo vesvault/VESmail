@@ -39,6 +39,7 @@
 #include "mail.h"
 #include "xform.h"
 #include "banner.h"
+#include "util.h"
 #include "multi.h"
 
 
@@ -57,7 +58,7 @@ VESmail_parse *VESmail_multi_new_part(VESmail_xform *xform, int len, const char 
 	.postfn = &VESmail_multi_post_fn_part
     };
     VESmail_xform *xnext = VESmail_xform_new_inject(NULL, &injectPart);
-    if (xform->parse->vespart != VESMAIL_VP_INJ) xnext->buf = strndup(pre, (xnext->buflen = xnext->bufmax = len));
+    if (xform->parse->vespart != VESMAIL_VP_INJ) xnext->buf = VESmail_strndup(pre, (xnext->buflen = xnext->bufmax = len));
     xnext->chain = xform->chain;
     int encap;
     switch (xform->parse->encap) {

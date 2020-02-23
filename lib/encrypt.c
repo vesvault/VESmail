@@ -369,7 +369,7 @@ int VESmail_header_process_enc(struct VESmail_parse *parse, struct VESmail_heade
     if (rs < 0) return rs;
     switch (hdr->type) {
 	case VESMAIL_H_RCPT: {
-	    char *rcpt = strndup(hdr->val, VESmail_header_get_eol(hdr) - hdr->val);
+	    char *rcpt = VESmail_strndup(hdr->val, VESmail_header_get_eol(hdr) - hdr->val);
 	    VESmail_add_rcpt(parse->mail, rcpt, !(parse->mail->flags & VESMAIL_O_HDR_RCPT));
 	    free(rcpt);
 	    break;

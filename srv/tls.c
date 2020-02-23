@@ -34,7 +34,6 @@
 #include <stddef.h>
 #include <string.h>
 #include <stdlib.h>
-#include <sys/socket.h>
 
 #include <openssl/bio.h>
 #include <openssl/ssl.h>

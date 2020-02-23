@@ -40,7 +40,7 @@
 #include <stdlib.h>
 #include "../VESmail.h"
 #include "tty.h"
-#include "srv/arch.h"
+#include "../srv/arch.h"
 #include "help.h"
 
 

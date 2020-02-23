@@ -40,5 +40,8 @@
 #include "server.h"
 #include "arch.h"
 
+#ifdef _WIN32
+#include "arch_win.c"
+#else
 #include "arch_unix.c"
-
+#endif
