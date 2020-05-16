@@ -35,6 +35,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include "../VESmail.h"
+#include "banner.h"
 #include "optns.h"
 
 char *VESmail_optns_default_mime[] = {"application/vnd.ves.encrypted", "application/x-ves-encrypted", "application/ves-encrypted", NULL};
@@ -47,7 +48,12 @@ struct VESmail_optns VESmail_optns_default = {
     .idBase = "@msgid.mail.ves.world",
     .subj = "<VESmail encrypted message>",
     .mime = VESmail_optns_default_mime,
-    .injected = VESmail_optns_default_injected
+    .injected = VESmail_optns_default_injected,
+    .banner = VESmail_banner_DEFAULT,
+    .now = {
+	.url = NULL,
+	.dir = NULL
+    }
 };
 
 struct VESmail_optns *VESmail_optns_new() {

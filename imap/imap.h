@@ -33,6 +33,7 @@
 struct VESmail_imap_token;
 struct VESmail_imap_xform;
 struct VESmail_server;
+struct VESmail_optns;
 
 typedef struct VESmail_imap {
     enum {
@@ -114,7 +115,7 @@ enum { VESMAIL_IMAP_VERBS() VESMAIL_IMAP_V__END };
 
 extern const char *VESmail_imap_verbs[];
 
-struct VESmail_server *VESmail_server_new_imap();
+struct VESmail_server *VESmail_server_new_imap(struct VESmail_optns *optns);
 int VESmail_imap_get_verb(struct VESmail_imap_token *token, const char **verbs);
 struct VESmail_imap_token *VESmail_imap_cp_tag(struct VESmail_imap_token *cmd);
 int VESmail_imap_rsp_send(struct VESmail_server *srv, struct VESmail_imap_token *rsp);

@@ -31,6 +31,7 @@
  ***************************************************************************/
 
 struct VESmail_server;
+struct VESmail_optns;
 struct VESmail_smtp_reply;
 
 #define VESMAIL_SMTP_VERBS() \
@@ -96,5 +97,5 @@ enum { VESMAIL_SMTP_VERBS() VESMAIL_SMTP_V__END };
 extern const char *VESmail_smtp_verbs[];
 extern const char *VESmail_smtp_modes[];
 
-struct VESmail_server *VESmail_server_new_smtp();
+struct VESmail_server *VESmail_server_new_smtp(struct VESmail_optns *optns);
 int VESmail_smtp_debug_flush(struct VESmail_server *srv, int code, int dsn);

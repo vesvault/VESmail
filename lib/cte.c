@@ -185,10 +185,10 @@ int VESmail_xform_fn_b64enc(VESmail_xform *xform, int final, const char *src, in
 int VESmail_xform_fn_qpenc(VESmail_xform *xform, int final, const char *src, int *srclen) {
     static const char hex[16] = "0123456789ABCDEF";
     if (!src) {
-	*srclen = 2;
+	*srclen = xform->buflen + 16;
 	return 0;
     }
-    char *dst = malloc(*srclen * 3);
+    char *dst = malloc(*srclen * 3 + 3);
     char *d = dst;
     char *d0 = d - xform->offset;
     const char *s = src;

@@ -38,6 +38,7 @@
 #include <jVar.h>
 #include "../VESmail.h"
 #include "../lib/xform.h"
+#include "../lib/optns.h"
 #include "../srv/server.h"
 #include "../srv/tls.h"
 #include "../srv/sasl.h"
@@ -296,8 +297,8 @@ void VESmail_imap_fn_free(VESmail_server *srv) {
     VESmail_imap_token_free(imap->results.query);
 }
 
-VESmail_server *VESmail_server_new_imap() {
-    VESmail_server *srv = VESmail_server_init(malloc(sizeof(VESmail_server) + sizeof(VESmail_imap)));
+VESmail_server *VESmail_server_new_imap(VESmail_optns *optns) {
+    VESmail_server *srv = VESmail_server_init(malloc(sizeof(VESmail_server) + sizeof(VESmail_imap)), optns);
     VESmail_imap *imap = VESMAIL_IMAP(srv);
     srv->debugfn = &VESmail_imap_debug;
     srv->freefn = &VESmail_imap_fn_free;

@@ -55,9 +55,11 @@ extern struct param_st {
     } *out;
 */
     char *veskey;
+    char *token;
     char *apiUrl;
     char *dumpfd;
     char *hostname;
+    struct VESmail_optns *optns;
     char debug;
 } params;
 

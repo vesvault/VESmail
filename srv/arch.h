@@ -39,5 +39,8 @@ int VESmail_arch_set_nb(int fd, int nb);
 int VESmail_arch_thread(struct VESmail_server *srv, void (* threadfn)(void *));
 int VESmail_arch_poll(int len, ...);
 char *VESmail_arch_gethostname();
+int VESmail_arch_creat(const char *path);
+int VESmail_arch_openr(const char *path);
 int VESmail_arch_read(int fd, char *buf, int len);
 int VESmail_arch_write(int fd, const char *src, int len);
+int VESmail_arch_close(int fd);

@@ -80,7 +80,7 @@ typedef struct VESmail_server {
 
 extern const char *VESmail_server_ARCH;
 
-struct VESmail_server *VESmail_server_init(struct VESmail_server *srv);
+struct VESmail_server *VESmail_server_init(struct VESmail_server *srv, struct VESmail_optns *optns);
 int VESmail_server_set_fd(struct VESmail_server *srv, int in, int out);
 int VESmail_server_run_sk(struct VESmail_server *srv, int sk);
 int VESmail_server_run(struct VESmail_server *srv, int flags);

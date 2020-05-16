@@ -40,6 +40,7 @@ typedef struct VESmail {
 *****************************/
     struct VESmail_parse *root;
     struct VESmail_xform *out;
+    char *nowUrl;
     struct libVES_List *share;
 } VESmail;
 
@@ -64,5 +65,6 @@ struct VESmail *VESmail_new_decrypt(struct libVES *ves, struct VESmail_optns *op
 struct VESmail *VESmail_set_out(struct VESmail *mail, struct VESmail_xform *xform);
 int VESmail_convert(struct VESmail *mail, char **dst, int final, const char *src, int srclen);
 void VESmail_inject_header(struct VESmail *mail, struct VESmail_header *hdr);
+const char *VESmail_nowUrl(struct VESmail *mail);
 void VESmail_clean(struct VESmail *mail);
 void VESmail_free(struct VESmail *mail);

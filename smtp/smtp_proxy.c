@@ -46,6 +46,7 @@
 #include "../lib/xform.h"
 #include "../lib/header.h"
 #include "../srv/server.h"
+#include "../now/now_store.h"
 #include "smtp.h"
 #include "smtp_cmd.h"
 #include "smtp_reply.h"
@@ -95,7 +96,7 @@ int VESmail_smtp_proxy_fn_r_mail(VESmail_smtp_track *trk, VESmail_smtp_reply *re
     VESmail_smtp *smtp = VESMAIL_SMTP(srv);
     if (reply->code == 250) {
 	VESmail_free(smtp->mail);
-	smtp->mail = VESmail_set_out(VESmail_new_encrypt(srv->ves, srv->optns), VESmail_xform_new_smtp_data(srv));
+	smtp->mail = VESmail_set_out(VESmail_now_store_apply(VESmail_new_encrypt(srv->ves, srv->optns)), VESmail_xform_new_smtp_data(srv));
 	smtp->mail->flags &= ~(VESMAIL_O_XCHG | VESMAIL_O_HDR_RCPT);
 	if (smtp->mode <= VESMAIL_SMTP_M_XCHG) smtp->mail->flags |= VESMAIL_O_XCHG;
 	if (smtp->mode == VESMAIL_SMTP_M_PLAIN || (smtp->flags & VESMAIL_SMTP_F_PLAIN)) VESmail_smtp_proxy_plain(srv);

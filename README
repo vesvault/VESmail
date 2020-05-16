@@ -34,6 +34,7 @@ lib/: Email stream encryption / decryption library components
 srv/: General proxy server components
 imap/: IMAP4rev1 proxy components
 smtp/: ESMTP proxy components
+now/: HTTP mini server for instant access to spooled encrypted emails
 cli/: Command line utility components
 
 /etc/xinetd.d/: A sample daemonizer conf for IMAP & SMTP proxies

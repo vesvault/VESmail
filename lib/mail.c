@@ -50,8 +50,8 @@
 #include "optns.h"
 #include "mail.h"
 
-#if LIBVES_VERSION_NUMBER < 0x00090101
-#error libVES >= 0.911 is required - "https://github.com/vesvault/libVES.c"
+#if LIBVES_VERSION_NUMBER < 0x00090500
+#error libVES >= 0.95 is required - "https://github.com/vesvault/libVES.c"
 #endif
 
 
@@ -73,6 +73,7 @@ VESmail *VESmail_new(libVES *ves, VESmail_optns *optns, int (* headerfn)(struct 
     mail->out = VESmail_xform_new(&VESmail_xform_fn_out, NULL, NULL);
     mail->root = VESmail_parse_new(mail, headerfn, mail->out, VESMAIL_EN_ROOT);
     mail->share = NULL;
+    mail->nowUrl = NULL;
     return mail;
 }
 
@@ -124,6 +125,15 @@ int VESmail_save_ves(VESmail *mail) {
     libVES_VaultItem *vi = VESmail_get_vaultItem(mail);
     if (!vi) return VESMAIL_E_VES;
     if (mail->share) {
+	if (mail->optns->flags & VESMAIL_O_VES_NTFY) {
+	    int i;
+	    for (i = 0; i < mail->share->len; i++) {
+		libVES_VaultKey *vkey = mail->share->list[i];
+		if (libVES_VaultKey_isNew(vkey)) {
+		    libVES_VaultKey_setAppUrl(vkey, VESmail_nowUrl(mail));
+		}
+	    }
+	}
 	if (!libVES_VaultItem_entries(vi, mail->share, LIBVES_SH_ADD)) return VESMAIL_E_VES;
     }
     if (!libVES_VaultItem_post(vi, mail->ves)) return VESMAIL_E_VES;
@@ -191,6 +201,37 @@ int VESmail_convert(struct VESmail *mail, char **dst, int final, const char *src
     return VESmail_parse_convert(mail->root, dst, final, src, srclen);
 }
 
+const char *VESmail_nowUrl(VESmail *mail) {
+    if (!mail) return NULL;
+    if (!mail->nowUrl && mail->msgid && mail->optns->now.url) {
+	int l = strlen(mail->optns->now.url);
+	mail->nowUrl = malloc(l + 3 * strlen(mail->msgid) + 1);
+	strcpy(mail->nowUrl, mail->optns->now.url);
+	char *d = mail->nowUrl + l;
+	const char *s = mail->msgid;
+	unsigned char c;
+	static const char hex[] = "0123456789ABCDEF";
+	while ((c = *s++)) {
+	    switch (c) {
+		case '.': case '-': case '_': case '@':
+		    break;
+		default:
+		    if (c >= '0' && c <= '9') break;
+		    if (c >= 'A' && c <= 'Z') break;
+		    if (c >= 'a' && c <= 'z') break;
+		    *d++ = '%';
+		    *d++ = hex[c >> 4];
+		    *d++ = hex[c & 0x0f];
+		    continue;
+	    }
+	    *d++ = c;
+	}
+	*d++ = 0;
+	mail->nowUrl = realloc(mail->nowUrl, d - mail->nowUrl);
+    }
+    return mail->nowUrl;
+}
+
 void VESmail_clean(VESmail *mail) {
     libVES_VaultItem_free(mail->vaultItem);
     mail->vaultItem = NULL;
@@ -204,6 +245,7 @@ void VESmail_free(VESmail *mail) {
 	VESmail_parse_free(mail->root);
 	VESmail_xform_free(mail->out);
 	libVES_List_free(mail->share);
+	free(mail->nowUrl);
     }
     free(mail);
 }

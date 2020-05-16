@@ -38,29 +38,69 @@
 #include <libVES/Cipher.h>
 #include "../VESmail.h"
 #include "mail.h"
+#include "optns.h"
 #include "parse.h"
 #include "xform.h"
 #include "banner.h"
 
+#define VESmail_banner_PUTS(xform, str, rs)	{\
+    int r = VESmail_xform_process(xform, 0, str, strlen(str));\
+    if (r < 0) return r;\
+    rs += r;\
+}
 
-const char **VESmail_banner_get(struct VESmail *mail) {
-    static const char *banners[3] = {
+int VESmail_banner_fn_text(VESmail_xform *xform, VESmail *mail) {
+    int rs = 0;
+    VESmail_banner_PUTS(xform,
 	"Content-Type: text/plain\r\n\r\n"
-	"This email message is encrypted with VESmail by the sender.\r\n"
+	"This email message is encrypted with VESmail by the sender.\r\n\r\n"
 	"Create a free VESmail account to decrypt this message,\r\n"
-	"and to be able to send and receive encrypted emails:\r\n"
+	"and to be able to send and receive encrypted emails:\r\n\r\n"
 	"https://mail.ves.world\r\n",
+	rs
+    )
+    const char *now = VESmail_nowUrl(mail);
+    if (now) {
+	VESmail_banner_PUTS(xform,
+	    "\r\nOr, use the following link to decrypt this email online through the sender's portal:\r\n\r\n",
+	    rs
+	)
+	VESmail_banner_PUTS(xform, now, rs)
+	VESmail_banner_PUTS(xform, "\r\n\r\n", rs)
+    }
+    return rs;
+}
+
+int VESmail_banner_fn_html(VESmail_xform *xform, VESmail *mail) {
+    int rs = 0;
+    VESmail_banner_PUTS(xform,
 	"Content-Type: text/html\r\n\r\n"
 	"<html><head></head><body>\r\n"
 	"<p>This email message is encrypted with VESmail by the sender.</p>\r\n"
 	"<p>Create a free VESmail account to decrypt this message,<br/>\r\n"
 	"and to be able to send and receive encrypted emails:<br/>\r\n"
-	"<a href=\"https://mail.ves.world\">https://mail.ves.world</a></p>\r\n"
+	"<a href=\"https://mail.ves.world\">https://mail.ves.world</a></p>\r\n",
+	rs
+    )
+    const char *now = VESmail_nowUrl(mail);
+    if (now) {
+	VESmail_banner_PUTS(xform,
+	    "<p>Or, use the following link to decrypt this email online through the sender's portal:<br/>\r\n<a href=\"",
+	    rs
+	)
+	VESmail_banner_PUTS(xform, now, rs)
+	VESmail_banner_PUTS(xform, "\">", rs)
+	VESmail_banner_PUTS(xform, now, rs)
+	VESmail_banner_PUTS(xform, "</a></p>\r\n", rs)
+    }
+    VESmail_banner_PUTS(xform,
 	"</body></html>\r\n",
-	NULL
-    };
-    return banners;
+	rs
+    )
+    return rs;
 }
+
+int (* VESmail_banner_DEFAULT[])(VESmail_xform *, VESmail *) = {&VESmail_banner_fn_text, &VESmail_banner_fn_html, NULL};
 
 int VESmail_check_inject(VESmail_parse *parse) {
     if (parse->mail->flags & VESMAIL_F_BANNER_ADDED) return 0;
@@ -88,11 +128,12 @@ int VESmail_banner_render(VESmail *mail, VESmail_xform *xform, const char *bound
     char *bnd = malloc(strlen(boundary) + 256);
     sprintf(bnd, "\r\n--%s\r\nX-VESmail-Part: banner\r\n", boundary);
     int bndl = strlen(bnd);
-    for (b = VESmail_banner_get(mail); *b; b++) {
+    int (** bp)(VESmail_xform *xform, VESmail *mail);
+    for (bp = mail->optns->banner; *bp; bp++) {
 	r = VESmail_xform_process(xform, 0, bnd, bndl);
 	if (r < 0) break;
 	rs += r;
-	r = VESmail_xform_process(xform, 0, *b, strlen(*b));
+	r = (*bp)(xform, mail);
 	if (r < 0) break;
 	rs += r;
     }

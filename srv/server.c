@@ -62,7 +62,7 @@
 #include "arch.h"
 #include "server.h"
 
-VESmail_server *VESmail_server_init(VESmail_server *srv) {
+VESmail_server *VESmail_server_init(VESmail_server *srv, VESmail_optns *optns) {
     static int initf = 0;
     if (!initf) {
 	VESmail_arch_init();
@@ -76,7 +76,7 @@ VESmail_server *VESmail_server_init(VESmail_server *srv) {
     srv->debugfn = NULL;
     srv->freefn = NULL;
     srv->ves = NULL;
-    srv->optns = &VESmail_optns_default;
+    srv->optns = optns ? optns : &VESmail_optns_default;
     srv->uconf = NULL;
     srv->tls.client = NULL;
     srv->tls.server = NULL;

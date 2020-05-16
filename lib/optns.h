@@ -30,6 +30,9 @@
  *
  ***************************************************************************/
 
+struct VESmail;
+struct VESmail_xform;
+
 typedef struct VESmail_optns {
     int flags;
     char *vesDomain;
@@ -38,6 +41,11 @@ typedef struct VESmail_optns {
     char *subj;
     char **mime;
     char **injected;
+    int (** banner)(struct VESmail_xform *, struct VESmail *);
+    struct {
+	char *url;
+	char *dir;
+    } now;
 } VESmail_optns;
 
 struct VESmail_parse;
@@ -45,6 +53,7 @@ struct VESmail_parse;
 #define	VESMAIL_O_HDR_WHITE	0x0001
 #define	VESMAIL_O_HDR_RCPT	0x0002
 #define	VESMAIL_O_XCHG		0x0004
+#define	VESMAIL_O_VES_NTFY	0x0008
 
 extern struct VESmail_optns VESmail_optns_default;
 struct VESmail_optns *VESmail_optns_new();

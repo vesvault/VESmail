@@ -76,6 +76,12 @@ smtp/smtp_start.h \
 smtp/smtp_proxy.h \
 smtp/smtp_xves.h
 
+NOW_CFILES = now/now.c \
+now/now_store.c
+
+NOW_HFILES = now/now.h \
+now/now_store.h
+
 CLI_CFILES = cli/vesmail.c \
 cli/help.c \
 cli/tty.c
@@ -90,5 +96,5 @@ bin_PROGRAMS = vesmail
 
 vesmail_LDADD = -lcrypto -lcurl -lVES -lssl
 
-vesmail_SOURCES = $(LIB_CFILES) $(SRV_CFILES) $(IMAP_CFILES) $(SMTP_CFILES) $(CLI_CFILES) \
-$(LIB_HFILES) $(SRV_HFILES) $(IMAP_HFILES) $(SMTP_HFILES) $(CLI_HFILES) $(VESMAIL_HFILES)
+vesmail_SOURCES = $(LIB_CFILES) $(SRV_CFILES) $(IMAP_CFILES) $(SMTP_CFILES) $(NOW_CFILES) $(CLI_CFILES) \
+$(LIB_HFILES) $(SRV_HFILES) $(IMAP_HFILES) $(SMTP_HFILES) $(NOW_HFILES) $(CLI_HFILES) $(VESMAIL_HFILES)

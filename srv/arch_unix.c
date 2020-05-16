@@ -103,10 +103,22 @@ char *VESmail_arch_gethostname() {
     }
 }
 
+int VESmail_arch_creat(const char *path) {
+    return open(path, O_CREAT | O_EXCL | O_WRONLY, 0666);
+}
+
+int VESmail_arch_openr(const char *path) {
+    return open(path, O_RDONLY);
+}
+
 int VESmail_arch_read(int fd, char *buf, int len) {
     return read(fd, buf, len);
 }
 
 int VESmail_arch_write(int fd, const char *src, int len) {
     return write(fd, src, len);
+}
+
+int VESmail_arch_close(int fd) {
+    return close(fd);
 }

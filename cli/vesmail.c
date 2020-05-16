@@ -45,11 +45,14 @@
 #include "../VESmail.h"
 #include "../lib/mail.h"
 #include "../lib/parse.h"
+#include "../lib/optns.h"
 #include "../srv/server.h"
 #include "../srv/arch.h"
 #include "../srv/tls.h"
 #include "../imap/imap.h"
 #include "../smtp/smtp.h"
+#include "../now/now.h"
+#include "../now/now_store.h"
 #include "help.h"
 #include "vesmail.h"
 
@@ -62,6 +65,7 @@ struct VESmail_tls_server tls_srv = {
 struct param_st params = {
     .user = NULL,
     .veskey = NULL,
+    .token = NULL,
     .debug = 0
 };
 
@@ -129,17 +133,18 @@ int main(int argc, char **argv) {
     char **argend = argv + argc;
     char **argp = argv + 1;
     char *arg = NULL;
-    enum { o_null, o_error, o_data, o_ver, o_a, o_f, o_x, o_v, o_tls, o_demo, o_cap, o_rcpt, o_noenc, o_xchg, o_t,
-	o_cert, o_pkey, o_ca, o_help, o_dumpfd } op = o_null;
-    enum { cmd_null, cmd_enc, cmd_dec, cmd_smtp, cmd_imap } cmd = cmd_null;
+    enum { o_null, o_error, o_data, o_ver, o_a, o_f, o_x, o_v, o_tls, o_demo, o_cap, o_rcpt, o_noenc, o_xchg, o_token,
+	o_cert, o_pkey, o_ca, o_help, o_dumpfd, o_nowurl, o_nowdir } op = o_null;
+    enum { cmd_null, cmd_enc, cmd_dec, cmd_smtp, cmd_imap, cmd_now } cmd = cmd_null;
     const struct { char op; char *argw; } argwords[] = {
-	{o_a, "account"}, {o_x, "debug"}, {o_v, "veskey"}, {o_v, "VESkey"}, {o_v, "unlock"},
+	{o_a, "account"}, {o_x, "debug"}, {o_v, "veskey"}, {o_v, "VESkey"}, {o_v, "unlock"}, {o_token, "token"},
 	{o_tls, "tls"}, {o_cap, "capabilities"}, {o_ver, "version"}, {o_rcpt, "rcpt"}, {o_noenc, "headers"},
 	{o_cert, "cert"}, {o_pkey, "pkey"}, {o_ca, "ca"},
+	{o_nowurl, "now-url"}, {o_nowdir, "now-dir"},
 	{o_demo, "demo"}, {o_help, "help"}, {o_dumpfd, "dumpfd"}
     };
     const struct { char cmd; char *cmdw; } cmdwords[] = {
-	{cmd_enc, "encrypt"}, {cmd_dec, "decrypt"}, {cmd_smtp, "smtp"}, {cmd_imap, "imap"}
+	{cmd_enc, "encrypt"}, {cmd_dec, "decrypt"}, {cmd_smtp, "smtp"}, {cmd_imap, "imap"}, {cmd_now, "now"}
     };
     struct {
 	void **ptr;
@@ -149,6 +154,7 @@ int main(int argc, char **argv) {
     } in = {.ptr = NULL, .putfn = NULL, .getfn = NULL, .setptr = NULL};
 
     params.hostname = VESmail_arch_gethostname();
+    params.optns = VESmail_optns_new();
     
     /**************************************
      * Collect the command line arguments
@@ -186,7 +192,8 @@ int main(int argc, char **argv) {
 	    case 'a': op = o_a; break;
 	    case 'u': case 'v': op = o_v; break;
 	    case 'x': op = o_x; break;
-	    case 'T': op = o_tls; break;
+	    case 't': op = o_tls; break;
+	    case 'T': op = o_token; break;
 	    case 'V': op = o_ver; break;
 	    case '-': break;
 	    case '=': op = o_data; break;
@@ -239,6 +246,15 @@ int main(int argc, char **argv) {
 			break;
 		    case o_ca:
 			in.ptr = (void *) &tls_srv.ca;
+			break;
+		    case o_token:
+			in.ptr = (void *) &params.token;
+			break;
+		    case o_nowurl:
+			in.ptr = (void *) &params.optns->now.url;
+			break;
+		    case o_nowdir:
+			in.ptr = (void *) &params.optns->now.dir;
 			break;
 		    case o_dumpfd:
 			in.ptr = (void *) &params.dumpfd;
@@ -298,20 +314,23 @@ int main(int argc, char **argv) {
     switch (cmd) {
 	case cmd_enc:
 	case cmd_dec: {
-	    if (!params.user || !params.veskey) {
-		fprintf(stderr, "VESmail account and VESkey are required for this command\n");
+	    if ((!params.user || !params.veskey) && !params.token) {
+		fprintf(stderr, "Required: -a <email> -u <VESkey> | -T <token> [-K <keyId> -u <VESkey>]\n");
 		return E_PARAM;
 	    }
 	    libVES *ves;
-	    if (strchr(params.user,'/')) {
+	    if (!params.user || strchr(params.user, '/')) {
 		ves = libVES_new(params.user);
 	    } else {
 		libVES_Ref *ref = libVES_External_new(VESMAIL_VES_DOMAIN, params.user);
 		ves = libVES_fromRef(ref);
 	    }
 	    if (params.debug > 1) ves->debug = params.debug - 1;
-	    if (libVES_unlock(ves, strlen(params.veskey), params.veskey)) {
-		VESmail *mail = (cmd == cmd_enc ? &VESmail_new_encrypt : &VESmail_new_decrypt)(ves, NULL);
+	    if (params.token) libVES_setSessionToken(ves, params.token);
+	    if (!params.veskey || libVES_unlock(ves, strlen(params.veskey), params.veskey)) {
+		VESmail *mail = cmd == cmd_enc
+		    ? VESmail_now_store_apply(VESmail_new_encrypt(ves, params.optns))
+		    : VESmail_new_decrypt(ves, params.optns);
 		if (mail) {
 		    rs = do_convert(mail, 0, 1);
 		    VESmail_free(mail);
@@ -325,10 +344,13 @@ int main(int argc, char **argv) {
 	    break;
 	}
 	case cmd_imap: {
-	    return run_server(VESmail_server_new_imap(), 0, 1);
+	    return run_server(VESmail_server_new_imap(params.optns), 0, 1);
 	}
 	case cmd_smtp: {
-	    return run_server(VESmail_server_new_smtp(), 0, 1);
+	    return run_server(VESmail_server_new_smtp(params.optns), 0, 1);
+	}
+	case cmd_now: {
+	    return run_server(VESmail_server_new_now(params.optns), 0, 1);
 	}
 	default:
 	    break;

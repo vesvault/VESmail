@@ -39,6 +39,7 @@
 #include "../VESmail.h"
 #include "../lib/xform.h"
 #include "../lib/mail.h"
+#include "../lib/optns.h"
 #include "../srv/server.h"
 #include "../srv/tls.h"
 #include "smtp_cmd.h"
@@ -88,8 +89,8 @@ void VESmail_smtp_fn_free(VESmail_server *srv) {
     VESmail_smtp_debug_flush(srv, 0, 0);
 }
 
-VESmail_server *VESmail_server_new_smtp() {
-    VESmail_server *srv = VESmail_server_init(malloc(sizeof(VESmail_server) + sizeof(VESmail_smtp)));
+VESmail_server *VESmail_server_new_smtp(VESmail_optns *optns) {
+    VESmail_server *srv = VESmail_server_init(malloc(sizeof(VESmail_server) + sizeof(VESmail_smtp)), optns);
     VESmail_smtp *smtp = VESMAIL_SMTP(srv);
     srv->debugfn = &VESmail_smtp_debug;
     srv->freefn = &VESmail_smtp_fn_free;

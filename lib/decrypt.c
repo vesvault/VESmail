@@ -233,9 +233,10 @@ int VESmail_header_process_dec(struct VESmail_parse *parse, struct VESmail_heade
 				if (vkey) {
 				    libVES_veskey *vk = libVES_veskey_new(jvk->len, jvk->vString);
 				    if (libVES_VaultKey_unlock(vkey, vk)) {
-					if (libVES_VaultKey_rekey(vkey)) {
-					    VESmail_unset_vaultItem(parse->mail);
+					if (libVES_VaultKey_apply(vkey)) {
+					    vkey = NULL;
 					}
+					VESmail_unset_vaultItem(parse->mail);
 				    }
 				    libVES_veskey_free(vk);
 				    libVES_VaultKey_free(vkey);

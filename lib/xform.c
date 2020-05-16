@@ -70,12 +70,14 @@ int VESmail_xform_process(VESmail_xform *xform, int final, const char *src, int 
     int r;
     int cplen = 0;
     int len;
+    int ctr = 0;
     while (xform->buflen > cplen) {
 	int total = xform->buflen - cplen + srclen;
 	len = total;
 	r = xform->xformfn(xform, final, NULL, &len);
 	if (r < 0) return xform->eof = r;
 	rs += r;
+	len += ctr++;
 	if (len > total) len = total;
 	int dl;
 	if (len > xform->buflen) {
