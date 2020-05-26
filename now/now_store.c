@@ -48,13 +48,17 @@ int VESmail_now_store_xform_fn(VESmail_xform *xform, int final, const char *src,
     if (!src) return 0;
     if (xform->fd == VESMAIL_E_HOLD) {
 	VESmail *mail = xform->obj;
-	char *fname = VESmail_now_filename(mail->msgid, mail->optns);
-	if (fname) {
-	    int fd = VESmail_arch_creat(fname);
-	    xform->fd = fd < 0 ? VESMAIL_E_IO : fd;
-	    free(fname);
-	} else if (!final) {
-	    return *srclen = 0;
+	if (mail->flags & VESMAIL_F_PASS) {
+	    xform->fd = VESMAIL_E_PARAM;
+	} else {
+	    char *fname = VESmail_now_filename(mail->msgid, mail->optns);
+	    if (fname) {
+		int fd = VESmail_arch_creat(fname);
+		xform->fd = fd < 0 ? VESMAIL_E_IO : fd;
+		free(fname);
+	    } else if (!final) {
+		return *srclen = 0;
+	    }
 	}
     }
     if (xform->fd >= 0) {
