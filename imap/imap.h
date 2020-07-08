@@ -70,6 +70,7 @@ typedef struct VESmail_imap {
 	struct VESmail_imap_token *query;
     } results;
     int ctBad;
+    int ctOOR;
 } VESmail_imap;
 
 #define VESMAIL_IMAP(server)	((VESmail_imap *) &server->ctl)
@@ -85,6 +86,8 @@ typedef struct VESmail_imap {
 #define VESMAIL_IMAP_F_ORDER	0x0200
 
 #define	VESMAIL_IMAP_F_INIT	0
+
+#define VESMAIL_IMAP_OOR_SENSE	16
 
 struct VESmail_parse;
 

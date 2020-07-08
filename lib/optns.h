@@ -41,7 +41,7 @@ typedef struct VESmail_optns {
     char *subj;
     char **mime;
     char **injected;
-    int (** banner)(struct VESmail_xform *, struct VESmail *);
+    const char **(* getBanners)(struct VESmail_optns *);
     struct {
 	char *url;
 	char *dir;

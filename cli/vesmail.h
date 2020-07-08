@@ -60,6 +60,7 @@ extern struct param_st {
     char *dumpfd;
     char *hostname;
     struct VESmail_optns *optns;
+    const char **banner;
     char debug;
 } params;
 

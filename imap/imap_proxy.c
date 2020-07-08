@@ -144,7 +144,7 @@ void VESmail_imap_proxy_fetch_mark(struct VESmail_imap_proxy_fetch_ctl *ctl, con
     if (!ctl->mark) {
 	ctl->mark = VESmail_imap_token_splice(
 	    VESmail_imap_token_new(VESMAIL_IMAP_T_LSET, 0), 0, 0, 2,
-	    VESmail_imap_token_val(VESMAIL_IMAP_T_ATOM, "BODY"),
+	    VESmail_imap_token_val(VESMAIL_IMAP_T_ATOM, "BODY.PEEK"),
 	    VESmail_imap_token_splice(
 		VESmail_imap_token_new(VESMAIL_IMAP_T_INDEX, 0), 0, 0, 2,
 		    VESmail_imap_token_val(VESMAIL_IMAP_T_ATOM, "HEADER.FIELDS"),

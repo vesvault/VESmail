@@ -364,7 +364,22 @@ int VESmail_imap_result_process(VESmail_imap_result *rslt, VESmail_imap_fetch *f
 	    if (!ffull && rs == VESMAIL_IMAP_RE_OK && rslt->range) {
 		if (!final) return VESMAIL_IMAP_RE_UNDEF;
 		VESmail_imap_fetch *rng = VESmail_imap_fetch_unqueue(&rslt->range);
+		unsigned int len0 = val->len;
 		if (rng->range[0] > 0) VESmail_imap_token_memsplice(val, 0, rng->range[0], NULL);
+/**********************************
+* Auto-sense excessive Out-Of-Range requests
+* Native iOS email clients are notorious for falling into an infinite loop of OOR requests
+* if the actual body size doesn't match the number returned by BODYSRUCTURE
+***********************************/
+		if (rng->range[0] == len0) {
+		    if (VESmail_imap_token_isLiteral(val) && ++(VESMAIL_IMAP(rslt->server)->ctOOR) > 0) {
+			VESMAIL_IMAP(rslt->server)->flags |= VESMAIL_IMAP_F_CALC;
+			unsigned int l = rng->mode == VESMAIL_IMAP_FM_RANGE ? rng->range[1] : VESMAIL_IMAP(rslt->server)->ctOOR;
+			free(val->literal);
+			val->literal = malloc(val->len = l);
+			memset(val->literal, ' ', l);
+		    }
+		}
 		if (rng->mode == VESMAIL_IMAP_FM_RANGE) VESmail_imap_token_memsplice(val, rng->range[1], val->len, NULL);
 		char buf[16];
 		sprintf(buf, "<%lu>", rng->range[0]);

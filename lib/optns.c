@@ -42,14 +42,14 @@ char *VESmail_optns_default_mime[] = {"application/vnd.ves.encrypted", "applicat
 char *VESmail_optns_default_injected[] = {"--VESmail-injected-", NULL};
 
 struct VESmail_optns VESmail_optns_default = {
-    .flags = VESMAIL_O_HDR_RCPT | VESMAIL_O_XCHG,
+    .flags = VESMAIL_O_HDR_RCPT | VESMAIL_O_XCHG | VESMAIL_O_VES_NTFY,
     .vesDomain = VESMAIL_VES_DOMAIN,
     .idSuffix = ".m.ves.world",
     .idBase = "@msgid.mail.ves.world",
     .subj = "<VESmail encrypted message>",
     .mime = VESmail_optns_default_mime,
     .injected = VESmail_optns_default_injected,
-    .banner = VESmail_banner_DEFAULT,
+    .getBanners = NULL,
     .now = {
 	.url = NULL,
 	.dir = NULL

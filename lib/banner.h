@@ -34,8 +34,6 @@ struct VESmail;
 struct VESmail_parse;
 struct VESmail_xform;
 
-extern int (* VESmail_banner_DEFAULT[])(struct VESmail_xform *, struct VESmail *);
-
 int VESmail_check_inject(struct VESmail_parse *parse);
 int VESmail_banner_render(struct VESmail *mail, struct VESmail_xform *xform, const char *boundary);
 extern struct VESmail_xform_inject VESmail_banner_alt_inject;

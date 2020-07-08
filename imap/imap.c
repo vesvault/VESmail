@@ -309,6 +309,7 @@ VESmail_server *VESmail_server_new_imap(VESmail_optns *optns) {
     imap->track = NULL;
     imap->reqq = NULL;
     imap->ctBad = 0;
+    imap->ctOOR = -(VESMAIL_IMAP_OOR_SENSE);
 
     imap->msgs.page.ptr = NULL;
     imap->msgs.depth = 0;

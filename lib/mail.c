@@ -56,7 +56,7 @@
 
 
 int VESmail_xform_fn_out(VESmail_xform *xform, int final, const char *src, int *srclen) {
-    return ((src && xform->chain) ? VESmail_xform_process(xform->chain, final, src, *srclen) : (*srclen = 0));
+    return (src ? (xform->chain ? VESmail_xform_process(xform->chain, final, src, *srclen) : (*srclen = 0)) : 0);
 }
 
 VESmail *VESmail_init(VESmail *mail, libVES *ves, VESmail_optns *optns) {

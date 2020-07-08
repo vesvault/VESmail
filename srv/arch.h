@@ -44,3 +44,13 @@ int VESmail_arch_openr(const char *path);
 int VESmail_arch_read(int fd, char *buf, int len);
 int VESmail_arch_write(int fd, const char *src, int len);
 int VESmail_arch_close(int fd);
+
+#ifdef _WIN32
+
+#define VESMAIL_CONF_PATH	""
+
+#else
+
+#define VESMAIL_CONF_PATH	"/etc/vesmail/"
+
+#endif

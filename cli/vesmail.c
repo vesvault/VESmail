@@ -66,6 +66,7 @@ struct param_st params = {
     .user = NULL,
     .veskey = NULL,
     .token = NULL,
+    .banner = NULL,
     .debug = 0
 };
 
@@ -105,6 +106,55 @@ int do_convert(VESmail *mail, int in, int out) {
 	if (!srcl) break;
     }
     return 0;
+}
+
+char *get_content(const char *path) {
+    int fd = VESmail_arch_openr(path);
+    if (fd < 0) return NULL;
+    int max = 65536;
+    int len = 0;
+    char *cont = malloc(max);
+    int r;
+    while (1) {
+	r = VESmail_arch_read(fd, cont + len, max - len);
+	if (r <= 0) break;
+	len += r;
+	if (len == max) {
+	    max += 65536;
+	    cont = realloc(cont, max);
+	}
+    }
+    VESmail_arch_close(fd);
+    if (r < 0) {
+	free(cont);
+	cont = NULL;
+    } else {
+	cont = realloc(cont, len + 1);
+	cont[len] = 0;
+    }
+    return cont;
+}
+
+char *add_banner(const char *path) {
+    char *banner = get_content(path);
+    if (banner) {
+	int l;
+	if (params.banner) {
+	    for (l = 0; params.banner[l]; l++);
+	} else l = 0;
+	params.banner = realloc(params.banner, sizeof(*(params.banner)) * (l + 2));
+	params.banner[l] = banner;
+	params.banner[l + 1] = NULL;
+    }
+    return banner;
+}
+
+const char **init_banner(VESmail_optns *optns) {
+    if (!params.banner) {
+	add_banner(VESMAIL_CONF_PATH "vesmail-banner-txt");
+	add_banner(VESMAIL_CONF_PATH "vesmail-banner-html");
+    }
+    return params.banner;
 }
 
 int run_server(VESmail_server *srv, int in, int out) {
@@ -155,6 +205,7 @@ int main(int argc, char **argv) {
 
     params.hostname = VESmail_arch_gethostname();
     params.optns = VESmail_optns_new();
+    params.optns->getBanners = &init_banner;
     
     /**************************************
      * Collect the command line arguments
