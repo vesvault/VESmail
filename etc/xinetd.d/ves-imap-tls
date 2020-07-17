@@ -1,0 +1,14 @@
+service ves-imap-tls
+{
+	disable	= no
+	type		= UNLISTED
+	port		= 7193
+	socket_type     = stream
+	wait            = no
+	user            = mail
+	server          = /usr/local/bin/vesmail
+	server_args     = imap -t
+	log_on_failure  += USERID
+	instances	= 100
+	per_source	= 25
+}

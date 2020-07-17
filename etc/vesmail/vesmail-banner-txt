@@ -1,0 +1,13 @@
+Content-Type: text/plain
+
+This is an encrypted message sent by Acme Corp through VESmail,
+an end-to-end encryption service.
+
+If you are new to VES, check your inbox for another email message
+from onboard@vesvault.com. Use the link in that email to create a PIN
+to decrypt this and all future messages.
+
+If you already have a PIN, use the following link to decrypt and view
+this message through the Acme Corp online viewer:
+
+{$url}

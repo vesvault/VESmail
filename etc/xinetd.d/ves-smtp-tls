@@ -1,0 +1,14 @@
+service ves-smtp-tls
+{
+	disable	= no
+	type		= UNLISTED
+	port		= 7165
+	socket_type     = stream
+	wait            = no
+	user            = mail
+	server          = /usr/local/bin/vesmail
+	server_args     = smtp -t
+	log_on_failure  += USERID
+	instances	= 100
+	per_source	= 25
+}
