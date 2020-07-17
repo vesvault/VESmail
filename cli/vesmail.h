@@ -46,21 +46,17 @@ struct setfn_st {
 
 extern struct param_st {
     char *user;
-/*    struct {
-	size_t len;
-	struct {
-	    struct setfn_st set;
-	    int (*outfn)(int, struct ctx_st *);
-	} out[];
-    } *out;
-*/
     char *veskey;
     char *token;
     char *apiUrl;
     char *dumpfd;
     char *hostname;
     struct VESmail_optns *optns;
+    char *confPath;
+    char *veskeyPath;
+    char **bannerPath;
     const char **banner;
     char debug;
 } params;
 
+extern struct VESmail_tls_server tls_srv;

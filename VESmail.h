@@ -57,6 +57,7 @@ struct libVES;
 #define	VESMAIL_E_UNKNOWN	-5
 #define	VESMAIL_E_AUTH		-6
 #define	VESMAIL_E_CONF		-7
+#define	VESMAIL_E_DENIED	-8
 #define	VESMAIL_E_RESOLV	-16
 #define	VESMAIL_E_CONN		-17
 #define	VESMAIL_E_TLS		-18

@@ -64,11 +64,11 @@ const char *VESmail_cli_banner =
  "                   \x1b[2;31m>\x1b[0m \x1b[1;33m|/____|\x1b[0m                                  \x1b[1;34mhttps://ves.host\x1b[0m\n"
  "\n"
  "\n"
- " \x1b[1mvesmail imap\x1b[0m [--cert <path> --pkey <path> --ca <path>] [--now_url <VESmail_now> --now-dir <spool_dir>]\n"
- " \x1b[1mvesmail smtp\x1b[0m [--cert <path> --pkey <path> --ca <path>] [--now_url <VESmail_now> --now-dir <spool_dir>]\n"
- " \x1b[1mvesmail encrypt\x1b[0m -a <VESmail_account> -u <VESkey> [--now_url <VESmail_now> --now-dir <spool_dir>]\n"
- " \x1b[1mvesmail decrypt\x1b[0m -a <VESmail_account> -u <VESkey>\n"
- " \x1b[1mvesmail now\x1b[0m --now-dir <spool_dir>\n"
+ " \x1b[1mvesmail imap\x1b[0m [--tls]\n"
+ " \x1b[1mvesmail smtp\x1b[0m [--tls]\n"
+ " \x1b[1mvesmail encrypt\x1b[0m -a <VESmail_account>\n"
+ " \x1b[1mvesmail decrypt\x1b[0m -a <VESmail_account>\n"
+ " \x1b[1mvesmail now\x1b[0m [--tls]\n"
  "\n";
 
 void out_ansi_str(int fdi, const char *str) {

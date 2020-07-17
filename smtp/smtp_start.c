@@ -196,9 +196,9 @@ int VESmail_smtp_fwd_login(VESmail_server *srv) {
 }
 
 int VESmail_smtp_auth(VESmail_server *srv, const char *user, const char *pwd, int pwlen) {
-    if (!VESmail_server_auth(srv, user, pwd, pwlen)) return VESMAIL_E_VES;
+    int r = VESmail_server_auth(srv, user, pwd, pwlen);
     VESmail_smtp *smtp = VESMAIL_SMTP(srv);
-    int r = VESmail_server_connect(srv, (smtp->uconf = jVar_get(srv->uconf, "smtp")), "smtp");
+    if (r >= 0) r = VESmail_server_connect(srv, (smtp->uconf = jVar_get(srv->uconf, "smtp")), "smtp");
     if (r >= 0) {
 	smtp->state = VESMAIL_SMTP_S_CONN;
 	jVar *jmode = jVar_get(smtp->uconf, "mode");

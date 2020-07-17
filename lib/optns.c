@@ -53,7 +53,8 @@ struct VESmail_optns VESmail_optns_default = {
     .now = {
 	.url = NULL,
 	.dir = NULL
-    }
+    },
+    .acl = NULL
 };
 
 struct VESmail_optns *VESmail_optns_new() {

@@ -37,8 +37,8 @@ smtp/: ESMTP proxy components
 now/: HTTP mini server for instant access to spooled encrypted emails
 cli/: Command line utility components
 
-/etc/xinetd.d/: A sample daemonizer conf for IMAP & SMTP proxies
-
+etc/vesmail/: Sample config and template files
+etc/xinetd.d/: A sample daemonizer conf for IMAP & SMTP proxies
 
 VESmail account is needed in order to use VESmail proxy and utility
 [https://mail.ves.world]
@@ -57,4 +57,33 @@ REQUIREMENTS:
   cURL (https://curl.haxx.se/download.html)
     libcurl
     curl/*.h
+
+
+VESmail Proxy Authentication
+(LOGIN or SASL for IMAP, SASL for SMTP):
+
+_ LOGIN acme@example.com MySecret
+    ; VES account:     ves://vesmail/acme@example.com/
+    ; VESkey:          MySecret
+    ; VESmail Profile: ves://vesmail/acme@example.com!
+
+_ LOGIN acme@example.com! MySecret
+    ; VES account:     ves://vesmail/acme@example.com/
+    ; VESkey:          MySecret
+    ; VESmail Profile: ves://vesmail/acme@example.com!
+
+_ LOGIN acme@example.com!profile1 MySecret
+    ; VES account:     ves://vesmail/acme@example.com/
+    ; VESkey:          MySecret
+    ; VESmail Profile: ves://vesmail/acme@example.com!profile1
+
+_ LOGIN acme@example.com#profile1 MySecret
+    ; VES account:     ves://vesmail/acme@example.com/
+    ; VESkey:          MySecret
+    ; VESmail Profile: ves://vesmail/acme@example.com%23profile1
+
+_ LOGIN acme@example.com##profile1 MySecret
+    ; VES account:     ves://vesmail/acme@example.com/
+    ; VESkey:          MySecret
+    ; VESmail Profile: ves://vesmail/profile1
 

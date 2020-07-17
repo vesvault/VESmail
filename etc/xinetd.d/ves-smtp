@@ -7,7 +7,7 @@ service ves-smtp
 	wait            = no
 	user            = mail
 	server          = /usr/local/bin/vesmail
-	server_args     = smtp --cert=/etc/exim.crt --pkey=/etc/exim.key --ca=/etc/exim.crt
+	server_args     = smtp
 	log_on_failure  += USERID
 	instances	= 100
 	per_source	= 25

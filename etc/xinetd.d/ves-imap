@@ -7,7 +7,7 @@ service ves-imap
 	wait            = no
 	user            = mail
 	server          = /usr/local/bin/vesmail
-	server_args     = imap --cert=/etc/exim.crt --pkey=/etc/exim.key --ca=/etc/exim.crt
+	server_args     = imap
 	log_on_failure  += USERID
 	instances	= 100
 	per_source	= 25

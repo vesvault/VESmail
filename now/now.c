@@ -117,6 +117,7 @@ int VESmail_now_xform_fn_post(VESmail_xform *xform, int final, const char *src, 
 	    jVar *veskey = jVar_get(req, "VESkey");
 	    libVES_Ref *ref = extid ? libVES_External_new(VESMAIL_VES_DOMAIN, extid) : NULL;
 	    libVES *ves = libVES_fromRef(ref);
+	    if (xform->server->debug > 1) ves->debug = xform->server->debug - 1;
 	    if (token) libVES_setSessionToken(ves, token);
 	    if (veskey && (!jVar_isString(veskey) || !libVES_unlock(ves, veskey->len, veskey->vString))) {
 		e = 403;
@@ -204,10 +205,16 @@ int VESmail_now_xform_fn_req(VESmail_xform *xform, int final, const char *src, i
     return *srclen = 0;
 }
 
+void VESmail_now_debug(VESmail_server *srv, const char *msg) {
+    VESmail_now_send(srv, 0, "HTTP/1.0 100 ");
+    VESmail_now_send(srv, 0, msg);
+    VESmail_now_send(srv, 0, "\r\n");
+}
 
 VESmail_server *VESmail_server_new_now(VESmail_optns *optns) {
     VESmail_server *srv = VESmail_server_init(malloc(sizeof(VESmail_server)), optns);
     srv->req_in = VESmail_xform_new(&VESmail_now_xform_fn_req, NULL, srv);
     srv->rsp_out = NULL;
+    srv->debugfn = &VESmail_now_debug;
     return srv;
 }

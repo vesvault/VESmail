@@ -197,12 +197,19 @@ int VESmail_server_run(VESmail_server *srv, int flags) {
     return rs;
 }
 
-libVES *VESmail_server_auth(VESmail_server *srv, const char *user, const char *pwd, int pwlen) {
+void VESmail_server_logauth(VESmail_server *srv, const char *user, const char *st) {
+    char *host = VESmail_server_sockname(srv, 0);
+    char *peer = VESmail_server_sockname(srv, 1);
+    VESmail_arch_log("auth %s(%d) srv=%s peer=%s user=%s", st, srv->ves->error, host, peer, user);
+    free(peer);
+    free(host);
+}
+
+int VESmail_server_auth(VESmail_server *srv, const char *user, const char *pwd, int pwlen) {
     const char *ext = strchr(user, '#');
-    const char *exc = strchr(user, '!');
-    if (ext && ext < exc) exc = NULL;
     const char *tail = ext ? ext : user + strlen(user);
-    if (exc && exc < tail) tail = exc;
+    const char *exc = memchr(user, '!', tail - user);
+    if (exc) tail = exc;
     libVES_free(srv->ves);
     if (memchr(user, '/', tail - user)) {
 	srv->ves = libVES_new(user);
@@ -213,10 +220,21 @@ libVES *VESmail_server_auth(VESmail_server *srv, const char *user, const char *p
     }
     if (srv->debug > VESMAIL_DEBUG_LIBVES) srv->ves->debug = srv->debug - VESMAIL_DEBUG_LIBVES;
     if (libVES_unlock(srv->ves, pwlen, pwd)) {
+	if (srv->optns->acl) {
+	    const char *uri = srv->optns->acl;
+	    libVES_VaultItem *vi = libVES_VaultItem_loadFromURI(&uri, srv->ves);
+	    int ok = vi && vi->value;
+	    libVES_VaultItem_free(vi);
+	    if (!ok) {
+		VESmail_server_logauth(srv, user, (vi ? "DENIED" : "ERROR"));
+		return vi ? VESMAIL_E_DENIED : VESMAIL_E_VES;
+	    }
+	}
+	VESmail_server_logauth(srv, user, "OK");
 	const char *rf;
 	char *userx = NULL;
 	if (ext) {
-	    rf = ext + 1;
+	    rf = ext[1] == '#' ? ext + 2 : user;
 	} else if (exc) {
 	    rf = user;
 	} else {
@@ -236,9 +254,11 @@ libVES *VESmail_server_auth(VESmail_server *srv, const char *user, const char *p
 	libVES_Cipher_free(ci);
 	libVES_VaultItem_free(vi);
 	libVES_Ref_free(ref);
-	if (srv->uconf) return srv->ves;
+	return srv->uconf ? 0 : VESMAIL_E_CONF;
+    } else {
+	VESmail_server_logauth(srv, user, "FAIL");
+	return VESMAIL_E_AUTH;
     }
-    return NULL;
 }
 
 VESmail_sasl *VESmail_server_sasl_client(int mech, jVar *uconf) {
@@ -340,10 +360,19 @@ char *VESmail_server_errorStr(VESmail_server *srv, int err) {
 	}
 	case VESMAIL_E_TLS:
 	    return strdup("TLS error");
+	case VESMAIL_E_AUTH:
+	    return strdup("Invalid VESmail credentials");
+	case VESMAIL_E_CONF:
+	    return strdup("Invalid or missing VESmail profile object");
+	case VESMAIL_E_DENIED:
+	    return strdup("Access denied");
 	case VESMAIL_E_PARAM:
 	    return strdup("Invalid parameters");
-	default:
-	    return strdup("Internal error");
+	default: {
+	    char *rs = malloc(80);
+	    sprintf(rs, "Internal error (%d)", err);
+	    return rs;
+	}
     }
 }
 

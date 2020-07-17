@@ -88,7 +88,7 @@ int VESmail_server_run(struct VESmail_server *srv, int flags);
 int VESmail_server_connect(struct VESmail_server *srv, struct jVar *conf, const char *dport);
 int VESmail_server_disconnect(struct VESmail_server *srv);
 #define VESmail_server_connected(srv)	((srv)->rsp_bio)
-struct libVES *VESmail_server_auth(struct VESmail_server *srv, const char *user, const char *pwd, int pwlen);
+int VESmail_server_auth(struct VESmail_server *srv, const char *user, const char *pwd, int pwlen);
 struct VESmail_sasl *VESmail_server_sasl_client(int mech, struct jVar *uconf);
 char *VESmail_server_errorStr(struct VESmail_server *srv, int err);
 int VESmail_server_lock(struct VESmail_server *srv);

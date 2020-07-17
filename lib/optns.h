@@ -46,6 +46,7 @@ typedef struct VESmail_optns {
 	char *url;
 	char *dir;
     } now;
+    char *acl;
 } VESmail_optns;
 
 struct VESmail_parse;

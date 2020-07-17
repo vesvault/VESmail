@@ -166,8 +166,8 @@ int VESmail_imap_start_fn_u_conn(int verb, VESmail_imap_token *token, VESmail_se
 }
 
 int VESmail_imap_auth(VESmail_server *srv, const char *user, const char *pwd, int pwlen) {
-    if (!VESmail_server_auth(srv, user, pwd, pwlen)) return VESMAIL_E_VES;
-    int r = VESmail_server_connect(srv, (VESMAIL_IMAP(srv)->uconf = jVar_get(srv->uconf, "imap")), "imap");
+    int r = VESmail_server_auth(srv, user, pwd, pwlen);
+    if (r >= 0) r = VESmail_server_connect(srv, (VESMAIL_IMAP(srv)->uconf = jVar_get(srv->uconf, "imap")), "imap");
     if (r >= 0) {
 	VESMAIL_IMAP(srv)->untaggedfn = &VESmail_imap_start_fn_u_conn;
 	VESMAIL_IMAP(srv)->state = VESMAIL_IMAP_S_CONN;

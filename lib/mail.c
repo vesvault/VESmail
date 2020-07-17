@@ -121,22 +121,53 @@ libVES_Cipher *VESmail_get_cipher(VESmail *mail) {
     return libVES_VaultItem_getCipher(VESmail_get_vaultItem(mail), mail->ves);
 }
 
+void VESmail_logrcpt(VESmail *mail, libVES_VaultKey *vkey) {
+    char pub[128];
+    const char *p = vkey->publicKey;
+    char *d = pub;
+    if (p) p = strchr(p, '\n');
+    while (p) {
+	p++;
+	const char *e = strchr(p, '\n');
+	if (!e || !e[1]) break;
+	if (d > pub + sizeof(pub) - 24) {
+	    *d++ = '.';
+	    *d++ = '.';
+	    *d++ = '.';
+	    break;
+	}
+	const char *e1 = e;
+	if (e1 > p && e1[-1] == '\r') e1--;
+	if (d > pub) *d++ = ',';
+	if (e1 - p > 17) {
+	    memcpy(d, p, 8);
+	    d += 8;
+	    *d++ = '~';
+	    p = e1 - 8;
+	}
+	memcpy(d, p, e1 - p);
+	d += e1 - p;
+	p = e;
+    }
+    *d = 0;
+    VESmail_arch_log("encrypt msgid=<%s> %s=ves:///%lld/ pub=%s", mail->msgid, (!vkey->ves->vaultKey || vkey->ves->vaultKey->id != vkey->id ? "rcpt" : "self"), vkey->id, pub);
+}
+
 int VESmail_save_ves(VESmail *mail) {
     libVES_VaultItem *vi = VESmail_get_vaultItem(mail);
     if (!vi) return VESMAIL_E_VES;
     if (mail->share) {
-	if (mail->optns->flags & VESMAIL_O_VES_NTFY) {
-	    int i;
-	    for (i = 0; i < mail->share->len; i++) {
-		libVES_VaultKey *vkey = mail->share->list[i];
-		if (libVES_VaultKey_isNew(vkey)) {
-		    libVES_VaultKey_setAppUrl(vkey, VESmail_nowUrl(mail));
-		}
+	int i;
+	for (i = 0; i < mail->share->len; i++) {
+	    libVES_VaultKey *vkey = mail->share->list[i];
+	    if ((mail->optns->flags & VESMAIL_O_VES_NTFY) && libVES_VaultKey_isNew(vkey)) {
+		libVES_VaultKey_setAppUrl(vkey, VESmail_nowUrl(mail));
 	    }
+	    VESmail_logrcpt(mail, vkey);
 	}
 	if (!libVES_VaultItem_entries(vi, mail->share, LIBVES_SH_ADD)) return VESMAIL_E_VES;
     }
-    if (!libVES_VaultItem_post(vi, mail->ves)) return VESMAIL_E_VES;
+    if ((mail->share || libVES_VaultItem_isNew(vi)) && !libVES_VaultItem_post(vi, mail->ves)) return VESMAIL_E_VES;
     VESmail_unset_vaultItem(mail);
     return 0;
 }

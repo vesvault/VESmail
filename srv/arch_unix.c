@@ -36,7 +36,7 @@
 #include <sys/select.h>
 #include <sys/time.h>
 #include <stdarg.h>
-
+#include <syslog.h>
 
 const char *VESmail_arch_NAME = "Unix";
 
@@ -121,4 +121,17 @@ int VESmail_arch_write(int fd, const char *src, int len) {
 
 int VESmail_arch_close(int fd) {
     return close(fd);
+}
+
+int VESmail_arch_log(const char *fmt, ...) {
+    static char started = 0;
+    if (!started) {
+	openlog("vesmail", LOG_PID, LOG_MAIL);
+	started = 1;
+    }
+    va_list va;
+    va_start(va, fmt);
+    vsyslog(LOG_NOTICE, fmt, va);
+    va_end(va);
+    return 0;
 }

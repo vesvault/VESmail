@@ -84,11 +84,13 @@ now/now_store.h
 
 CLI_CFILES = cli/vesmail.c \
 cli/help.c \
-cli/tty.c
+cli/tty.c \
+cli/conf.c
 
 CLI_HFILES = cli/vesmail.h \
 cli/help.h \
-cli/tty.h
+cli/tty.h \
+cli/conf.h
 
 VESMAIL_HFILES = VESmail.h
 
