@@ -118,6 +118,7 @@ int VESmail_multi_xform_fn(VESmail_xform *xform, int final, const char *src, int
 	} else if (s) {
 	    int l = tail - s;
 	    if (strncmp(s, b, (l > bl ? bl : l))) continue;
+	    if (final && l < bl) continue;
 	    const char *s2 = s;
 	    if (s2 > s0) s2--;
 	    if (s2 > s0 && s2[-1] == '\r') s2--;

@@ -150,7 +150,7 @@ int VESmail_header_keys_values(const char *str, int len, void (* cb)(void *arg, 
 		val = d;
 		break;
 	    default:
-		*d++ = (val && c >= 'A' && c <= 'Z') ? c + 0x20 : c;
+		*d++ = (!val && c >= 'A' && c <= 'Z') ? c + 0x20 : c;
 		break;
 	}
     }
