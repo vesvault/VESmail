@@ -42,6 +42,7 @@ typedef struct VESmail {
     struct VESmail_xform *out;
     char *nowUrl;
     struct libVES_List *share;
+    int (*logfn)(const char *, ...);
 } VESmail;
 
 struct VESmail_parse;

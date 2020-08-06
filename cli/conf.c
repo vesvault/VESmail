@@ -42,6 +42,7 @@
 #include "../VESmail.h"
 #include "../lib/optns.h"
 #include "../srv/tls.h"
+#include "../srv/arch.h"
 #include "vesmail.h"
 #include "conf.h"
 

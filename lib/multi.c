@@ -74,6 +74,7 @@ VESmail_parse *VESmail_multi_new_part(VESmail_xform *xform, int len, const char 
 	    break;
     }
     VESmail_parse *parse = VESmail_parse_new(xform->parse->mail, xform->parse->hdrfn, xnext, encap);
+    if (encap == VESMAIL_EN_INJ) parse->dstenc = xform->parse->dstenc;
     if (xform->parse->partfn) xform->parse->partfn(xform->parse, parse);
     return xnext->parse = parse;
 }

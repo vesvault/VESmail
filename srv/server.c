@@ -90,7 +90,7 @@ VESmail_server *VESmail_server_init(VESmail_server *srv, VESmail_optns *optns) {
 
 #define VESmail_server_dump(fd, src, len)	if ((fd) >= 0) VESmail_arch_write(fd, src, len)
 
-#define	VESMAIL_SRV_OUTBUF	256
+#define	VESMAIL_SRV_OUTBUF	4096
 
 int VESmail_server_fn_bio_out(VESmail_xform *xform, int final, const char *src, int *srclen) {
     if (!src) {

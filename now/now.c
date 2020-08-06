@@ -43,6 +43,7 @@
 #include "../lib/mail.h"
 #include "../lib/optns.h"
 #include "../lib/xform.h"
+#include "../srv/arch.h"
 #include "now_store.h"
 #include "now.h"
 

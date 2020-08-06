@@ -397,6 +397,7 @@ int main(int argc, char **argv) {
 		    ? VESmail_now_store_apply(VESmail_new_encrypt(ves, params.optns))
 		    : VESmail_new_decrypt(ves, params.optns);
 		if (mail) {
+		    mail->logfn = &VESmail_arch_log;
 		    rs = do_convert(mail, 0, 1);
 		    VESmail_free(mail);
 		} else {

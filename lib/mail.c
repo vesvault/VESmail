@@ -74,6 +74,7 @@ VESmail *VESmail_new(libVES *ves, VESmail_optns *optns, int (* headerfn)(struct 
     mail->root = VESmail_parse_new(mail, headerfn, mail->out, VESMAIL_EN_ROOT);
     mail->share = NULL;
     mail->nowUrl = NULL;
+    mail->logfn = NULL;
     return mail;
 }
 
@@ -122,6 +123,7 @@ libVES_Cipher *VESmail_get_cipher(VESmail *mail) {
 }
 
 void VESmail_logrcpt(VESmail *mail, libVES_VaultKey *vkey) {
+    if (!mail->logfn) return;
     char pub[128];
     const char *p = vkey->publicKey;
     char *d = pub;
@@ -150,7 +152,9 @@ void VESmail_logrcpt(VESmail *mail, libVES_VaultKey *vkey) {
 	p = e;
     }
     *d = 0;
-    VESmail_arch_log("encrypt msgid=<%s> %s=ves:///%lld/ pub=%s", mail->msgid, (!vkey->ves->vaultKey || vkey->ves->vaultKey->id != vkey->id ? "rcpt" : "self"), vkey->id, pub);
+    char *uri = libVES_VaultKey_toURI(vkey);
+    mail->logfn("encrypt msgid=<%s> %s=%s[%lld] pub=%s", mail->msgid, (!vkey->ves->vaultKey || vkey->ves->vaultKey->id != vkey->id ? "rcpt" : "self"), uri, vkey->id, pub);
+    free(uri);
 }
 
 int VESmail_save_ves(VESmail *mail) {
