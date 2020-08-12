@@ -218,8 +218,8 @@ int VESmail_smtp_cmd_xform_fn(VESmail_xform *xform, int final, const char *src, 
 			if (endf) {
 			    if (smtp->mail) {
 				const char *eom = s;
-				if (eom > src && eom[-1] == '\n') eom--;
-				if (eom > src && eom[-1] == '\r') eom--;
+//				if (eom > src && eom[-1] == '\n') eom--;
+//				if (eom > src && eom[-1] == '\r') eom--;
 				r = VESmail_convert(smtp->mail, NULL, 1, s0, eom - s0);
 				if (r < 0) return r;
 				rs += r;

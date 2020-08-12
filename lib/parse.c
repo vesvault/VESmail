@@ -101,6 +101,23 @@ int VESmail_parse_header_type(VESmail_parse *parse, const char *lckey) {
     }
 }
 
+VESmail_header *VESmail_parse_blank_inj(const char *src, int srclen) {
+    static VESmail_header blank = {
+	.type = VESMAIL_H_BLANK
+    };
+    if (srclen > 0 && src[srclen - 1] == '\n') {
+	blank.key = src + srclen - 1;
+	if (blank.key > src && blank.key[-1] == '\r') {
+	    blank.key--;
+	    blank.len = 2;
+	} else blank.len = 1;
+    } else {
+	blank.key = "\r\n";
+	blank.len = 2;
+    }
+    return &blank;
+}
+
 int VESmail_parse_hdr(struct VESmail_parse *parse, const char *src, int *srclen) {
     enum { S_INIT, S_BLANK, S_KEY, S_COLON, S_PVAL, S_VAL, S_NEXT, S_PNEXT, S_CONT, S_PCONT, S_ERROR, S_SEND, S_FINISH } st = S_INIT;
     const char *tail = src + *srclen;
@@ -205,12 +222,7 @@ int VESmail_parse_hdr(struct VESmail_parse *parse, const char *src, int *srclen)
 	}
 	switch (st) {
 	    case S_ERROR: {
-		VESmail_header blank = {
-		    .key = "\r\n",
-		    .len = 2,
-		    .type = VESMAIL_H_BLANK
-		};
-		int r = parse->hdrfn(parse, &blank);
+		int r = parse->hdrfn(parse, VESmail_parse_blank_inj(src, *srclen));
 		if (r < 0) return r;
 		rs += r;
 		break;
@@ -258,10 +270,15 @@ int VESmail_parse_process(struct VESmail_parse *parse, int final, const char *sr
 	rs += r;
     } else srch = 0;
     if (parse->state == VESMAIL_S_BODY || final) {
+	if (parse->state != VESMAIL_S_BODY) {
+	    parse->error |= VESMAIL_PE_HDR_END;
+	    int r = parse->hdrfn(parse, VESmail_parse_blank_inj(src, srch));
+	    if (r < 0) return r;
+	    rs += r;
+	}
 	int r = VESmail_xform_process(parse->xform, final, src + srch, *srclen - srch);
 	if (r < 0) return r;
 	rs += r;
-	if (parse->state != VESMAIL_S_BODY) parse->error |= VESMAIL_PE_HDR_END;
     } else {
 	*srclen = srch;
     }
