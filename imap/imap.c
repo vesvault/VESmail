@@ -238,6 +238,7 @@ int VESmail_imap_rsp_fn(VESmail_server *srv, VESmail_imap_token *token) {
 			if (!trkptr && verb == VESMAIL_IMAP_V_BAD) imap->ctBad++;
 			break;
 		    case '+': {
+			if (srv->sasl) return VESmail_imap_start_sasl_cont(srv, (token->len == 2 ? token->list[1] : NULL));
 			int hld = imap->cont && imap->cont->hold;
 			if (hld && imap->cont->hold->literal) return VESmail_imap_req_fwd(srv, NULL);
 			srv->flags &= ~VESMAIL_SRVF_OVER;

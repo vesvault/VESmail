@@ -240,6 +240,11 @@ int VESmail_imap_xform_fn(VESmail_xform *xform, int final, const char *src, int 
 	} else if (xform->imap->list != xform->imap->line) {
 	    line->flags |= VESMAIL_IMAP_PE_LIST;
 	} else {
+	    if (curr) {
+		VESmail_imap_xform_pdone(curr);
+	    } else if (line->len > 0) {
+		VESmail_imap_token_push(line, VESmail_imap_token_new(VESMAIL_IMAP_T_ATOM, 0));
+	    }
 	    line->state = VESMAIL_IMAP_P_DONE;
 	}
 	if (line->flags & VESMAIL_IMAP_PE) {

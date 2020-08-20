@@ -34,9 +34,11 @@
 #include <stddef.h>
 #include <string.h>
 #include <stdlib.h>
+#include <stdio.h>
 
 #include "../VESmail.h"
 #include "../lib/util.h"
+#include "arch.h"
 #include "sasl.h"
 
 #define VESMAIL_VERB(verb)	#verb,
@@ -150,12 +152,36 @@ char *VESmail_sasl_fn_srv_login(VESmail_sasl *sasl, const char *token, int len) 
     return rsp ? strdup(rsp) : NULL;
 }
 
+char *VESmail_sasl_fn_cln_xoauth2(VESmail_sasl *sasl, const char *token, int len) {
+    if (!sasl->user) return NULL;
+    if (sasl->state > 0) {
+	if (sasl->state > 1) return NULL;
+	if (token) {
+	    char *buf = NULL;
+	    const char *er = NULL;
+	    int l = VESmail_b64decode(&buf, token, &len, &er);
+	    if (l >= 0) VESmail_arch_log("sasl mech=%s rsp=%s", VESmail_sasl_get_name(sasl), buf);
+	    free(buf);
+	}
+	sasl->state++;
+	return strdup("");
+    }
+    sasl->state = 1;
+    char *saslt = malloc(strlen(sasl->user) + sasl->pwlen + 24);
+    sprintf(saslt, "user=%s\x01auth=Bearer %.*s\x01\x01", sasl->user, sasl->pwlen, sasl->passwd);
+    char *b64 = VESmail_b64encode(saslt, strlen(saslt), NULL);
+    free(saslt);
+    return b64;
+}
+
 VESmail_sasl *VESmail_sasl_new_client(int mech) {
     switch (mech) {
 	case VESMAIL_SASL_M_PLAIN:
 	    return VESmail_sasl_init(malloc(sizeof(VESmail_sasl)), VESMAIL_SASL_M_PLAIN, &VESmail_sasl_fn_cln_plain);
 	case VESMAIL_SASL_M_LOGIN:
 	    return VESmail_sasl_init(malloc(sizeof(VESmail_sasl)), VESMAIL_SASL_M_LOGIN, &VESmail_sasl_fn_cln_login);
+	case VESMAIL_SASL_M_XOAUTH2:
+	    return VESmail_sasl_init(malloc(sizeof(VESmail_sasl)), VESMAIL_SASL_M_XOAUTH2, &VESmail_sasl_fn_cln_xoauth2);
 	default:
 	    return NULL;
     }

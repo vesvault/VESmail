@@ -32,7 +32,8 @@
 
 #define	VESMAIL_SASL_MECHS()	\
     VESMAIL_VERB(PLAIN) \
-    VESMAIL_VERB(LOGIN)
+    VESMAIL_VERB(LOGIN) \
+    VESMAIL_VERB(XOAUTH2)
 
 typedef struct VESmail_sasl {
     char *user;

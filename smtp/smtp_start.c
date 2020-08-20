@@ -77,6 +77,7 @@ int VESmail_smtp_start_login_fail(VESmail_server *srv, const char *msg, VESmail_
 	if (r < 0) return r;
 	rs += r;
     }
+    VESmail_server_disconnect(srv);
     return rs;
 }
 
