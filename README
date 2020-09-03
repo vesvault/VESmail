@@ -2,7 +2,7 @@
  *  _____
  * |\    | >                   VESmail Project
  * | \   | >  ___       ___    Email Encryption made Convenient and Reliable
- * |  \  | > /   \     /   \                              https://mail.ves.world
+ * |  \  | > /   \     /   \                               https://vesmail.email
  * |  /  | > \__ /     \ __/
  * | /   | >    \\     //        - RFC5322 MIME Stream Encryption & Decryption
  * |/____| >     \\   //         - IMAP4rev1 Transparent Proxy Server
@@ -41,7 +41,7 @@ etc/vesmail/: Sample config and template files
 etc/xinetd.d/: A sample daemonizer conf for IMAP & SMTP proxies
 
 VESmail account is needed in order to use VESmail proxy and utility
-[https://mail.ves.world]
+[https://vesmail.email]
 
 
 REQUIREMENTS:

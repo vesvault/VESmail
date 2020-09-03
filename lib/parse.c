@@ -2,7 +2,7 @@
  *  _____
  * |\    | >                   VESmail Project
  * | \   | >  ___       ___    Email Encryption made Convenient and Reliable
- * |  \  | > /   \     /   \                              https://mail.ves.world
+ * |  \  | > /   \     /   \                               https://vesmail.email
  * |  /  | > \__ /     \ __/
  * | /   | >    \\     //        - RFC5322 MIME Stream Encryption & Decryption
  * |/____| >     \\   //         - IMAP4rev1 Transparent Proxy Server

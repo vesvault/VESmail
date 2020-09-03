@@ -4,7 +4,7 @@ rem /***************************************************************************
 rem  *  _____
 rem  * |\    | >                   VESmail Project
 rem  * | \   | >  ___       ___    Email Encryption made Convenient and Reliable
-rem  * |  \  | > /   \     /   \                              https://mail.ves.world
+rem  * |  \  | > /   \     /   \                               https://vesmail.email
 rem  * |  /  | > \__ /     \ __/
 rem  * | /   | >    \\     //        - RFC5322 MIME Stream Encryption & Decryption
 rem  * |/____| >     \\   //         - IMAP4rev1 Transparent Proxy Server

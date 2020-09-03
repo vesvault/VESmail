@@ -2,7 +2,7 @@
  *  _____
  * |\    | >                   VESmail Project
  * | \   | >  ___       ___    Email Encryption made Convenient and Reliable
- * |  \  | > /   \     /   \                              https://mail.ves.world
+ * |  \  | > /   \     /   \                               https://vesmail.email
  * |  /  | > \__ /     \ __/
  * | /   | >    \\     //        - RFC5322 MIME Stream Encryption & Decryption
  * |/____| >     \\   //         - IMAP4rev1 Transparent Proxy Server
@@ -85,7 +85,11 @@ int VESmail_tls_cert_ok(VESmail_server *srv, X509 *crt) {
 
 int VESmail_tls_client_start(VESmail_server *srv, int starttls) {
     if (!starttls && !srv->tls.client->persist) return 0;
+#if	(OPENSSL_VERSION_NUMBER >= 0x10100000L)
+    const SSL_METHOD *method = TLS_client_method();
+#else
     const SSL_METHOD *method = SSLv23_client_method();
+#endif
     SSL_CTX *ctx = SSL_CTX_new(method);
     if (!ctx) return VESMAIL_E_TLS;
     SSL_CTX_set_default_verify_paths(ctx);
@@ -160,7 +164,11 @@ VESmail_tls_server *VESmail_tls_server_new() {
 int VESmail_tls_server_start(VESmail_server *srv, int starttls) {
     if (!srv->tls.server) return starttls ? VESMAIL_E_PARAM : 0;
     if (!starttls && !srv->tls.server->persist) return 0;
+#if	(OPENSSL_VERSION_NUMBER >= 0x10100000L)
+    const SSL_METHOD *method = TLS_server_method();
+#else
     const SSL_METHOD *method = TLSv1_2_server_method();
+#endif
     SSL_CTX *ctx = SSL_CTX_new(method);
     if (!ctx) return VESMAIL_E_TLS;
     if ((srv->tls.server->cert && SSL_CTX_use_certificate_file(ctx, srv->tls.server->cert, SSL_FILETYPE_PEM) <= 0)
@@ -171,6 +179,7 @@ int VESmail_tls_server_start(VESmail_server *srv, int starttls) {
 	SSL_CTX_free(ctx);
 	return VESMAIL_E_TLS;
     }
+    SSL_CTX_set_options(ctx, SSL_OP_NO_SSLv3 | SSL_OP_NO_TLSv1 | SSL_OP_NO_TLSv1_1);
     VESmail_arch_set_nb(BIO_get_fd(srv->req_bio, NULL), 0);
     SSL *ssl = SSL_new(ctx);
     SSL_set_bio(ssl, srv->req_bio, srv->rsp_out->bio);

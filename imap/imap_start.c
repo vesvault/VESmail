@@ -2,7 +2,7 @@
  *  _____
  * |\    | >                   VESmail Project
  * | \   | >  ___       ___    Email Encryption made Convenient and Reliable
- * |  \  | > /   \     /   \                              https://mail.ves.world
+ * |  \  | > /   \     /   \                               https://vesmail.email
  * |  /  | > \__ /     \ __/
  * | /   | >    \\     //        - RFC5322 MIME Stream Encryption & Decryption
  * |/____| >     \\   //         - IMAP4rev1 Transparent Proxy Server
@@ -66,6 +66,24 @@ int VESmail_imap_start_ready(VESmail_server *srv) {
     return VESmail_imap_rsp_send_hello(srv);
 }
 
+int VESmail_imap_start_login_fail(VESmail_server *srv, const char *msg, VESmail_imap_token *relayed) {
+    VESmail_imap_token *tag = VESmail_imap_track_cp_tag(VESMAIL_IMAP(srv)->track);
+    VESmail_imap_track_done(&VESMAIL_IMAP(srv)->track);
+    VESmail_imap_token *rsp = VESmail_imap_rsp_new(tag, "NO");
+    if (msg) VESmail_imap_token_splice(rsp, -1, 0, 1, VESmail_imap_token_atom(msg));
+    if (relayed) {
+	VESmail_imap_token *rel = VESmail_imap_token_clone(relayed);
+	if (rel->type == VESMAIL_IMAP_T_LINE) rel->type = VESMAIL_IMAP_T_LIST;
+	VESmail_imap_token_push(rsp, rel);
+    }
+    int rs = VESmail_imap_rsp_send(srv, rsp);
+    VESmail_imap_token_free(rsp);
+    srv->req_in->imap->procfn = &VESmail_imap_start_req_fn;
+    srv->req_in->imap->state = VESMAIL_IMAP_X_INIT;
+    VESmail_server_disconnect(srv);
+    return rs;
+}
+
 int VESmail_imap_fwd_login(VESmail_server *srv) {
     int rs;
     VESmail_imap_track *trk = VESMAIL_IMAP(srv)->track;
@@ -110,24 +128,6 @@ int VESmail_imap_start_sasl_cont(struct VESmail_server *srv, struct VESmail_imap
 	}
     }
     return VESmail_imap_start_login_fail(srv, "Error negotiating SASL with the server", NULL);
-}
-
-int VESmail_imap_start_login_fail(VESmail_server *srv, const char *msg, VESmail_imap_token *relayed) {
-    VESmail_imap_token *tag = VESmail_imap_track_cp_tag(VESMAIL_IMAP(srv)->track);
-    VESmail_imap_track_done(&VESMAIL_IMAP(srv)->track);
-    VESmail_imap_token *rsp = VESmail_imap_rsp_new(tag, "NO");
-    if (msg) VESmail_imap_token_splice(rsp, -1, 0, 1, VESmail_imap_token_atom(msg));
-    if (relayed) {
-	VESmail_imap_token *rel = VESmail_imap_token_clone(relayed);
-	if (rel->type == VESMAIL_IMAP_T_LINE) rel->type = VESMAIL_IMAP_T_LIST;
-	VESmail_imap_token_push(rsp, rel);
-    }
-    int rs = VESmail_imap_rsp_send(srv, rsp);
-    VESmail_imap_token_free(rsp);
-    srv->req_in->imap->procfn = &VESmail_imap_start_req_fn;
-    srv->req_in->imap->state = VESMAIL_IMAP_X_INIT;
-    VESmail_server_disconnect(srv);
-    return rs;
 }
 
 int VESmail_imap_start_fn_rsp_starttls(int verb, VESmail_imap_token *rsp, VESmail_imap_track *trk) {
