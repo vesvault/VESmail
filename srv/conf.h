@@ -31,6 +31,28 @@
  ***************************************************************************/
 
 struct jVar;
+struct VESmail_optns;
+struct VESmail_tls_server;
+struct VESmail_tls_client;
 
-struct jVar *read_conf(const char *path);
-void apply_conf(struct jVar *conf);
+typedef struct VESmail_conf {
+    struct VESmail_optns *optns;
+    struct VESmail_tls_server *tls;
+    const char *hostname;
+    const char **banner;
+    char **bannerPath;
+    char *manifest;
+    struct jVar *app;
+    struct {
+	char *prefix;
+	char *suffix;
+	int require;
+    } sni;
+} VESmail_conf;
+
+struct jVar *VESmail_conf_read(const char *path, void (* errfn)(const char *, ...));
+char *VESmail_conf_get_content(const char *path);
+void VESmail_conf_apply(struct VESmail_conf *conf, struct jVar *jconf);
+struct jVar *VESmail_conf_sni_read(struct VESmail_conf *conf, const char *sni, void (* errfn)(const char *, ...));
+void VESmail_conf_setstr(char **val, struct jVar *conf);
+

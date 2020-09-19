@@ -45,6 +45,7 @@ int VESmail_arch_read(int fd, char *buf, int len);
 int VESmail_arch_write(int fd, const char *src, int len);
 int VESmail_arch_close(int fd);
 int VESmail_arch_log(const char *fmt, ...);
+int VESmail_arch_vlog(const char *fmt, void *va);
 
 #ifdef _WIN32
 

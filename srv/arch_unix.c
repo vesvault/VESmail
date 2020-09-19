@@ -123,15 +123,24 @@ int VESmail_arch_close(int fd) {
     return close(fd);
 }
 
-int VESmail_arch_log(const char *fmt, ...) {
+int VESmail_arch_valog(const char *fmt, va_list va) {
     static char started = 0;
     if (!started) {
 	openlog("vesmail", LOG_PID, LOG_MAIL);
 	started = 1;
     }
+    vsyslog(LOG_NOTICE, fmt, va);
+    return 0;
+}
+
+int VESmail_arch_log(const char *fmt, ...) {
     va_list va;
     va_start(va, fmt);
-    vsyslog(LOG_NOTICE, fmt, va);
+    VESmail_arch_valog(fmt, va);
     va_end(va);
     return 0;
+}
+
+int VESmail_arch_vlog(const char *fmt, void *va) {
+    return VESmail_arch_valog(fmt, *((va_list *) va));
 }

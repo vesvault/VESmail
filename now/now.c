@@ -214,6 +214,7 @@ void VESmail_now_debug(VESmail_server *srv, const char *msg) {
 
 VESmail_server *VESmail_server_new_now(VESmail_optns *optns) {
     VESmail_server *srv = VESmail_server_init(malloc(sizeof(VESmail_server)), optns);
+    srv->type = "now";
     srv->req_in = VESmail_xform_new(&VESmail_now_xform_fn_req, NULL, srv);
     srv->rsp_out = NULL;
     srv->debugfn = &VESmail_now_debug;

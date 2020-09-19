@@ -154,32 +154,62 @@ void VESmail_tls_client_done(VESmail_server *srv) {
 
 VESmail_tls_server *VESmail_tls_server_new() {
     VESmail_tls_server *tls = malloc(sizeof(VESmail_tls_server));
+    tls->ctx = NULL;
     tls->cert = NULL;
     tls->ca = NULL;
     tls->key = NULL;
     tls->persist = 0;
+    tls->snifn = NULL;
     return tls;
 }
 
-int VESmail_tls_server_start(VESmail_server *srv, int starttls) {
-    if (!srv->tls.server) return starttls ? VESMAIL_E_PARAM : 0;
-    if (!starttls && !srv->tls.server->persist) return 0;
+SSL_CTX *VESmail_tls_server_ctx(VESmail_server *srv) {
+    if (srv->tls.server->ctx) return srv->tls.server->ctx;
 #if	(OPENSSL_VERSION_NUMBER >= 0x10100000L)
     const SSL_METHOD *method = TLS_server_method();
 #else
     const SSL_METHOD *method = TLSv1_2_server_method();
 #endif
     SSL_CTX *ctx = SSL_CTX_new(method);
-    if (!ctx) return VESMAIL_E_TLS;
+    if (!ctx) return NULL;
     if ((srv->tls.server->cert && SSL_CTX_use_certificate_file(ctx, srv->tls.server->cert, SSL_FILETYPE_PEM) <= 0)
 	|| (srv->tls.server->key && (
 	    SSL_CTX_use_PrivateKey_file(ctx, srv->tls.server->key, SSL_FILETYPE_PEM) <= 0
 	    || SSL_CTX_check_private_key(ctx) <= 0))
-	|| (srv->tls.server->ca && SSL_CTX_use_certificate_chain_file(ctx, srv->tls.server->ca) <= 0)) {
+	|| (srv->tls.server->ca && SSL_CTX_use_certificate_chain_file(ctx, srv->tls.server->ca) <= 0)
+	) {
+	SSL_CTX_free(ctx);
+	return NULL;
+    }
+    SSL_CTX_set_options(ctx, SSL_OP_NO_SSLv3 | SSL_OP_NO_TLSv1 | SSL_OP_NO_TLSv1_1);
+    return srv->tls.server->ctx = ctx;
+}
+
+int VESmail_tls_server_snifn(SSL *ssl, int *al, void *arg) {
+    VESmail_server *srv = arg;
+    const char *sni = SSL_get_servername(ssl, TLSEXT_NAMETYPE_host_name);
+    if (!sni) return SSL_TLSEXT_ERR_NOACK;
+    int r = srv->tls.server->snifn(srv, sni);
+    if (r < 0) return SSL_TLSEXT_ERR_ALERT_FATAL;
+    SSL_CTX *ctx = VESmail_tls_server_ctx(srv);
+    if (!ctx) return SSL_TLSEXT_ERR_ALERT_FATAL;
+    SSL_CTX *ctx2 = SSL_set_SSL_CTX(ssl, ctx);
+    if (ctx2 != ctx) return SSL_TLSEXT_ERR_NOACK;
+    return SSL_TLSEXT_ERR_OK;
+}
+
+int VESmail_tls_server_start(VESmail_server *srv, int starttls) {
+    if (!srv->tls.server) return starttls ? VESMAIL_E_PARAM : 0;
+    if (!starttls && !srv->tls.server->persist) return 0;
+    SSL_CTX *ctx = VESmail_tls_server_ctx(srv);
+    if (!ctx) return VESMAIL_E_TLS;
+    if (srv->tls.server->snifn && (
+	SSL_CTX_set_tlsext_servername_callback(ctx, &VESmail_tls_server_snifn) <= 0
+	|| SSL_CTX_set_tlsext_servername_arg(ctx, srv) <= 0
+    )) {
 	SSL_CTX_free(ctx);
 	return VESMAIL_E_TLS;
     }
-    SSL_CTX_set_options(ctx, SSL_OP_NO_SSLv3 | SSL_OP_NO_TLSv1 | SSL_OP_NO_TLSv1_1);
     VESmail_arch_set_nb(BIO_get_fd(srv->req_bio, NULL), 0);
     SSL *ssl = SSL_new(ctx);
     SSL_set_bio(ssl, srv->req_bio, srv->rsp_out->bio);
@@ -193,12 +223,19 @@ int VESmail_tls_server_start(VESmail_server *srv, int starttls) {
     return 0;
 }
 
+void VESmail_tls_server_ctxreset(VESmail_tls_server *tls) {
+    if (!tls) return;
+    if (tls->ctx) SSL_CTX_free(tls->ctx);
+    tls->ctx = NULL;
+}
+
 void VESmail_tls_server_done(VESmail_server *srv) {
     VESmail_tls_server *tls = srv->tls.server;
     if (tls) {
 	SSL *ssl = NULL;
 	BIO_get_ssl(srv->req_bio, &ssl);
 	if (ssl) SSL_shutdown(ssl);
+	VESmail_tls_server_ctxreset(tls);
 	srv->tls.server = NULL;
     }
 }

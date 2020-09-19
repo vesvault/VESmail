@@ -38,6 +38,7 @@
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdarg.h>
 #include <fcntl.h>
 #include <jVar.h>
 #include <libVES.h>
@@ -54,24 +55,26 @@
 #include "../smtp/smtp.h"
 #include "../now/now.h"
 #include "../now/now_store.h"
+#include "../srv/conf.h"
 #include "help.h"
-#include "conf.h"
 #include "vesmail.h"
 
-struct VESmail_tls_server tls_srv = {
-    .cert = NULL,
-    .ca = NULL,
-    .key = NULL,
-    .persist = 0
+struct VESmail_conf conf = {
+    .bannerPath = NULL,
+    .banner = NULL,
+    .manifest = NULL,
+    .app = NULL,
+    .sni = {
+	.prefix = NULL
+    }
 };
+
 struct param_st params = {
     .user = NULL,
     .veskey = NULL,
     .token = NULL,
     .confPath = VESMAIL_CONF_PATH "vesmail.conf",
     .veskeyPath = VESMAIL_CONF_PATH "veskeys/",
-    .bannerPath = NULL,
-    .banner = NULL,
     .debug = 0
 };
 
@@ -113,66 +116,11 @@ int do_convert(VESmail *mail, int in, int out) {
     return 0;
 }
 
-char *get_content(const char *path) {
-    int fd = VESmail_arch_openr(path);
-    if (fd < 0) return NULL;
-    int max = 65536;
-    int len = 0;
-    char *cont = malloc(max);
-    int r;
-    while (1) {
-	r = VESmail_arch_read(fd, cont + len, max - len);
-	if (r <= 0) break;
-	len += r;
-	if (len == max) {
-	    max += 65536;
-	    cont = realloc(cont, max);
-	}
-    }
-    VESmail_arch_close(fd);
-    if (r < 0) {
-	free(cont);
-	cont = NULL;
-    } else {
-	cont = realloc(cont, len + 1);
-	cont[len] = 0;
-    }
-    return cont;
-}
-
-char *add_banner(const char *path) {
-    char *banner = get_content(path);
-    if (banner) {
-	int l;
-	if (params.banner) {
-	    for (l = 0; params.banner[l]; l++);
-	} else l = 0;
-	params.banner = realloc(params.banner, sizeof(*(params.banner)) * (l + 2));
-	params.banner[l] = banner;
-	params.banner[l + 1] = NULL;
-    }
-    return banner;
-}
-
-const char **init_banner(VESmail_optns *optns) {
-    if (!params.banner) {
-	if (params.bannerPath) {
-	    char **p = params.bannerPath;
-	    while (*p) add_banner(*p++);
-	    if (!params.banner) *(params.banner = malloc(sizeof(*params.banner))) = NULL;
-	} else {
-	    add_banner(VESMAIL_CONF_PATH "vesmail-banner-txt");
-	    add_banner(VESMAIL_CONF_PATH "vesmail-banner-html");
-	}
-    }
-    return params.banner;
-}
-
 int run_server(VESmail_server *srv, int in, int out) {
     srv->debug = params.debug;
     if (params.dumpfd) sscanf(params.dumpfd, "%d", &srv->dumpfd);
-    if (params.hostname) srv->host = params.hostname;
-    VESmail_server_set_tls(srv, &tls_srv);
+    if (conf.hostname) srv->host = conf.hostname;
+    VESmail_server_set_tls(srv, conf.tls);
     int r = VESmail_server_set_fd(srv, in, out);
     if (r >= 0) r = VESmail_server_run(srv, 0);
     VESmail_server_free(srv);
@@ -185,6 +133,45 @@ int run_server(VESmail_server *srv, int in, int out) {
 	return vm_error(r);
     }
     return r;
+}
+
+void errfn_stderr(const char *fmt, ...) {
+    va_list va;
+    va_start(va, fmt);
+    vfprintf(stderr, fmt, va);
+    va_end(va);
+}
+
+void errfn_sni(const char *fmt, ...) {
+    char fb[256];
+    sprintf(fb, "sni error %s", fmt);
+    va_list va;
+    va_start(va, fmt);
+    VESmail_arch_vlog(fb, &va);
+    va_end(va);
+}
+
+int cli_snifn(VESmail_server *srv, const char *sni) {
+    VESmail_arch_log("sni host=%s", sni);
+    jVar *jconf = VESmail_conf_sni_read(&conf, sni, &errfn_sni);
+    if (!jconf && conf.sni.require) return VESMAIL_E_CONF;
+    VESmail_conf_apply(&conf, jVar_get(jconf, "*"));
+    VESmail_conf_apply(&conf, jVar_get(jconf, srv->type));
+    VESmail_tls_server_ctxreset(srv->tls.server);
+    return 0;
+}
+
+void apply_conf(jVar *jconf) {
+    VESmail_conf_apply(&conf, jconf);
+    VESmail_conf_setstr(&params.veskeyPath, jVar_get(jconf, "veskey-dir"));
+    jVar *sni = jVar_get(jconf, "sni");
+    if (sni) {
+	VESmail_conf_setstr(&conf.sni.prefix, jVar_get(sni, "prefix"));
+	VESmail_conf_setstr(&conf.sni.suffix, jVar_get(sni, "suffix"));
+	jVar *rq = jVar_get(sni, "require");
+	if (rq) conf.sni.require = jVar_getBool(rq);
+	conf.tls->snifn = &cli_snifn;
+    }
 }
 
 int main(int argc, char **argv) {
@@ -212,9 +199,10 @@ int main(int argc, char **argv) {
 	struct setfn_st *setptr;
     } in = {.ptr = NULL, .putfn = NULL, .getfn = NULL, .setptr = NULL};
 
-    params.hostname = VESmail_arch_gethostname();
-    params.optns = VESmail_optns_new();
-    params.optns->getBanners = &init_banner;
+    conf.hostname = VESmail_arch_gethostname();
+    conf.optns = VESmail_optns_new();
+    conf.tls = VESmail_tls_server_new();
+//    params.optns->getBanners = &init_banner;
     
     /**************************************
      * Collect the command line arguments
@@ -309,7 +297,7 @@ int main(int argc, char **argv) {
 			in.ptr = (void *) &params.dumpfd;
 			break;
 		    case o_tls:
-			tls_srv.persist = 1;
+			conf.tls->persist = 1;
 			break;
 		    case o_x:
 			if (params.debug < 0) params.debug = 1;
@@ -359,8 +347,8 @@ int main(int argc, char **argv) {
 	return E_PARAM;
     }
     
-    jVar *conf = read_conf(params.confPath);
-    apply_conf(jVar_get(conf, "*"));
+    jVar *jconf = VESmail_conf_read(params.confPath, &errfn_stderr);
+    apply_conf(jVar_get(jconf, "*"));
     
     libVES_init(VESMAIL_VERSION_SHORT);
     VESmail_tls_init();
@@ -373,7 +361,7 @@ int main(int argc, char **argv) {
 		char *f = malloc(strlen(params.user) + strlen(params.veskeyPath) + 2);
 		strcpy(f, params.veskeyPath);
 		strcat(f, params.user);
-		params.veskey = get_content(f);
+		params.veskey = VESmail_conf_get_content(f);
 		if (!params.veskey) {
 		    if (params.debug >= 0) fprintf(stderr, "Error reading VESkey from %s\n", f);
 		    return E_IO;
@@ -394,8 +382,8 @@ int main(int argc, char **argv) {
 	    if (params.token) libVES_setSessionToken(ves, params.token);
 	    if (!params.veskey || libVES_unlock(ves, strlen(params.veskey), params.veskey)) {
 		VESmail *mail = cmd == cmd_enc
-		    ? VESmail_now_store_apply(VESmail_new_encrypt(ves, params.optns))
-		    : VESmail_new_decrypt(ves, params.optns);
+		    ? VESmail_now_store_apply(VESmail_new_encrypt(ves, conf.optns))
+		    : VESmail_new_decrypt(ves, conf.optns);
 		if (mail) {
 		    mail->logfn = &VESmail_arch_log;
 		    rs = do_convert(mail, 0, 1);
@@ -410,16 +398,16 @@ int main(int argc, char **argv) {
 	    break;
 	}
 	case cmd_imap: {
-	    apply_conf(jVar_get(conf, "imap"));
-	    return run_server(VESmail_server_new_imap(params.optns), 0, 1);
+	    apply_conf(jVar_get(jconf, "imap"));
+	    return run_server(VESmail_server_new_imap(conf.optns), 0, 1);
 	}
 	case cmd_smtp: {
-	    apply_conf(jVar_get(conf, "smtp"));
-	    return run_server(VESmail_server_new_smtp(params.optns), 0, 1);
+	    apply_conf(jVar_get(jconf, "smtp"));
+	    return run_server(VESmail_server_new_smtp(conf.optns), 0, 1);
 	}
 	case cmd_now: {
-	    apply_conf(jVar_get(conf, "now"));
-	    return run_server(VESmail_server_new_now(params.optns), 0, 1);
+	    apply_conf(jVar_get(jconf, "now"));
+	    return run_server(VESmail_server_new_now(conf.optns), 0, 1);
 	}
 	default:
 	    break;

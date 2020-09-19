@@ -30,6 +30,8 @@
  *
  ***************************************************************************/
 
+struct VESmail_server;
+
 typedef struct VESmail_tls_client {
     char *peer;
     enum {
@@ -43,9 +45,11 @@ typedef struct VESmail_tls_client {
 } VESmail_tls_client;
 
 typedef struct VESmail_tls_server {
+    void *ctx;
     char *cert;
     char *ca;
     char *key;
+    int (* snifn)(struct VESmail_server *srv, const char *sni);
     char persist;
 } VESmail_tls_server;
 
@@ -58,7 +62,9 @@ int VESmail_tls_client_start(struct VESmail_server *srv, int starttls);
 #define VESmail_tls_client_none(srv)	((srv)->tls.client->level == VESMAIL_TLS_NONE)
 #define VESmail_tls_client_started(srv)	((srv)->flags & VESMAIL_SRVF_TLSC)
 void VESmail_tls_client_done(struct VESmail_server *srv);
+struct VESmail_tls_server *VESmail_tls_server_new();
 int VESmail_tls_server_start(struct VESmail_server *srv, int starttls);
 #define VESmail_tls_server_allow_starttls(srv)	((srv)->tls.server && !((srv)->flags & VESMAIL_SRVF_TLSS))
 #define VESmail_tls_server_allow_plain(srv)	(1)
+void VESmail_tls_server_ctxreset(struct VESmail_tls_server *tls);
 void VESmail_tls_server_done(struct VESmail_server *srv);

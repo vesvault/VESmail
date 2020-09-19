@@ -218,7 +218,6 @@ void VESmail_sasl_set_passwd(struct VESmail_sasl *sasl, const char *passwd, int 
     }
 }
 
-
 char *VESmail_sasl_process(VESmail_sasl *sasl, const char *token, int len) {
     if (len < 0 && token) len = strlen(token);
     return sasl->tokenfn(sasl, token, len);

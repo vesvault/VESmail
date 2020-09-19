@@ -42,11 +42,14 @@ typedef struct VESmail_optns {
     char **mime;
     char **injected;
     const char **(* getBanners)(struct VESmail_optns *);
+    struct jVar *(* getApp)(struct VESmail_optns *);
     struct {
 	char *url;
 	char *dir;
     } now;
     char *acl;
+    char *unspecd;
+    void *ref;
 } VESmail_optns;
 
 struct VESmail_parse;

@@ -35,6 +35,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include <jVar.h>
 #include <libVES/Cipher.h>
 #include "../VESmail.h"
 #include "mail.h"
@@ -48,6 +49,21 @@ char *VESmail_banner_get_var(VESmail *mail, const char *var) {
     if (!strcmp(var, "url")) {
 	const char *now = VESmail_nowUrl(mail);
 	if (now) return strdup(now);
+    } else if (!strncmp(var, "app.", 4) && mail->optns->getApp) {
+	jVar *app = mail->optns->getApp(mail->optns);
+	const char *s = var + 4;
+	char *rs = NULL;
+	while (app) {
+	    const char *p = strchr(s, '.');
+	    app = jVar_getl(app, s, (p ? p - s : strlen(s)));
+	    if (p) s = p + 1;
+	    else {
+		rs = jVar_getString(app);
+		break;
+	    }
+	}
+	if (!rs) rs = strdup(mail->optns->unspecd);
+	return rs;
     }
     return NULL;
 }
@@ -82,7 +98,7 @@ int VESmail_banner_resolve(VESmail *mail, VESmail_xform *xform, const char *bann
 			if (r < 0) return r;
 		    }
 		    break;
-		} else if ((c >= 'a' && c <= 'z') || c == '_') {
+		} else if ((c >= 'a' && c <= 'z') || c == '_' || c == '.') {
 		    *d++ = c;
 		} else break;
 	    }

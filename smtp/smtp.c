@@ -91,6 +91,7 @@ void VESmail_smtp_fn_free(VESmail_server *srv) {
 
 VESmail_server *VESmail_server_new_smtp(VESmail_optns *optns) {
     VESmail_server *srv = VESmail_server_init(malloc(sizeof(VESmail_server) + sizeof(VESmail_smtp)), optns);
+    srv->type = "smtp";
     VESmail_smtp *smtp = VESMAIL_SMTP(srv);
     srv->debugfn = &VESmail_smtp_debug;
     srv->freefn = &VESmail_smtp_fn_free;

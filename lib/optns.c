@@ -50,11 +50,13 @@ struct VESmail_optns VESmail_optns_default = {
     .mime = VESmail_optns_default_mime,
     .injected = VESmail_optns_default_injected,
     .getBanners = NULL,
+    .getApp = NULL,
     .now = {
 	.url = NULL,
 	.dir = NULL
     },
-    .acl = NULL
+    .acl = NULL,
+    .unspecd = "[unspecified]"
 };
 
 struct VESmail_optns *VESmail_optns_new() {

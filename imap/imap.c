@@ -300,6 +300,7 @@ void VESmail_imap_fn_free(VESmail_server *srv) {
 
 VESmail_server *VESmail_server_new_imap(VESmail_optns *optns) {
     VESmail_server *srv = VESmail_server_init(malloc(sizeof(VESmail_server) + sizeof(VESmail_imap)), optns);
+    srv->type = "imap";
     VESmail_imap *imap = VESMAIL_IMAP(srv);
     srv->debugfn = &VESmail_imap_debug;
     srv->freefn = &VESmail_imap_fn_free;

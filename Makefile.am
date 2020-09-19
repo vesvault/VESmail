@@ -27,12 +27,14 @@ lib/util.h
 SRV_CFILES = srv/server.c \
 srv/arch.c \
 srv/tls.c \
-srv/sasl.c
+srv/sasl.c \
+srv/conf.c
 
 SRV_HFILES = srv/server.h \
 srv/arch.h \
 srv/tls.h \
-srv/sasl.h
+srv/sasl.h \
+srv/conf.h
 
 IMAP_CFILES = imap/imap.c \
 imap/imap_xform.c \
@@ -84,13 +86,11 @@ now/now_store.h
 
 CLI_CFILES = cli/vesmail.c \
 cli/help.c \
-cli/tty.c \
-cli/conf.c
+cli/tty.c
 
 CLI_HFILES = cli/vesmail.h \
 cli/help.h \
-cli/tty.h \
-cli/conf.h
+cli/tty.h
 
 VESMAIL_HFILES = VESmail.h
 

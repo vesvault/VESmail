@@ -34,6 +34,7 @@ struct VESmail_xform;
 struct bio_st;
 
 typedef struct VESmail_server {
+    const char *type;
     struct bio_st *req_bio;
     struct bio_st *rsp_bio;
     struct VESmail_xform *req_in;

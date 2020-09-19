@@ -50,13 +50,7 @@ extern struct param_st {
     char *token;
     char *apiUrl;
     char *dumpfd;
-    char *hostname;
-    struct VESmail_optns *optns;
     char *confPath;
     char *veskeyPath;
-    char **bannerPath;
-    const char **banner;
     char debug;
 } params;
-
-extern struct VESmail_tls_server tls_srv;
