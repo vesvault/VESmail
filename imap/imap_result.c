@@ -37,6 +37,7 @@
 #include <stdio.h>
 #include "../VESmail.h"
 #include "../srv/server.h"
+#include "../lib/mail.h"
 #include "imap.h"
 #include "imap_token.h"
 #include "imap_msg.h"
@@ -292,7 +293,11 @@ int VESmail_imap_result_process(VESmail_imap_result *rslt, VESmail_imap_fetch *f
 				VESmail_imap_msg_decrypt(sech, msg, (VESMAIL_IMAP_MF_PHDR & ffull), val, fetch);
 			    } else {
 				VESmail_imap_msg *m = VESMAIL_IMAP(rslt->server)->results.pass;
-				if (!m) (m = VESMAIL_IMAP(rslt->server)->results.pass = VESmail_imap_msg_new(rslt->server))->flags |= VESMAIL_IMAP_MF_PASS;
+				if (!m) {
+				    m = VESMAIL_IMAP(rslt->server)->results.pass = VESmail_imap_msg_new(rslt->server);
+				    m->flags |= VESMAIL_IMAP_MF_PASS;
+				    VESMAIL_IMAP_MAIL(m)->flags |= VESMAIL_F_PASS;
+				}
 				VESmail_imap_msg_decrypt(m, m, 0, val, fetch);
 			    }
 			}

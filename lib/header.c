@@ -86,14 +86,16 @@ char *VESmail_header_apply_msgid(VESmail_header *hdr, VESmail *mail) {
 		break;
 	    case '>': {
 		*d = 0;
-		if (hdr->type == VESMAIL_H_VESID) {
-		    mail->flags |= VESMAIL_F_ENCD;
-		} else {
-		    const char *suff = mail->optns->idSuffix;
-		    char *s = msgid + strlen(msgid) - strlen(suff);
-		    if (s > msgid && !strcmp(s, suff)) {
+		if (!(mail->flags & VESMAIL_F_PASS)) {
+		    if (hdr->type == VESMAIL_H_VESID) {
 			mail->flags |= VESMAIL_F_ENCD;
-			*s = 0;
+		    } else {
+			const char *suff = mail->optns->idSuffix;
+			char *s = msgid + strlen(msgid) - strlen(suff);
+			if (s > msgid && !strcmp(s, suff)) {
+			    mail->flags |= VESMAIL_F_ENCD;
+			    *s = 0;
+			}
 		    }
 		}
 		free(mail->msgid);

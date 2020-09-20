@@ -177,9 +177,10 @@ int VESmail_header_push_dec(VESmail_parse *parse, VESmail_header *hdr, int bufd)
 	}
 	case VESMAIL_H_MSGID: {
 	    if (!(parse->mail->flags & VESMAIL_F_ENCD)) break;
-	    VESmail_header *h = VESmail_header_new(hdr->key, VESMAIL_H_MSGID, hdr->len);
+	    int l = strlen(parse->mail->msgid);
+	    VESmail_header *h = VESmail_header_new(hdr->key, VESMAIL_H_MSGID, l + 4);
 	    VESmail_header_add_val(h, 1, "<");
-	    VESmail_header_add_val(h, strlen(parse->mail->msgid), parse->mail->msgid);
+	    VESmail_header_add_val(h, l, parse->mail->msgid);
 	    VESmail_header_add_val(h, 1, ">");
 	    VESmail_header_add_eol(h, hdr);
 	    int r = VESmail_header_commit(parse, h);
