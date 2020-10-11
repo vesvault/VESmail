@@ -198,7 +198,6 @@ void VESmail_conf_apply(VESmail_conf *conf, jVar *jconf) {
     VESmail_conf_setstr(&conf->optns->now.url, jVar_get(jconf, "now-url"));
     VESmail_conf_setstr(&conf->optns->now.dir, jVar_get(jconf, "now-dir"));
     VESmail_conf_setstr(&conf->tls->cert, jVar_get(jconf, "cert"));
-    VESmail_conf_setstr(&conf->tls->ca, jVar_get(jconf, "ca"));
     VESmail_conf_setstr(&conf->tls->key, jVar_get(jconf, "pkey"));
     VESmail_conf_setstr(&conf->manifest, jVar_get(jconf, "manifest"));
 

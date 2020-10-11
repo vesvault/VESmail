@@ -156,7 +156,6 @@ VESmail_tls_server *VESmail_tls_server_new() {
     VESmail_tls_server *tls = malloc(sizeof(VESmail_tls_server));
     tls->ctx = NULL;
     tls->cert = NULL;
-    tls->ca = NULL;
     tls->key = NULL;
     tls->persist = 0;
     tls->snifn = NULL;
@@ -172,11 +171,10 @@ SSL_CTX *VESmail_tls_server_ctx(VESmail_server *srv) {
 #endif
     SSL_CTX *ctx = SSL_CTX_new(method);
     if (!ctx) return NULL;
-    if ((srv->tls.server->cert && SSL_CTX_use_certificate_file(ctx, srv->tls.server->cert, SSL_FILETYPE_PEM) <= 0)
+    if ((srv->tls.server->cert && SSL_CTX_use_certificate_chain_file(ctx, srv->tls.server->cert) <= 0)
 	|| (srv->tls.server->key && (
 	    SSL_CTX_use_PrivateKey_file(ctx, srv->tls.server->key, SSL_FILETYPE_PEM) <= 0
 	    || SSL_CTX_check_private_key(ctx) <= 0))
-	|| (srv->tls.server->ca && SSL_CTX_use_certificate_chain_file(ctx, srv->tls.server->ca) <= 0)
 	) {
 	SSL_CTX_free(ctx);
 	return NULL;

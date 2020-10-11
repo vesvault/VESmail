@@ -47,7 +47,6 @@ typedef struct VESmail_tls_client {
 typedef struct VESmail_tls_server {
     void *ctx;
     char *cert;
-    char *ca;
     char *key;
     int (* snifn)(struct VESmail_server *srv, const char *sni);
     char persist;
