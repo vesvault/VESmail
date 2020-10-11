@@ -52,5 +52,6 @@ extern struct param_st {
     char *dumpfd;
     char *confPath;
     char *veskeyPath;
+    char *sni;
     char debug;
 } params;

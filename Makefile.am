@@ -96,7 +96,7 @@ VESMAIL_HFILES = VESmail.h
 
 bin_PROGRAMS = vesmail
 
-vesmail_LDADD = -lcrypto -lcurl -lVES -lssl
+vesmail_LDADD = -lVES -lcrypto -lcurl -lssl
 
 vesmail_SOURCES = $(LIB_CFILES) $(SRV_CFILES) $(IMAP_CFILES) $(SMTP_CFILES) $(NOW_CFILES) $(CLI_CFILES) \
 $(LIB_HFILES) $(SRV_HFILES) $(IMAP_HFILES) $(SMTP_HFILES) $(NOW_HFILES) $(CLI_HFILES) $(VESMAIL_HFILES)
