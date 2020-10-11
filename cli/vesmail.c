@@ -75,6 +75,7 @@ struct param_st params = {
     .token = NULL,
     .confPath = VESMAIL_CONF_PATH "vesmail.conf",
     .veskeyPath = VESMAIL_CONF_PATH "veskeys/",
+    .sni = NULL,
     .debug = 0
 };
 
@@ -89,6 +90,7 @@ int vm_error(e) {
 int do_convert(VESmail *mail, int in, int out) {
     char src[16];
     char *dst = NULL;
+    if (params.sni && conf.tls->snifn) conf.tls->snifn(NULL, params.sni);
     while (1) {
 	int srcl = VESmail_arch_read(in, src, sizeof(src));
 	if (srcl < 0) {
@@ -118,6 +120,7 @@ int do_convert(VESmail *mail, int in, int out) {
 
 int run_server(VESmail_server *srv, int in, int out) {
     srv->debug = params.debug;
+    if (params.sni && conf.tls->snifn) conf.tls->snifn(srv, params.sni);
     if (params.dumpfd) sscanf(params.dumpfd, "%d", &srv->dumpfd);
     if (conf.hostname) srv->host = conf.hostname;
     VESmail_server_set_tls(srv, conf.tls);
@@ -156,8 +159,10 @@ int cli_snifn(VESmail_server *srv, const char *sni) {
     jVar *jconf = VESmail_conf_sni_read(&conf, sni, &errfn_sni);
     if (!jconf && conf.sni.require) return VESMAIL_E_CONF;
     VESmail_conf_apply(&conf, jVar_get(jconf, "*"));
-    VESmail_conf_apply(&conf, jVar_get(jconf, srv->type));
-    VESmail_tls_server_ctxreset(srv->tls.server);
+    if (srv) {
+	VESmail_conf_apply(&conf, jVar_get(jconf, srv->type));
+	VESmail_tls_server_ctxreset(srv->tls.server);
+    }
     return 0;
 }
 
@@ -181,13 +186,13 @@ int main(int argc, char **argv) {
     char **argend = argv + argc;
     char **argp = argv + 1;
     char *arg = NULL;
-    enum { o_null, o_error, o_data, o_ver, o_a, o_f, o_x, o_v, o_tls, o_demo, o_cap, o_rcpt, o_noenc, o_xchg, o_token,
+    enum { o_null, o_error, o_data, o_ver, o_a, o_f, o_x, o_v, o_tls, o_sni, o_demo, o_cap, o_rcpt, o_noenc, o_xchg, o_token,
 	o_help, o_dumpfd, o_conf } op = o_null;
     enum { cmd_null, cmd_enc, cmd_dec, cmd_smtp, cmd_imap, cmd_now } cmd = cmd_null;
     const struct { char op; char *argw; } argwords[] = {
 	{o_a, "account"}, {o_x, "debug"}, {o_v, "veskey"}, {o_v, "VESkey"}, {o_v, "unlock"}, {o_token, "token"},
 	{o_tls, "tls"}, {o_cap, "capabilities"}, {o_ver, "version"}, {o_rcpt, "rcpt"}, {o_noenc, "headers"},
-	{o_conf, "conf"}, {o_demo, "demo"}, {o_help, "help"}, {o_dumpfd, "dumpfd"}
+	{o_conf, "conf"}, {o_sni, "sni"}, {o_demo, "demo"}, {o_help, "help"}, {o_dumpfd, "dumpfd"}
     };
     const struct { char cmd; char *cmdw; } cmdwords[] = {
 	{cmd_enc, "encrypt"}, {cmd_dec, "decrypt"}, {cmd_smtp, "smtp"}, {cmd_imap, "imap"}, {cmd_now, "now"}
@@ -240,6 +245,7 @@ int main(int argc, char **argv) {
 	    case 'a': op = o_a; break;
 	    case 'u': case 'v': op = o_v; break;
 	    case 'x': op = o_x; break;
+	    case 's': op = o_sni; break;
 	    case 't': op = o_tls; break;
 	    case 'T': op = o_token; break;
 	    case 'V': op = o_ver; break;
@@ -289,6 +295,9 @@ int main(int argc, char **argv) {
 			break;
 		    case o_token:
 			in.ptr = (void *) &params.token;
+			break;
+		    case o_sni:
+			in.ptr = (void *) &params.sni;
 			break;
 		    case o_conf:
 			in.ptr = (void *) &params.confPath;
