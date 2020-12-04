@@ -41,6 +41,7 @@ typedef struct VESmail_server {
     struct VESmail_xform *req_out;
     struct VESmail_xform *rsp_in;
     struct VESmail_xform *rsp_out;
+    int (*idlefn)(struct VESmail_server *, int);
     void (* debugfn)(struct VESmail_server *, const char *);
     void (* freefn)(struct VESmail_server *);
     struct libVES *ves;
@@ -54,6 +55,7 @@ typedef struct VESmail_server {
     const char *host;
     short int flags;
     short int debug;
+    int lastread;
     int dumpfd;
     struct {} ctl;
 } VESmail_server;

@@ -77,6 +77,14 @@ int VESmail_smtp_debug_flush(VESmail_server *srv, int code, int dsn) {
     return rs;
 }
 
+int VESmail_smtp_idle(VESmail_server *srv, int tmout) {
+    if (tmout < 30) return 0;
+    if (srv->req_out && (tmout < 120 || (VESMAIL_SMTP(srv)->state >= VESMAIL_SMTP_S_DATA && tmout < 300))) return 0;
+    srv->flags |= VESMAIL_SRVF_TMOUT;
+    return 0;
+}
+
+
 void VESmail_smtp_fn_free(VESmail_server *srv) {
     VESmail_smtp *smtp = VESMAIL_SMTP(srv);
     free(smtp->helo);
@@ -95,6 +103,7 @@ VESmail_server *VESmail_server_new_smtp(VESmail_optns *optns) {
     VESmail_smtp *smtp = VESMAIL_SMTP(srv);
     srv->debugfn = &VESmail_smtp_debug;
     srv->freefn = &VESmail_smtp_fn_free;
+    srv->idlefn = &VESmail_smtp_idle;
     smtp->state = VESMAIL_SMTP_S_HELLO;
     smtp->mode = VESMAIL_SMTP_M_REJECT;
     smtp->flags = VESMAIL_SMTP_F_INIT;

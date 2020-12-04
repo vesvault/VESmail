@@ -288,6 +288,15 @@ void VESmail_imap_reset(VESmail_server *srv) {
     imap->msgs.depth = 0;
 }
 
+int VESmail_imap_idle(VESmail_server *srv, int tmout) {
+    if (tmout < 30) return 0;
+    if (srv->req_out && (tmout < 120
+	|| ((srv->req_in->imap->state != VESMAIL_IMAP_X_INIT || srv->req_in->imap->state != VESMAIL_IMAP_X_INIT) && tmout < 300)
+    )) return 0;
+    srv->flags |= VESMAIL_SRVF_TMOUT;
+    return 0;
+}
+
 void VESmail_imap_fn_free(VESmail_server *srv) {
     VESmail_imap *imap = VESMAIL_IMAP(srv);
     VESmail_imap_reset(srv);
@@ -304,6 +313,7 @@ VESmail_server *VESmail_server_new_imap(VESmail_optns *optns) {
     VESmail_imap *imap = VESMAIL_IMAP(srv);
     srv->debugfn = &VESmail_imap_debug;
     srv->freefn = &VESmail_imap_fn_free;
+    srv->idlefn = &VESmail_imap_idle;
     imap->untaggedfn = NULL;
     imap->state = VESMAIL_IMAP_S_HELLO;
     imap->flags = VESMAIL_IMAP_F_INIT;

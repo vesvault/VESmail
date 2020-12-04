@@ -66,6 +66,9 @@ int VESmail_now_send_status(VESmail_server *srv, int code) {
 	case 404:
 	    m = "Not Found";
 	    break;
+	case 408:
+	    m = "Timeout";
+	    break;
 	case 500:
 	    m = "Internal Error";
 	    break;
@@ -203,7 +206,17 @@ int VESmail_now_xform_fn_req(VESmail_xform *xform, int final, const char *src, i
 	}
 	s = s2 + 1;
     }
+    if (final && !(xform->server->flags & VESMAIL_SRVF_SHUTDOWN)) {
+	if (xform->server->flags & VESMAIL_SRVF_TMOUT) VESmail_now_send_status(xform->server, 408);
+	xform->server->flags |= VESMAIL_SRVF_SHUTDOWN;
+    }
     return *srclen = 0;
+}
+
+int VESmail_now_idle(VESmail_server *srv, int tmout) {
+    if (tmout < 20) return 0;
+    srv->flags |= VESMAIL_SRVF_TMOUT;
+    return 0;
 }
 
 void VESmail_now_debug(VESmail_server *srv, const char *msg) {
@@ -218,5 +231,6 @@ VESmail_server *VESmail_server_new_now(VESmail_optns *optns) {
     srv->req_in = VESmail_xform_new(&VESmail_now_xform_fn_req, NULL, srv);
     srv->rsp_out = NULL;
     srv->debugfn = &VESmail_now_debug;
+    srv->idlefn = &VESmail_now_idle;
     return srv;
 }

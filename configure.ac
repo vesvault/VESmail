@@ -3,7 +3,7 @@
 
 
 AC_PREREQ([2.69])
-AC_INIT([VESmail], [1.08b], [bugs@vesvault.com])
+AC_INIT([VESmail], [1.09b], [bugs@vesvault.com])
 AC_CONFIG_SRCDIR([cli/vesmail.c])
 AC_CONFIG_HEADERS([config.h])
 

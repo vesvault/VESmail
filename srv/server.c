@@ -81,10 +81,12 @@ VESmail_server *VESmail_server_init(VESmail_server *srv, VESmail_optns *optns) {
     srv->tls.client = NULL;
     srv->tls.server = NULL;
     srv->sasl = NULL;
+    srv->idlefn = NULL;
     srv->host = "localhost";
     srv->flags = 0;
     srv->debug = 0;
     srv->dumpfd = -1;
+    srv->lastread = time(NULL);
     return srv;
 }
 
@@ -153,6 +155,7 @@ int VESmail_server_bio_read(BIO *bio, VESmail_xform *chain, int nb) {
 	    return VESMAIL_E_IO;
 	}
     } else {
+	chain->server->lastread = time(NULL);
 	VESmail_server_dump(chain->server->dumpfd, buf, rd);
     }
     return VESmail_xform_process(chain, !rd, buf, rd);
@@ -193,6 +196,20 @@ int VESmail_server_run(VESmail_server *srv, int flags) {
 	r = VESmail_server_bio_read(srv->rsp_bio, srv->rsp_in, pl >= 0 || (!(flags & VESMAIL_SRVR_NOREQ) && !(srv->flags & VESMAIL_SRVF_OVER)));
 	if (r < 0) return r;
 	rs += r;
+	if (srv->idlefn) {
+	    r = srv->idlefn(srv, time(NULL) - srv->lastread);
+	    if (r < 0) return r;
+	    rs += r;
+	    if (srv->flags & VESMAIL_SRVF_TMOUT) {
+		VESmail_arch_log("timeout");
+		r = VESmail_xform_process(srv->req_in, 1, "", 0);
+		if (r < 0) return r;
+		rs += r;
+		r = VESmail_xform_process(srv->req_out, 1, "", 0);
+		if (r < 0) return r;
+		rs += r;
+	    }
+	}
     }
     return rs;
 }
