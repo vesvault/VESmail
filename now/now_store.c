@@ -1,6 +1,6 @@
 /***************************************************************************
  *  _____
- * |\    | >                   VESmail Project
+ * |\    | >                   VESmail
  * | \   | >  ___       ___    Email Encryption made Convenient and Reliable
  * |  \  | > /   \     /   \                               https://vesmail.email
  * |  /  | > \__ /     \ __/
@@ -47,7 +47,7 @@
 int VESmail_now_store_xform_fn(VESmail_xform *xform, int final, const char *src, int *srclen) {
     if (!src) return 0;
     if (xform->fd == VESMAIL_E_HOLD) {
-	VESmail *mail = xform->obj;
+	VESmail *mail = xform->parse->mail;
 	if (mail->flags & VESMAIL_F_PASS) {
 	    xform->fd = VESMAIL_E_PARAM;
 	} else {
@@ -107,7 +107,7 @@ char *VESmail_now_filename(const char *msgid, VESmail_optns *optns) {
 
 VESmail *VESmail_now_store_apply(VESmail *mail) {
     if (!mail || !mail->optns->now.dir) return mail;
-    mail->root->xform = VESmail_xform_new(&VESmail_now_store_xform_fn, mail->root->xform, mail);
+    mail->root->xform = VESmail_xform_new(&VESmail_now_store_xform_fn, mail->root->xform, mail->root);
     mail->root->xform->fd = VESMAIL_E_HOLD;
     return mail;
 }

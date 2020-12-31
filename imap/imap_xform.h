@@ -1,6 +1,6 @@
 /***************************************************************************
  *  _____
- * |\    | >                   VESmail Project
+ * |\    | >                   VESmail
  * | \   | >  ___       ___    Email Encryption made Convenient and Reliable
  * |  \  | > /   \     /   \                               https://vesmail.email
  * |  /  | > \__ /     \ __/
@@ -35,18 +35,19 @@ struct VESmail_server;
 struct VESmail_xform;
 
 typedef struct VESmail_imap_xform {
-    unsigned int skip;
     int (* procfn)(struct VESmail_server *srv, struct VESmail_imap_token *token);
     struct VESmail_imap_token *line;
     struct VESmail_imap_token *list;
+    struct VESmail_xform *sync;
+    unsigned int skip;
     enum {
 	VESMAIL_IMAP_X_INIT,
 	VESMAIL_IMAP_X_HOLD,
 	VESMAIL_IMAP_X_ABORT,
 	VESMAIL_IMAP_X_FFWD
     } state;
-    char _algn[3];
 } VESmail_imap_xform;
 
 struct VESmail_xform *VESmail_xform_new_imap(struct VESmail_server *srv, int (* procfn)(struct VESmail_server *, struct VESmail_imap_token *));
 struct VESmail_imap_token *VESmail_imap_xform_detach(struct VESmail_xform *xform, struct VESmail_imap_token *token);
+struct VESmail_xform *VESmail_imap_xform_sync(struct VESmail_xform *xform);

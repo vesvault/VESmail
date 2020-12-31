@@ -1,6 +1,6 @@
 /***************************************************************************
  *  _____
- * |\    | >                   VESmail Project
+ * |\    | >                   VESmail
  * | \   | >  ___       ___    Email Encryption made Convenient and Reliable
  * |  \  | > /   \     /   \                               https://vesmail.email
  * |  /  | > \__ /     \ __/
@@ -184,9 +184,9 @@ VESmail_imap_fetch *VESmail_imap_fetch_parse(VESmail_imap_token *key) {
 		    case VESMAIL_IMAP_FS_HEADER_FIELDS_NOT: {
 			if (kidx->len != 2 || !VESmail_imap_token_isLSet(kidx->list[1]) || kidx->list[1]->len != 1) return NULL;
 			VESmail_imap_token *lst = kidx->list[1]->list[0];
-			if (!VESmail_imap_token_isList(lst)) return NULL;
+			if (!VESmail_imap_token_isList(lst) || lst->len > VESMAIL_IMAP_FETCH_FLD_SAFENUM) return NULL;
 			int i;
-			for (i = 0; i < lst->len; i++) if (!VESmail_imap_token_isAString(lst->list[i])) return NULL;
+			for (i = 0; i < lst->len; i++) if (!VESmail_imap_token_isAString(lst->list[i]) || lst->list[i]->len > VESMAIL_IMAP_FETCH_FLD_SAFELEN) return NULL;
 			flds = malloc((lst->len + 1) * sizeof(*flds));
 			for (i = 0; i < lst->len; i++) flds[i] = VESmail_imap_token_cp_lcstr(lst->list[i], NULL);
 			flds[i] = NULL;

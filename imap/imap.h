@@ -1,6 +1,6 @@
 /***************************************************************************
  *  _____
- * |\    | >                   VESmail Project
+ * |\    | >                   VESmail
  * | \   | >  ___       ___    Email Encryption made Convenient and Reliable
  * |  \  | > /   \     /   \                               https://vesmail.email
  * |  /  | > \__ /     \ __/
@@ -44,7 +44,6 @@ typedef struct VESmail_imap {
 	VESMAIL_IMAP_S_PROXY,
 	VESMAIL_IMAP_S_SHUTDOWN
     } state;
-    char _algn;
     short int flags;
     struct jVar *uconf;
     struct VESmail_imap_track *track;
@@ -68,9 +67,12 @@ typedef struct VESmail_imap {
 	struct VESmail_imap_fetch *filter;
 	struct VESmail_imap_msg *pass;
 	struct VESmail_imap_token *query;
+	long long int qbytes;
     } results;
     int ctBad;
     int ctOOR;
+    unsigned long int maxBufd;
+    long long int maxQueue;
 } VESmail_imap;
 
 #define VESMAIL_IMAP(server)	((VESmail_imap *) &server->ctl)
@@ -78,6 +80,7 @@ typedef struct VESmail_imap {
 #define	VESMAIL_IMAP_F_BYE	0x0001
 #define	VESMAIL_IMAP_F_CDATA	0x0002
 #define	VESMAIL_IMAP_F_RSP	0x0004
+#define	VESMAIL_IMAP_F_DETACHD	0x0004
 
 #define	VESMAIL_IMAP_F_MIMEBUG	0x0010
 #define	VESMAIL_IMAP_F_MIMEOK	0x0020
@@ -119,10 +122,12 @@ enum { VESMAIL_IMAP_VERBS() VESMAIL_IMAP_V__END };
 extern const char *VESmail_imap_verbs[];
 
 struct VESmail_server *VESmail_server_new_imap(struct VESmail_optns *optns);
-int VESmail_imap_get_verb(struct VESmail_imap_token *token, const char **verbs);
+int VESmail_imap_get_verb_arg(struct VESmail_imap_token *token, const char **verbs, int *aoffs);
+#define VESmail_imap_get_verb(token, verbs)	VESmail_imap_get_verb_arg(token, verbs, NULL)
 struct VESmail_imap_token *VESmail_imap_cp_tag(struct VESmail_imap_token *cmd);
 int VESmail_imap_rsp_send(struct VESmail_server *srv, struct VESmail_imap_token *rsp);
-int VESmail_imap_req_fwd(struct VESmail_server *srv, struct VESmail_imap_token *req);
+int VESmail_imap_rsp_sync(struct VESmail_server *srv, struct VESmail_imap_token *rsp);
+int VESmail_imap_req_fwd(struct VESmail_server *srv, struct VESmail_imap_token *req, int flags);
 int VESmail_imap_req_abort(struct VESmail_server *srv);
 #define VESmail_imap_req_ready(srv)	(!VESMAIL_IMAP(srv)->cont)
 int VESmail_imap_rsp_send_bad(struct VESmail_server *srv, struct VESmail_imap_token *tag, const char *msg);

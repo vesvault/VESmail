@@ -1,6 +1,6 @@
 /***************************************************************************
  *  _____
- * |\    | >                   VESmail Project
+ * |\    | >                   VESmail
  * | \   | >  ___       ___    Email Encryption made Convenient and Reliable
  * |  \  | > /   \     /   \                               https://vesmail.email
  * |  /  | > \__ /     \ __/
@@ -153,13 +153,11 @@ void VESmail_logrcpt(VESmail *mail, libVES_VaultKey *vkey) {
     }
     *d = 0;
     char *uri = libVES_VaultKey_toURI(vkey);
-    mail->logfn("encrypt msgid=<%s> %s=%s[%lld] pub=%s", mail->msgid, (!vkey->ves->vaultKey || vkey->ves->vaultKey->id != vkey->id ? "rcpt" : "self"), uri, vkey->id, pub);
+    mail->logfn(mail->logref, "encrypt msgid=<%s> %s=%s[%lld] pub=%s", mail->msgid, (!vkey->ves->vaultKey || vkey->ves->vaultKey->id != vkey->id ? "rcpt" : "self"), uri, vkey->id, pub);
     free(uri);
 }
 
 int VESmail_save_ves(VESmail *mail) {
-    libVES_VaultItem *vi = VESmail_get_vaultItem(mail);
-    if (!vi) return VESMAIL_E_VES;
     if (mail->share) {
 	int i;
 	for (i = 0; i < mail->share->len; i++) {
@@ -169,10 +167,20 @@ int VESmail_save_ves(VESmail *mail) {
 	    }
 	    VESmail_logrcpt(mail, vkey);
 	}
-	if (!libVES_VaultItem_entries(vi, mail->share, LIBVES_SH_ADD)) return VESMAIL_E_VES;
     }
-    if ((mail->share || libVES_VaultItem_isNew(vi)) && !libVES_VaultItem_post(vi, mail->ves)) return VESMAIL_E_VES;
-    VESmail_unset_vaultItem(mail);
+    char retry = 0;
+    char bad = 1;
+    while (bad) {
+	libVES_VaultItem *vi = VESmail_get_vaultItem(mail);
+	if (!vi) return VESMAIL_E_VES;
+	if (mail->share && !libVES_VaultItem_entries(vi, mail->share, LIBVES_SH_ADD)) return VESMAIL_E_VES;
+	bad = (mail->share || libVES_VaultItem_isNew(vi)) && !libVES_VaultItem_post(vi, mail->ves);
+	if (bad) {
+	    if (!retry && libVES_checkError(mail->ves, LIBVES_E_DENIED)) retry = 1;
+	    else return VESMAIL_E_VES;
+	}
+	VESmail_unset_vaultItem(mail);
+    }
     return 0;
 }
 
@@ -180,7 +188,7 @@ int VESmail_add_rcpt(VESmail *mail, const char *rcpt, int update_only) {
     const char *r;
     int rs = 0;
     if (!rcpt) return 0;
-    for (r = rcpt; *r; r++) {
+    for (r = rcpt; *r; (*r && r++)) {
 	libVES_User *u = libVES_User_fromPath(&r);
 	char email[256];
 	if (!u) continue;
@@ -209,7 +217,7 @@ int VESmail_add_rcpt(VESmail *mail, const char *rcpt, int update_only) {
 		    if (vkey) {
 			if (!mail->share) {
 			    mail->share = libVES_List_new(&libVES_VaultKey_ListCtl);
-			    libVES_List_push(mail->share, libVES_VaultKey_get(mail->ves->external, mail->ves, NULL));
+			    libVES_List_push(mail->share, mail->ves->vaultKey);
 			}
 			if (vkey->user != u) libVES_User_free(u);
 			if (vkey->external != ref) libVES_Ref_free(ref);
@@ -278,6 +286,7 @@ void VESmail_free(VESmail *mail) {
     if (mail) {
 	VESmail_clean(mail);
 	VESmail_parse_free(mail->root);
+	VESmail_xform_free(mail->out->chain);
 	VESmail_xform_free(mail->out);
 	libVES_List_free(mail->share);
 	free(mail->nowUrl);

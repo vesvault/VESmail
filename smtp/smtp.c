@@ -1,6 +1,6 @@
 /***************************************************************************
  *  _____
- * |\    | >                   VESmail Project
+ * |\    | >                   VESmail
  * | \   | >  ___       ___    Email Encryption made Convenient and Reliable
  * |  \  | > /   \     /   \                               https://vesmail.email
  * |  /  | > \__ /     \ __/
@@ -78,8 +78,8 @@ int VESmail_smtp_debug_flush(VESmail_server *srv, int code, int dsn) {
 }
 
 int VESmail_smtp_idle(VESmail_server *srv, int tmout) {
-    if (tmout < 30) return 0;
-    if (srv->req_out && (tmout < 120 || (VESMAIL_SMTP(srv)->state >= VESMAIL_SMTP_S_DATA && tmout < 300))) return 0;
+    if (tmout < srv->tmout.unauthd) return 0;
+    if (srv->req_out && (tmout < srv->tmout.authd || (VESMAIL_SMTP(srv)->state >= VESMAIL_SMTP_S_DATA && tmout < srv->tmout.data))) return 0;
     srv->flags |= VESMAIL_SRVF_TMOUT;
     return 0;
 }

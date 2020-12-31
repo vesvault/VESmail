@@ -1,6 +1,6 @@
 /***************************************************************************
  *  _____
- * |\    | >                   VESmail Project
+ * |\    | >                   VESmail
  * | \   | >  ___       ___    Email Encryption made Convenient and Reliable
  * |  \  | > /   \     /   \                               https://vesmail.email
  * |  /  | > \__ /     \ __/
@@ -47,11 +47,18 @@ typedef struct VESmail_imap_result {
 	    VESMAIL_IMAP_RE_DROP,
 	    VESMAIL_IMAP_RE_CDROP,
 	    VESMAIL_IMAP_RE_BAD,
-	    VESMAIL_IMAP_RE_SILENT
+	    VESMAIL_IMAP_RE_SILENT,
+	    VESMAIL_IMAP_RE_SYNC,
+	    VESMAIL_IMAP_RE_SYNCD,
+	    VESMAIL_IMAP_RE_RESYNC,
+	    VESMAIL_IMAP_RE_RESYNCD,
+	    VESMAIL_IMAP_RE_DROPD
 	} state;
     } *entry;
     struct VESmail_imap_fetch *range;
+    long long int qbytes;
     enum VESmail_imap_result_state state;
+    char fdrop;
 } VESmail_imap_result;
 
 
@@ -64,3 +71,5 @@ int VESmail_imap_result_commit(struct VESmail_imap_result *rslt);
 int VESmail_imap_result_send(struct VESmail_imap_result *rslt);
 int VESmail_imap_result_flush(struct VESmail_imap *imap);
 void VESmail_imap_result_free(struct VESmail_imap_result *rslt);
+
+int VESmail_imap_result_process(struct VESmail_imap_result *rslt, struct VESmail_imap_fetch *fetch, struct VESmail_imap_token *key, struct VESmail_imap_token *val, int final);

@@ -1,6 +1,6 @@
 /***************************************************************************
  *  _____
- * |\    | >                   VESmail Project
+ * |\    | >                   VESmail
  * | \   | >  ___       ___    Email Encryption made Convenient and Reliable
  * |  \  | > /   \     /   \                               https://vesmail.email
  * |  /  | > \__ /     \ __/
@@ -67,7 +67,6 @@ typedef struct VESmail_imap_fetch {
 	VESMAIL_IMAP_FS_HEADER_FIELDS_NOT,
 	VESMAIL_IMAP_FS_NONE
     } stype;
-    char _algn;
     union {
 	char **fields;
 	struct VESmail_imap_fetch *qchain;
@@ -79,6 +78,13 @@ typedef struct VESmail_imap_fetch {
 
 #undef VESMAIL_VERB
 #undef VESMAIL_VERB2
+
+#ifndef VESMAIL_IMAP_FETCH_FLD_SAFENUM
+#define	VESMAIL_IMAP_FETCH_FLD_SAFENUM	255
+#endif
+#ifndef VESMAIL_IMAP_FETCH_FLD_SAFELEN
+#define	VESMAIL_IMAP_FETCH_FLD_SAFELEN	127
+#endif
 
 struct VESmail_imap_fetch *VESmail_imap_fetch_new(char type);
 struct VESmail_imap_fetch *VESmail_imap_fetch_new_body(char type, char mode, char stype, int seclen, unsigned long int *sec);

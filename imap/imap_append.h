@@ -1,6 +1,6 @@
 /***************************************************************************
  *  _____
- * |\    | >                   VESmail Project
+ * |\    | >                   VESmail
  * | \   | >  ___       ___    Email Encryption made Convenient and Reliable
  * |  \  | > /   \     /   \                               https://vesmail.email
  * |  /  | > \__ /     \ __/
@@ -31,6 +31,9 @@
  ***************************************************************************/
 
 struct VESmail_server;
+struct VESmail_xform;
 struct VESmail_imap_token;
 
-int VESmail_imap_append_encrypt(struct VESmail_server *srv, struct VESmail_imap_token *body);
+int VESmail_imap_append_encrypt(struct VESmail_server *srv, struct VESmail_imap_token *body, struct VESmail_xform *sync);
+
+#define	VESmail_imap_append_syncl(len)	(((long long int) (len)) * 272 / 256 + 4096)

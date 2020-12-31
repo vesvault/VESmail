@@ -1,6 +1,6 @@
 /***************************************************************************
  *  _____
- * |\    | >                   VESmail Project
+ * |\    | >                   VESmail
  * | \   | >  ___       ___    Email Encryption made Convenient and Reliable
  * |  \  | > /   \     /   \                               https://vesmail.email
  * |  /  | > \__ /     \ __/
@@ -122,7 +122,7 @@ int VESmail_imap_proxy_fn_rsp_recon(int verb, VESmail_imap_token *rsp, VESmail_i
     VESmail_imap_track *ftrk = VESmail_imap_track_new_fwd(trk->server, trk->token);
     ftrk->rspfn = &VESmail_imap_proxy_fn_rsp_fetch;
     VESmail_imap_debug_token(trk->server, 1, "recon >>>>", trk->token);
-    int r = VESmail_imap_req_fwd(trk->server, (ftrk->token = trk->token));
+    int r = VESmail_imap_req_fwd(trk->server, (ftrk->token = trk->token), 0);
     trk->token = NULL;
     VESmail_imap_track_free(trk);
     return r;
@@ -193,7 +193,7 @@ void VESmail_imap_proxy_fetch_prep(VESmail_imap_fetch *fetch, VESmail_imap_token
 	    switch (fetch->stype) {
 		case VESMAIL_IMAP_FS_MIME:
 		case VESMAIL_IMAP_FS_HEADER:
-		    rlen = 0xffff0000;
+		    rlen = 0xffffffff;
 		    break;
 		default:
 		rlen = (rlen + fetch->range[1]) * 41 / 30 + 16384;
@@ -246,6 +246,7 @@ int VESmail_imap_proxy_fn_req(VESmail_server *srv, VESmail_imap_token *token) {
     int v_uid = (verb == VESMAIL_IMAP_V_UID ? 1 : 0);
     if (v_uid && token->len > 2) verb = VESmail_imap_get_verb(token->list[2], VESmail_imap_verbs);
     int rs = 0;
+    int detachd = 0;
     switch (verb) {
 	case VESMAIL_IMAP_V_FETCH: {
 	    if (token->state == VESMAIL_IMAP_P_CONT) return VESmail_imap_cont(srv, "OK");
@@ -321,6 +322,7 @@ int VESmail_imap_proxy_fn_req(VESmail_server *srv, VESmail_imap_token *token) {
 			VESmail_imap_req_detach(srv, token);
 			trk->token = token;
 			token = rreq;
+			detachd = VESMAIL_IMAP_F_DETACHD;
 			break;
 		    }
 		}
@@ -338,27 +340,59 @@ int VESmail_imap_proxy_fn_req(VESmail_server *srv, VESmail_imap_token *token) {
 	    VESmail_imap_token_free(rsp);
 	    return rs;
 	}
-	case VESMAIL_IMAP_V_APPEND:
+	case VESMAIL_IMAP_V_APPEND: {
+	    int r = VESmail_imap_token_error(token);
+	    if (r) {
+		VESmail_imap_req_abort(srv);
+		return VESmail_imap_rsp_send_error(srv, VESmail_imap_cp_tag(token), r);
+	    }
 	    if (token->state == VESMAIL_IMAP_P_CONT) {
 		VESmail_imap_token *body = token->list[token->len - 1];
-		if (body->type != VESMAIL_IMAP_T_LITERAL || body->len == 0) {
+		if (!VESmail_imap_token_isLiteral(body) || body->len == 0) {
 		    return VESmail_imap_rsp_send_error(srv, VESmail_imap_cp_tag(token), VESMAIL_E_PARAM);
 		}
-		int r = VESmail_imap_append_encrypt(srv, body);
+		VESmail_xform *sync;
+		if (body->len > VESMAIL_IMAP(srv)->maxBufd) {
+		    if (!token->hold) {
+			trk = VESmail_imap_track_new_fwd(srv, token);
+			trk->rspfn = &VESmail_imap_proxy_fn_rsp_t;
+		    }
+		    sync = srv->req_out;
+		    long long int l = VESmail_imap_append_syncl(body->len);
+		    body->len = l > 0xffffffff ? 0xffffffff : l;
+		} else sync = NULL;
+		int r = VESmail_imap_append_encrypt(srv, body, sync);
 		if (r >= 0) {
-		    int r2 = VESmail_imap_cont(srv, "OK");
+		    int r2 = 0;
+		    if (sync || token->hold) {
+			while (token->hold != body) {
+			    int r3 = VESmail_imap_req_fwd(srv, token, 0);
+			    if (r3 < 0) return r3;
+			    if (!token->hold) return VESMAIL_E_BUF;
+			    r2 += r3;
+			}
+		    } else {
+			r2 = VESmail_imap_cont(srv, "OK");
+		    }
 		    if (r2 < 0) return r2;
 		    return r + r2;
 		} else {
-		    return VESmail_imap_rsp_send_error(srv, VESmail_imap_cp_tag(token), r);
+		    return token->hold ? r : VESmail_imap_rsp_send_error(srv, VESmail_imap_cp_tag(token), r);
 		}
 	    } else {
+		if (token->hold) {
+		    trk = VESMAIL_IMAP(srv)->track;
+		    if (!trk || trk->token) return VESMAIL_E_INTERNAL;
+		} else {
+		    trk = VESmail_imap_track_new_fwd(srv, token);
+		    trk->rspfn = &VESmail_imap_proxy_fn_rsp_t;
+		}
 		VESmail_imap_req_detach(srv, token);
-		trk = VESmail_imap_track_new_fwd(srv, token);
-		trk->rspfn = &VESmail_imap_proxy_fn_rsp_t;
 		trk->token = token;
+		srv->req_in->imap->state = VESMAIL_IMAP_X_HOLD;
 		break;
 	    }
+	}
 	default:
 	    if (!token->hold && !cdata) {
 		trk = VESmail_imap_track_new_fwd(srv, token);
@@ -366,7 +400,7 @@ int VESmail_imap_proxy_fn_req(VESmail_server *srv, VESmail_imap_token *token) {
 	    }
 	    break;
     }
-    rs = VESmail_imap_req_fwd(srv, token);
+    rs = VESmail_imap_req_fwd(srv, token, detachd);
     srv->flags |= VESMAIL_SRVF_OVER;
     VESMAIL_IMAP(srv)->flags &= ~VESMAIL_IMAP_F_CDATA;
     return rs;

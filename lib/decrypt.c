@@ -1,6 +1,6 @@
 /***************************************************************************
  *  _____
- * |\    | >                   VESmail Project
+ * |\    | >                   VESmail
  * | \   | >  ___       ___    Email Encryption made Convenient and Reliable
  * |  \  | > /   \     /   \                               https://vesmail.email
  * |  /  | > \__ /     \ __/
@@ -60,6 +60,7 @@ VESmail_header *VESmail_header_decrypt(VESmail_parse *parse, VESmail_header *hdr
     if (e) {
 	parse->error |= VESMAIL_PE_HDR_VES;
 	free(buf);
+	libVES_Cipher_free(ci);
 	return NULL;
     }
     VESmail_header *dec = malloc(sizeof(VESmail_header) + libVES_Cipher_decrypt(ci, 1, buf, len, NULL) + 4);
@@ -67,6 +68,7 @@ VESmail_header *VESmail_header_decrypt(VESmail_parse *parse, VESmail_header *hdr
     dec->key = dec->data;
     dec->len = libVES_Cipher_decrypt(ci, 1, buf, len, &decbuf);
     free(buf);
+    libVES_Cipher_free(ci);
     if (dec->len < 0) {
 	parse->error |= VESMAIL_PE_HDR_VES;
 	free(dec);
@@ -116,7 +118,7 @@ int VESmail_header_push_dec(VESmail_parse *parse, VESmail_header *hdr, int bufd)
 		case VESMAIL_VP_UNDEF:
 		    return VESMAIL_E_HOLD;
 		case VESMAIL_VP_BANNER:
-		    parse->xform = NULL;
+		    parse->xform = VESmail_parse_xform_null(parse);
 		    return rs;
 		default:
 		    break;
@@ -209,7 +211,7 @@ int VESmail_header_process_dec(struct VESmail_parse *parse, struct VESmail_heade
 		    if (!strcmp(pt, "body")) parse->vespart = VESMAIL_VP_BODY;
 		    else if (!strcmp(pt, "banner")) {
 			parse->vespart = VESMAIL_VP_BANNER;
-			parse->xform = NULL;
+			parse->xform = VESmail_parse_xform_null(parse);
 		    } else if (!strcmp(pt, "injected")) parse->vespart = VESMAIL_VP_INJ;
 		    else if (!strcmp(pt, "alternative")) parse->vespart = VESMAIL_VP_ALT;
 		    else parse->error |= VESMAIL_PE_HDR_INV;

@@ -1,6 +1,6 @@
 /***************************************************************************
  *  _____
- * |\    | >                   VESmail Project
+ * |\    | >                   VESmail
  * | \   | >  ___       ___    Email Encryption made Convenient and Reliable
  * |  \  | > /   \     /   \                               https://vesmail.email
  * |  /  | > \__ /     \ __/
@@ -103,6 +103,8 @@ int VESmail_parse_set_boundary(struct VESmail_parse *parse, const char *bnd);
 int VESmail_parse_apply_nested(struct VESmail_parse *parse);
 int VESmail_parse_apply_encode(struct VESmail_parse *parse);
 int VESmail_parse_apply_decode(struct VESmail_parse *parse);
+
+struct VESmail_xform *VESmail_parse_xform_null(struct VESmail_parse *parse);
 
 int VESmail_parse_convert(struct VESmail_parse *parse, char **dst, int final, const char *src, int srclen);
 void VESmail_parse_free(struct VESmail_parse *parse);

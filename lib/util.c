@@ -1,6 +1,6 @@
 /***************************************************************************
  *  _____
- * |\    | >                   VESmail Project
+ * |\    | >                   VESmail
  * | \   | >  ___       ___    Email Encryption made Convenient and Reliable
  * |  \  | > /   \     /   \                               https://vesmail.email
  * |  /  | > \__ /     \ __/
@@ -102,11 +102,12 @@ int VESmail_b64decode(char **dst, const char *src, int *srclen, const char **err
 void VESmail_randstr(int len, char *buf) {
     const static char hex[16] = "0123456789abcdef";
     int l = (len + 1) / 2;
-    char *s = buf + len - l;
+    char *tail = buf + len;
+    char *s = tail - l;
     RAND_bytes((unsigned char *) s, l);
     char *d = buf;
     char sh = 4;
-    while (d <= s) {
+    while (d < tail) {
 	*d++ = hex[(*s >> sh) & 0x0f];
 	sh ^= 4;
 	if (sh) s++;

@@ -1,6 +1,6 @@
 /***************************************************************************
  *  _____
- * |\    | >                   VESmail Project
+ * |\    | >                   VESmail
  * | \   | >  ___       ___    Email Encryption made Convenient and Reliable
  * |  \  | > /   \     /   \                               https://vesmail.email
  * |  /  | > \__ /     \ __/
@@ -218,8 +218,6 @@ int VESmail_smtp_cmd_xform_fn(VESmail_xform *xform, int final, const char *src, 
 			if (endf) {
 			    if (smtp->mail) {
 				const char *eom = s;
-//				if (eom > src && eom[-1] == '\n') eom--;
-//				if (eom > src && eom[-1] == '\r') eom--;
 				r = VESmail_convert(smtp->mail, NULL, 1, s0, eom - s0);
 				if (r < 0) return r;
 				rs += r;
@@ -272,7 +270,10 @@ int VESmail_smtp_cmd_xform_fn(VESmail_xform *xform, int final, const char *src, 
 	if (lf) {
 	    endl = lf + 1;
 	} else {
-	    if (!final) break;
+	    if (!final) {
+		if (tail - s > VESMAIL_SMTP_CMD_SAFEBYTES) return VESMAIL_E_BUF;
+		break;
+	    }
 	    endl = tail;
 	}
 	VESmail_smtp_cmd cmd = {

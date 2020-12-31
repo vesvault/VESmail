@@ -1,6 +1,6 @@
 /***************************************************************************
  *  _____
- * |\    | >                   VESmail Project
+ * |\    | >                   VESmail
  * | \   | >  ___       ___    Email Encryption made Convenient and Reliable
  * |  \  | > /   \     /   \                               https://vesmail.email
  * |  /  | > \__ /     \ __/
@@ -42,8 +42,8 @@ typedef struct VESmail_xform {
     char *buf;
     int buflen;
     int bufmax;
-    int offset;
     int eof;
+    long long int offset;
     union {
 	void *data;
 	struct libVES_Cipher *cipher;
@@ -64,6 +64,7 @@ struct VESmail_parse;
 
 struct VESmail_xform *VESmail_xform_new(int (* xformfn)(struct VESmail_xform *xform, int final, const char *src, int *srclen), struct VESmail_xform *chain, void *obj);
 struct VESmail_xform *VESmail_xform_new_inject(struct VESmail_parse *parse, struct VESmail_xform_inject *inject);
+struct VESmail_xform *VESmail_xform_new_null(void *obj);
 int VESmail_xform_process(struct VESmail_xform *xform, int final, const char *src, int srclen);
 int VESmail_xform_capture_buf(struct VESmail_xform *xform, char **buf);
 void VESmail_xform_free(struct VESmail_xform *xform);

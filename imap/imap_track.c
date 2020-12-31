@@ -1,6 +1,6 @@
 /***************************************************************************
  *  _____
- * |\    | >                   VESmail Project
+ * |\    | >                   VESmail
  * | \   | >  ___       ___    Email Encryption made Convenient and Reliable
  * |  \  | > /   \     /   \                               https://vesmail.email
  * |  /  | > \__ /     \ __/
@@ -80,7 +80,7 @@ int VESmail_imap_track_out(VESmail_imap_track **ptr) {
 	*ptr = trk->queue;
 	trk->queue = NULL;
 	VESmail_imap_track_link(trk);
-	return VESmail_imap_req_fwd(trk->server, trk->token);
+	return VESmail_imap_req_fwd(trk->server, trk->token, 0);
     } 
     return 0;
 }

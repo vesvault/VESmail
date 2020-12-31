@@ -1,6 +1,6 @@
 /***************************************************************************
  *  _____
- * |\    | >                   VESmail Project
+ * |\    | >                   VESmail
  * | \   | >  ___       ___    Email Encryption made Convenient and Reliable
  * |  \  | > /   \     /   \                               https://vesmail.email
  * |  /  | > \__ /     \ __/
@@ -30,15 +30,20 @@
  *
  ***************************************************************************/
 
-struct VESmail_server;
-
 extern const char *VESmail_arch_NAME;
 
 void VESmail_arch_init();
+int VESmail_arch_sigaction(int sig, void (* sigfn)(int));
 int VESmail_arch_set_nb(int fd, int nb);
-int VESmail_arch_thread(struct VESmail_server *srv, void (* threadfn)(void *));
+int VESmail_arch_thread(void *arg, void *(* threadfn)(void *), void **pth);
+void VESmail_arch_thread_done(void *th);
+int VESmail_arch_thread_kill(void *th);
+int VESmail_arch_mutex_lock(void **pmutex);
+int VESmail_arch_mutex_unlock(void **pmutex);
+void VESmail_arch_mutex_done(void *mutex);
 int VESmail_arch_poll(int len, ...);
 char *VESmail_arch_gethostname();
+int VESmail_arch_getpid();
 int VESmail_arch_creat(const char *path);
 int VESmail_arch_openr(const char *path);
 int VESmail_arch_read(int fd, char *buf, int len);
@@ -46,6 +51,7 @@ int VESmail_arch_write(int fd, const char *src, int len);
 int VESmail_arch_close(int fd);
 int VESmail_arch_log(const char *fmt, ...);
 int VESmail_arch_vlog(const char *fmt, void *va);
+int VESmail_arch_usleep(unsigned long int t);
 
 #ifdef _WIN32
 

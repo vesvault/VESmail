@@ -28,13 +28,19 @@ SRV_CFILES = srv/server.c \
 srv/arch.c \
 srv/tls.c \
 srv/sasl.c \
-srv/conf.c
+srv/conf.c \
+srv/daemon.c \
+srv/proc.c \
+srv/guard.c
 
 SRV_HFILES = srv/server.h \
 srv/arch.h \
 srv/tls.h \
 srv/sasl.h \
-srv/conf.h
+srv/conf.h \
+srv/daemon.h \
+srv/proc.h \
+srv/guard.h
 
 IMAP_CFILES = imap/imap.c \
 imap/imap_xform.c \
@@ -45,6 +51,7 @@ imap/imap_proxy.c \
 imap/imap_msg.c \
 imap/imap_fetch.c \
 imap/imap_result.c \
+imap/imap_result_proc.c \
 imap/imap_sect.c \
 imap/imap_append.c \
 imap/imap_xves.c
@@ -92,11 +99,19 @@ CLI_HFILES = cli/vesmail.h \
 cli/help.h \
 cli/tty.h
 
+UTIL_CFILES = util/jTree.c
+
+UTIL_HFILES = util/jTree.h
+
 VESMAIL_HFILES = VESmail.h
 
 bin_PROGRAMS = vesmail
 
 vesmail_LDADD = -lVES -lcrypto -lcurl -lssl
+if HAVE_PTHREAD_H
+vesmail_LDADD += -lpthread
+endif
 
 vesmail_SOURCES = $(LIB_CFILES) $(SRV_CFILES) $(IMAP_CFILES) $(SMTP_CFILES) $(NOW_CFILES) $(CLI_CFILES) \
-$(LIB_HFILES) $(SRV_HFILES) $(IMAP_HFILES) $(SMTP_HFILES) $(NOW_HFILES) $(CLI_HFILES) $(VESMAIL_HFILES)
+$(LIB_HFILES) $(SRV_HFILES) $(IMAP_HFILES) $(SMTP_HFILES) $(NOW_HFILES) $(CLI_HFILES) $(UTIL_CFILES) $(UTIL_HFILES) \
+$(VESMAIL_HFILES)

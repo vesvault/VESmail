@@ -1,6 +1,6 @@
 /***************************************************************************
  *  _____
- * |\    | >                   VESmail Project
+ * |\    | >                   VESmail
  * | \   | >  ___       ___    Email Encryption made Convenient and Reliable
  * |  \  | > /   \     /   \                               https://vesmail.email
  * |  /  | > \__ /     \ __/
@@ -98,7 +98,8 @@ int VESmail_smtp_proxy_fn_r_mail(VESmail_smtp_track *trk, VESmail_smtp_reply *re
     if (reply->code == 250) {
 	VESmail_free(smtp->mail);
 	smtp->mail = VESmail_set_out(VESmail_now_store_apply(VESmail_new_encrypt(srv->ves, srv->optns)), VESmail_xform_new_smtp_data(srv));
-	smtp->mail->logfn = &VESmail_arch_log;
+	smtp->mail->logref = srv->logref;
+	smtp->mail->logfn = srv->logfn;
 	smtp->mail->flags &= ~(VESMAIL_O_XCHG | VESMAIL_O_HDR_RCPT);
 	if (smtp->mode <= VESMAIL_SMTP_M_XCHG) smtp->mail->flags |= VESMAIL_O_XCHG;
 	if (smtp->mode == VESMAIL_SMTP_M_PLAIN || (smtp->flags & VESMAIL_SMTP_F_PLAIN)) VESmail_smtp_proxy_plain(srv);
@@ -164,7 +165,13 @@ int VESmail_smtp_proxy_cmd_rcpt(VESmail_server *srv, VESmail_smtp_cmd *cmd) {
 	    };
 	    return VESmail_smtp_proxy_qreply(srv, &re);
 	}
+	int argl = cmd->len - (cmd->arg - cmd->head);
+	char *cp = malloc(argl + 1);
+	memcpy(cp, p, argl);
+	cp[argl] = 0;
+	p = cp;
 	u = libVES_User_fromPath(&p);
+	free(cp);
 	if (!u) {
 	    static const VESmail_smtp_reply re = {
 		.code = 501,

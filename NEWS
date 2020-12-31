@@ -12,3 +12,12 @@
         - Drop connection to a server with specific capabilities (XVES)
         - Hide specific IMAP server capabilities (COMPRESS)
 
+[12/30/2020] jz@vesvault.com:
+        Pre-production release:
+        - Streamed encryption/decryption for any RFC2822 MIME messages
+        - Transparent IMAP4rev1 Proxy
+        - Transparent ESMTP Proxy
+        - Threaded daemonizer with a redundant guard process option
+        - Complete SNI support on TLS connections
+        - Synchronous muli-pass operations for large IMAP messages
+        - Safety limits to prevent OOM

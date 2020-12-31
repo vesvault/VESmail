@@ -1,6 +1,6 @@
 /***************************************************************************
  *  _____
- * |\    | >                   VESmail Project
+ * |\    | >                   VESmail
  * | \   | >  ___       ___    Email Encryption made Convenient and Reliable
  * |  \  | > /   \     /   \                               https://vesmail.email
  * |  /  | > \__ /     \ __/
@@ -43,6 +43,7 @@ char *VESmail_optns_default_injected[] = {"--VESmail-injected-", NULL};
 
 struct VESmail_optns VESmail_optns_default = {
     .flags = VESMAIL_O_HDR_RCPT | VESMAIL_O_XCHG | VESMAIL_O_VES_NTFY,
+    .maxbuf = 1048575,
     .vesDomain = VESMAIL_VES_DOMAIN,
     .idSuffix = ".m.ves.world",
     .idBase = "@msgid.mail.ves.world",
@@ -59,8 +60,12 @@ struct VESmail_optns VESmail_optns_default = {
     .unspecd = "[unspecified]"
 };
 
-struct VESmail_optns *VESmail_optns_new() {
+VESmail_optns *VESmail_optns_new() {
+    return VESmail_optns_clone(&VESmail_optns_default);
+}
+
+VESmail_optns *VESmail_optns_clone(VESmail_optns *op) {
     struct VESmail_optns *optns = malloc(sizeof(VESmail_optns));
-    memcpy(optns, &VESmail_optns_default, sizeof(*optns));
+    memcpy(optns, op, sizeof(*optns));
     return optns;
 }

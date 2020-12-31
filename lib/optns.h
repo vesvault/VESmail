@@ -1,6 +1,6 @@
 /***************************************************************************
  *  _____
- * |\    | >                   VESmail Project
+ * |\    | >                   VESmail
  * | \   | >  ___       ___    Email Encryption made Convenient and Reliable
  * |  \  | > /   \     /   \                               https://vesmail.email
  * |  /  | > \__ /     \ __/
@@ -35,6 +35,7 @@ struct VESmail_xform;
 
 typedef struct VESmail_optns {
     int flags;
+    unsigned long maxbuf;
     char *vesDomain;
     char *idSuffix;
     char *idBase;
@@ -61,5 +62,5 @@ struct VESmail_parse;
 
 extern struct VESmail_optns VESmail_optns_default;
 struct VESmail_optns *VESmail_optns_new();
+struct VESmail_optns *VESmail_optns_clone(struct VESmail_optns *op);
 #define VESmail_optns_free(optns)	free(optns)
-

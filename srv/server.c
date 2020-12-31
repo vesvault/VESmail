@@ -1,6 +1,6 @@
 /***************************************************************************
  *  _____
- * |\    | >                   VESmail Project
+ * |\    | >                   VESmail
  * | \   | >  ___       ___    Email Encryption made Convenient and Reliable
  * |  \  | > /   \     /   \                               https://vesmail.email
  * |  /  | > \__ /     \ __/
@@ -87,6 +87,10 @@ VESmail_server *VESmail_server_init(VESmail_server *srv, VESmail_optns *optns) {
     srv->debug = 0;
     srv->dumpfd = -1;
     srv->lastread = time(NULL);
+    srv->reqbytes = srv->rspbytes = 0;
+    srv->tmout.unauthd = 30;
+    srv->tmout.authd = 900;
+    srv->tmout.data = 900;
     return srv;
 }
 
@@ -133,7 +137,7 @@ int VESmail_server_fn_bio_out(VESmail_xform *xform, int final, const char *src, 
 }
 
 void VESmail_server_fn_free_bio(VESmail_xform *xform) {
-    BIO_free(xform->bio);
+    BIO_free_all(xform->bio);
 }
 
 VESmail_xform *VESmail_server_xform_new_bio_out(VESmail_server *srv, BIO *bio) {
@@ -171,8 +175,17 @@ int VESmail_server_set_fd(VESmail_server *srv, int in, int out) {
     return VESmail_tls_server_start(srv, 0);
 }
 
-void VESmail_server_fn_th_rsp(void *srv) {
+void *VESmail_server_fn_th_rsp(void *srv) {
     VESmail_server_run((VESmail_server *) srv, VESMAIL_SRVR_NOTHR | VESMAIL_SRVR_NOREQ);
+    return NULL;
+}
+
+void VESmail_server_bytes(VESmail_server *srv, int done, int st) {
+    long long int req = srv->reqbytes;
+    long long int rsp = srv->rspbytes;
+    VESmail_server_log(srv, "bytes srv=%s exit=%d st=%d req=%llu rsp=%llu", srv->type, done, st, req, rsp);
+    srv->reqbytes -= req;
+    srv->rspbytes -= rsp;
 }
 
 int VESmail_server_run(VESmail_server *srv, int flags) {
@@ -180,7 +193,7 @@ int VESmail_server_run(VESmail_server *srv, int flags) {
     while (!(srv->flags & VESMAIL_SRVF_SHUTDOWN)) {
 	if (!(flags & VESMAIL_SRVR_NOTHR) && (srv->flags & VESMAIL_SRVF_OVER)) {
 	    flags |= VESMAIL_SRVR_NOTHR;
-	    if (VESmail_arch_thread(srv, &VESmail_server_fn_th_rsp) >= 0) flags |= VESMAIL_SRVR_NORSP;
+	    if (VESmail_arch_thread(srv, &VESmail_server_fn_th_rsp, NULL) >= 0) flags |= VESMAIL_SRVR_NORSP;
 	}
 	if (!(flags & VESMAIL_SRVR_NOREQ)) {
 	    int r = VESmail_xform_process(srv->req_in, 0, "", 0);
@@ -193,15 +206,17 @@ int VESmail_server_run(VESmail_server *srv, int flags) {
 	r = VESmail_server_bio_read(srv->req_bio, srv->req_in, pl >= 0 || (!(flags & VESMAIL_SRVR_NORSP) && (srv->flags & VESMAIL_SRVF_OVER)));
 	if (r < 0) return r;
 	rs += r;
+	srv->reqbytes += r;
 	r = VESmail_server_bio_read(srv->rsp_bio, srv->rsp_in, pl >= 0 || (!(flags & VESMAIL_SRVR_NOREQ) && !(srv->flags & VESMAIL_SRVF_OVER)));
 	if (r < 0) return r;
 	rs += r;
+	srv->rspbytes += r;
 	if (srv->idlefn) {
 	    r = srv->idlefn(srv, time(NULL) - srv->lastread);
 	    if (r < 0) return r;
 	    rs += r;
-	    if (srv->flags & VESMAIL_SRVF_TMOUT) {
-		VESmail_arch_log("timeout");
+	    if (srv->flags & (VESMAIL_SRVF_TMOUT | VESMAIL_SRVF_KILL)) {
+		VESmail_server_log(srv, (srv->flags & VESMAIL_SRVF_TMOUT ? "timeout" : "shutdown"));
 		r = VESmail_xform_process(srv->req_in, 1, "", 0);
 		if (r < 0) return r;
 		rs += r;
@@ -211,13 +226,15 @@ int VESmail_server_run(VESmail_server *srv, int flags) {
 	    }
 	}
     }
+    if (rs > 0) rs = 0;
+    VESmail_server_bytes(srv, 1, rs);
     return rs;
 }
 
 void VESmail_server_logauth(VESmail_server *srv, const char *user, const char *st) {
     char *host = VESmail_server_sockname(srv, 0);
     char *peer = VESmail_server_sockname(srv, 1);
-    VESmail_arch_log("auth %s(%d) srv=%s peer=%s user=%s", st, srv->ves->error, host, peer, user);
+    VESmail_server_log(srv, "auth %s(%d) srv=%s peer=%s user=%s", st, srv->ves->error, host, peer, user);
     free(peer);
     free(host);
 }
@@ -320,6 +337,7 @@ int VESmail_server_connect(VESmail_server *srv, jVar *conf, const char *dport) {
 	    int connr;
 	    if ((connr = connect(fd, r->ai_addr, r->ai_addrlen)) < 0) {
 		VESMAIL_SRV_DEBUG(srv, 1, sprintf(debug, "... failed (%d)", connr));
+		VESmail_arch_close(fd);
 		continue;
 	    }
 	    VESMAIL_SRV_DEBUG(srv, 1, sprintf(debug, "... connected"))
@@ -349,6 +367,8 @@ int VESmail_server_disconnect(VESmail_server *srv) {
     VESmail_xform_free(srv->req_out);
     srv->req_out = NULL;
     srv->flags &= ~VESMAIL_SRVF_TLSC;
+    libVES_free(srv->ves);
+    srv->ves = NULL;
     return 0;
 }
 
@@ -393,16 +413,6 @@ char *VESmail_server_errorStr(VESmail_server *srv, int err) {
     }
 }
 
-int VESmail_server_lock(VESmail_server *srv) {
-
-    return 0;
-}
-
-int VESmail_server_release(VESmail_server *srv) {
-    srv->flags &= !VESMAIL_SRVF_LOCK;
-    return 0;
-}
-
 char *VESmail_server_sockname(VESmail_server *srv, int peer) {
     char *name;
     struct sockaddr sa;
@@ -433,10 +443,12 @@ void VESmail_server_free(VESmail_server *srv) {
     if (srv) {
 	if (srv->freefn) srv->freefn(srv);
 	VESmail_server_disconnect(srv);
+	VESmail_tls_server_done(srv);
 	BIO_free_all(srv->req_bio);
 	VESmail_xform_free(srv->req_in);
+	VESmail_xform_free(srv->req_out);
+	VESmail_xform_free(srv->rsp_in);
 	VESmail_xform_free(srv->rsp_out);
-	libVES_free(srv->ves);
 	jVar_free(srv->uconf);
 	VESmail_sasl_free(srv->sasl);
     }

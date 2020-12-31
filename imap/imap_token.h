@@ -1,6 +1,6 @@
 /***************************************************************************
  *  _____
- * |\    | >                   VESmail Project
+ * |\    | >                   VESmail
  * | \   | >  ___       ___    Email Encryption made Convenient and Reliable
  * |  \  | > /   \     /   \                               https://vesmail.email
  * |  /  | > \__ /     \ __/
@@ -47,7 +47,9 @@ typedef struct VESmail_imap_token {
 	VESMAIL_IMAP_P_DONE,
 	VESMAIL_IMAP_P_CONT,
 	VESMAIL_IMAP_P_ERROR,
-	VESMAIL_IMAP_P_ABORT
+	VESMAIL_IMAP_P_ABORT,
+	VESMAIL_IMAP_P_SYNC,
+	VESMAIL_IMAP_P_RESYNC
     } state;
     short int flags;
     unsigned long int len;
@@ -68,6 +70,10 @@ typedef struct VESmail_imap_token {
 } VESmail_imap_token;
 
 struct VESmail_xform;
+
+#ifndef VESMAIL_IMAP_TOKEN_SAFEBYTES
+#define	VESMAIL_IMAP_TOKEN_SAFEBYTES	4194303
+#endif
 
 #define VESMAIL_IMAP_PF_INIT	0
 #define	VESMAIL_IMAP_PE		0xff00
@@ -107,9 +113,11 @@ struct VESmail_imap_token *VESmail_imap_token_getlist(struct VESmail_imap_token 
 #define VESmail_imap_token_isIndex(token)	((token)->type == VESMAIL_IMAP_T_INDEX)
 #define VESmail_imap_token_isList(token)	((token)->type == VESMAIL_IMAP_T_LIST)
 #define VESmail_imap_token_isLSet(token)	((token)->type == VESMAIL_IMAP_T_LSET)
+#define VESmail_imap_token_hasList(token)	((token)->type < VESMAIL_IMAP_T_LITERAL)
 struct VESmail_xform *VESmail_imap_token_xform_new(struct VESmail_imap_token *token);
 int VESmail_imap_token_xform_apply(struct VESmail_imap_token *token, struct VESmail_xform *xform);
 int VESmail_imap_token_eq(struct VESmail_imap_token *a, struct VESmail_imap_token *b);
 struct VESmail_imap_token *VESmail_imap_token_memsplice(struct VESmail_imap_token *token, int offs, int del, const char *ins);
 int VESmail_imap_token_error(struct VESmail_imap_token *token);
+long long int VESmail_imap_token_chkbytes(struct VESmail_imap_token *token);
 void VESmail_imap_token_free(struct VESmail_imap_token *token);

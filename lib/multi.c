@@ -1,6 +1,6 @@
 /***************************************************************************
  *  _____
- * |\    | >                   VESmail Project
+ * |\    | >                   VESmail
  * | \   | >  ___       ___    Email Encryption made Convenient and Reliable
  * |  \  | > /   \     /   \                               https://vesmail.email
  * |  /  | > \__ /     \ __/
@@ -152,15 +152,14 @@ int VESmail_multi_xform_fn(VESmail_xform *xform, int final, const char *src, int
 	int r;
 	if (xform->parse->nested) {
 	    r = VESmail_parse_process(xform->parse->nested, endf, s0, &len);
-	    if (r < 0) return r;
 	    if (endf) {
 		VESmail_parse_free(xform->parse->nested);
 		xform->parse->nested = NULL;
 	    }
 	} else {
 	    r = VESmail_xform_process((xform->multi->post ? xform->multi->post : xform->chain), (final && s0 + len >= tail), s0, len);
-	    if (r < 0) return r;
 	}
+	if (r < 0) return VESmail_parse_free(next), r;
 	rs += r;
 	s0 += len;
 	if (next) {
@@ -189,4 +188,20 @@ VESmail_xform *VESmail_xform_new_multi(VESmail_parse *parse) {
     xform->multi->post = NULL;
     xform->chain = parse->xform;
     return xform;
+}
+
+
+int VESmail_multi_rfc822_xform_fn(VESmail_xform *xform, int final, const char *src, int *srclen) {
+    if (!src) return 0;
+    VESmail_parse *parse = xform->parse;
+    if (!parse->nested) {
+	parse->nested = VESmail_parse_new(parse->mail, parse->hdrfn, xform->chain, VESMAIL_EN_MSG);
+	if (parse->partfn) parse->partfn(parse, parse->nested);
+    }
+    return VESmail_parse_process(parse->nested, final, src, srclen);
+}
+
+
+VESmail_xform *VESmail_xform_new_rfc822(VESmail_parse *parse) {
+    return VESmail_xform_new(&VESmail_multi_rfc822_xform_fn, parse->xform, parse);
 }

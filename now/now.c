@@ -1,6 +1,6 @@
 /***************************************************************************
  *  _____
- * |\    | >                   VESmail Project
+ * |\    | >                   VESmail
  * | \   | >  ___       ___    Email Encryption made Convenient and Reliable
  * |  \  | > /   \     /   \                               https://vesmail.email
  * |  /  | > \__ /     \ __/
@@ -147,6 +147,7 @@ int VESmail_now_xform_fn_post(VESmail_xform *xform, int final, const char *src, 
 		    if (r < 0) return r;
 		    rs += r;
 		}
+		VESmail_set_out(mail, NULL);
 		VESmail_free(mail);
 		e = 200;
 		xform->server->flags |= VESMAIL_SRVF_SHUTDOWN;

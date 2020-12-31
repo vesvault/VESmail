@@ -1,6 +1,6 @@
 /***************************************************************************
  *  _____
- * |\    | >                   VESmail Project
+ * |\    | >                   VESmail
  * | \   | >  ___       ___    Email Encryption made Convenient and Reliable
  * |  \  | > /   \     /   \                               https://vesmail.email
  * |  /  | > \__ /     \ __/
@@ -40,6 +40,10 @@ typedef struct VESmail_smtp_cmd {
     int verb;
     char data[0];
 } VESmail_smtp_cmd;
+
+#ifndef VESMAIL_SMTP_CMD_SAFEBYTES
+#define	VESMAIL_SMTP_CMD_SAFEBYTES	16383
+#endif
 
 struct VESmail_xform *VESmail_xform_new_smtp_cmd(struct VESmail_server *srv);
 struct VESmail_xform *VESmail_xform_new_smtp_data(struct VESmail_server *srv);

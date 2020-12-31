@@ -1,6 +1,6 @@
 /***************************************************************************
  *  _____
- * |\    | >                   VESmail Project
+ * |\    | >                   VESmail
  * | \   | >  ___       ___    Email Encryption made Convenient and Reliable
  * |  \  | > /   \     /   \                               https://vesmail.email
  * |  /  | > \__ /     \ __/
@@ -110,7 +110,7 @@ int VESmail_imap_fwd_login(VESmail_server *srv) {
 	free(user);
 	free(pwd);
     }
-    rs = VESmail_imap_req_fwd(srv, req);
+    rs = VESmail_imap_req_fwd(srv, req, VESMAIL_IMAP_F_DETACHD);
     return rs;
 }
 
@@ -122,7 +122,7 @@ int VESmail_imap_start_sasl_cont(struct VESmail_server *srv, struct VESmail_imap
 	    VESmail_imap_token *chlr = VESmail_imap_token_line();
 	    VESmail_imap_token_push(chlr, VESmail_imap_token_atom(tk));
 	    free(tk);
-	    int r = VESmail_imap_req_fwd(srv, chlr);
+	    int r = VESmail_imap_req_fwd(srv, chlr, 0);
 	    VESmail_imap_token_free(chlr);
 	    return r;
 	}
@@ -150,7 +150,7 @@ int VESmail_imap_fwd_starttls(VESmail_server *srv) {
     VESmail_imap_token *req = VESmail_imap_req_new(NULL, "STARTTLS");
     VESmail_imap_track *trk = VESmail_imap_track_new_fwd(srv, req);
     trk->rspfn = &VESmail_imap_start_fn_rsp_starttls;
-    return VESmail_imap_req_fwd(srv, req);
+    return VESmail_imap_req_fwd(srv, req, VESMAIL_IMAP_F_DETACHD);
 }
 
 VESmail_imap_token *VESmail_imap_start_get_caps(VESmail_imap_token *rsp) {
@@ -215,9 +215,11 @@ int VESmail_imap_start_fn_rsp_login(int verb, VESmail_imap_token *rsp, VESmail_i
     switch (verb) {
 	case VESMAIL_IMAP_V_OK: {
 	    VESmail_imap_token *caps = VESmail_imap_start_get_caps(rsp);
-	    if (caps) VESmail_imap_caps(trk->server, caps, 0);
-	    VESmail_imap_proxy_init(trk->server);
-	    break;
+	    if (!caps || !VESmail_imap_start_check_cap(caps, VESMAIL_IMAP_V_XVES)) {
+		if (caps) VESmail_imap_caps(trk->server, caps, 0);
+		VESmail_imap_proxy_init(trk->server);
+		break;
+	    }
 	}
 	default:
 	    VESmail_server_disconnect(trk->server);

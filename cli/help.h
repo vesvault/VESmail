@@ -1,6 +1,6 @@
 /***************************************************************************
  *  _____
- * |\    | >                   VESmail Project
+ * |\    | >                   VESmail
  * | \   | >  ___       ___    Email Encryption made Convenient and Reliable
  * |  \  | > /   \     /   \                               https://vesmail.email
  * |  /  | > \__ /     \ __/
@@ -32,4 +32,5 @@
 
 
 extern const char *VESmail_cli_banner;
-void VESmail_help();
+extern const char *VESmail_cli_help;
+void VESmail_help(int banner_only);

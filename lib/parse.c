@@ -1,6 +1,6 @@
 /***************************************************************************
  *  _____
- * |\    | >                   VESmail Project
+ * |\    | >                   VESmail
  * | \   | >  ___       ___    Email Encryption made Convenient and Reliable
  * |  \  | > /   \     /   \                               https://vesmail.email
  * |  /  | > \__ /     \ __/
@@ -87,6 +87,7 @@ VESmail_parse *VESmail_parse_new(VESmail *mail, int (* hdrfn)(struct VESmail_par
     parse->partfn = NULL;
     parse->xform = xform;
     parse->mpboundary = NULL;
+    parse->injboundary = NULL;
     parse->nested = NULL;
     parse->in = NULL;
     return parse;
@@ -256,6 +257,7 @@ int VESmail_parse_hdr(struct VESmail_parse *parse, const char *src, int *srclen)
 		break;
 	}
     }
+    if (s - hdr.key > VESMAIL_HEADER_SAFEBYTES) return VESMAIL_E_BUF;
     return rs;
 }
 
@@ -305,6 +307,8 @@ int VESmail_parse_apply_nested(VESmail_parse *parse) {
 	    parse->xform = VESmail_xform_new_multi(parse);
 	    break;
 	case VESMAIL_T_MSG:
+	    parse->xform = VESmail_xform_new_rfc822(parse);
+	    break;
 	default:
 	    break;
     }
@@ -364,6 +368,10 @@ int VESmail_parse_skip(VESmail_parse *parse) {
     return parse->hdrfn(parse, &hdr);
 }
 
+VESmail_xform *VESmail_parse_xform_null(VESmail_parse *parse) {
+    return VESmail_xform_new(&VESmail_xform_fn_silence, parse->xform, parse);
+}
+
 void VESmail_parse_free(struct VESmail_parse *parse) {
     if (parse) {
 	VESmail_header *h;
@@ -376,8 +384,11 @@ void VESmail_parse_free(struct VESmail_parse *parse) {
 		parse->divertbuf = NULL;
 	    }
 	}
+	VESmail_parse_free(parse->nested);
 	VESmail_xform_free(parse->in);
 	VESmail_xform_free_chain(parse->xform, parse);
+	free(parse->mpboundary);
+	free(parse->injboundary);
     }
     free(parse);
 }

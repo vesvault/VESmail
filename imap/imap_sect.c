@@ -1,6 +1,6 @@
 /***************************************************************************
  *  _____
- * |\    | >                   VESmail Project
+ * |\    | >                   VESmail
  * | \   | >  ___       ___    Email Encryption made Convenient and Reliable
  * |  \  | > /   \     /   \                               https://vesmail.email
  * |  /  | > \__ /     \ __/
@@ -53,59 +53,53 @@ int VESmail_imap_sect_learn_part(VESmail_imap_token *lst, VESmail_imap_msg *msg)
     VESmail_imap_token *t1 = lst->list[1];
     if (!VESmail_imap_token_isAString(t1)) return VESMAIL_E_PARAM;
     if (VESmail_imap_token_isLSet(t0)) {
-	char subtype[32];
-	if (t1->len >= sizeof(subtype) || ! VESmail_imap_token_cp_lcstr(t1, subtype)) *subtype = 0;
-	if (!strcmp(subtype, "rfc822")) {
-	    
-	} else {
-	    VESmail_imap_msg **ptr = &msg->sections;
-	    int i;
-	    VESmail_imap_msg *endp = NULL;
-	    for (i = 0; i < t0->len; i++) {
-		if (!*ptr) *ptr = VESmail_imap_msg_new_part(msg);
-		int r = VESmail_imap_sect_learn_part(t0->list[i], *ptr);
-		if (r < 0) {
-		    rs = r;
-		    break;
-		} else {
-		    rs += r;
-		    if (r) endp = *ptr;
-		}
-		ptr = &(*ptr)->chain;
+	VESmail_imap_msg **ptr = &msg->sections;
+	int i;
+	VESmail_imap_msg *endp = NULL;
+	for (i = 0; i < t0->len; i++) {
+	    if (!*ptr) *ptr = VESmail_imap_msg_new_part(msg);
+	    int r = VESmail_imap_sect_learn_part(t0->list[i], *ptr);
+	    if (r < 0) {
+		rs = r;
+		break;
+	    } else {
+		rs += r;
+		if (r) endp = *ptr;
 	    }
-	    if (endp) {
-		VESmail_imap_msg_free(endp->chain);
-		endp->chain = NULL;
-		if (endp == msg->sections && lst->len >= 3) {
-		    VESmail_imap_token *t2 = VESmail_imap_token_getlist(lst->list[2]);
-		    if (t2) {
-			char kbuf[12];
-			for (i = 0; i < t2->len - 1; i += 2) {
-			    VESmail_imap_token *kv = t2->list[i + 1];
-			    if (!VESmail_imap_token_isAString(kv)) continue;
-			    VESmail_imap_token *kk = t2->list[i];
-			    if (kk->len < sizeof(kbuf) && VESmail_imap_token_cp_lcstr(kk, kbuf) && !strcmp(kbuf, "boundary")) {
-				char **injb;
-				for (injb = msg->server->optns->injected; *injb; injb++) {
-				    int l = strlen(*injb);
-				    if (l < kv->len && !strncmp(*injb, VESmail_imap_token_data(kv), l)) {
-					VESmail_imap_msg_free(endp);
-					msg->sections = NULL;
-					msg->flags |= VESMAIL_IMAP_MF_INJ;
-					break;
-				    }
+	    ptr = &(*ptr)->chain;
+	}
+	if (endp) {
+	    VESmail_imap_msg_free(endp->chain);
+	    endp->chain = NULL;
+	    if (endp == msg->sections && lst->len >= 3) {
+		VESmail_imap_token *t2 = VESmail_imap_token_getlist(lst->list[2]);
+		if (t2) {
+		    char kbuf[12];
+		    for (i = 0; i < t2->len - 1; i += 2) {
+			VESmail_imap_token *kv = t2->list[i + 1];
+			if (!VESmail_imap_token_isAString(kv)) continue;
+			VESmail_imap_token *kk = t2->list[i];
+			if (kk->len < sizeof(kbuf) && VESmail_imap_token_cp_lcstr(kk, kbuf) && !strcmp(kbuf, "boundary")) {
+			    char **injb;
+			    for (injb = msg->server->optns->injected; *injb; injb++) {
+				int l = strlen(*injb);
+				if (l < kv->len && !strncmp(*injb, VESmail_imap_token_data(kv), l)) {
+				    VESmail_imap_msg_free(endp);
+				    msg->sections = NULL;
+				    msg->flags |= VESMAIL_IMAP_MF_INJ;
+				    break;
 				}
 			    }
-			    if (msg->flags & VESMAIL_IMAP_MF_INJ) {
-				return VESmail_imap_sect_learn_part(t0->list[0], msg);
-			    }
+			}
+			if (msg->flags & VESMAIL_IMAP_MF_INJ) {
+			    return VESmail_imap_sect_learn_part(t0->list[0], msg);
 			}
 		    }
 		}
-	    } else {
-		VESmail_imap_msg_free(*ptr);
-		*ptr = NULL;
 	    }
+	} else {
+	    VESmail_imap_msg_free(*ptr);
+	    *ptr = NULL;
 	}
     } else {
 	char *mime = malloc(t0->len + t1->len + 2);
@@ -114,12 +108,22 @@ int VESmail_imap_sect_learn_part(VESmail_imap_token *lst, VESmail_imap_msg *msg)
 	    char *d = mime + strlen(mime);
 	    *d++ = '/';
 	    if (VESmail_imap_token_cp_lcstr(t1, d)) {
-		rs = 0;
-		char **mimes;
-		for (mimes = msg->server->optns->mime; *mimes; mimes++) if (!strcmp(*mimes, mime)) {
-		    msg->flags |= VESMAIL_IMAP_MF_VES;
-		    rs = 1;
-		    break;
+		if (!strcmp(mime, "message/rfc822")) {
+		    msg->flags |= VESMAIL_IMAP_MF_RFC822;
+		    if (!msg->rfc822) msg->rfc822 = VESmail_imap_msg_new_part(msg);
+		    if (lst->len >= 9 && VESmail_imap_token_isLSet(lst->list[8])) {
+			rs = VESmail_imap_sect_learn_part(lst->list[8]->list[0], msg->rfc822);
+		    } else {
+			rs = VESMAIL_E_PARAM;
+		    }
+		} else {
+		    rs = 0;
+		    char **mimes;
+		    for (mimes = msg->server->optns->mime; *mimes; mimes++) if (!strcmp(*mimes, mime)) {
+			msg->flags |= VESMAIL_IMAP_MF_VES;
+			rs = 1;
+			break;
+		    }
 		}
 	    }
 	}
@@ -330,9 +334,7 @@ int VESmail_imap_sect_apply_part(VESmail_imap_token *token, VESmail_imap_msg *ms
     VESmail_imap_token **lst = token->list;
     VESmail_imap_token *t0 = lst[0];
     if (VESmail_imap_token_isLSet(t0)) {
-	if (msg->flags & VESMAIL_IMAP_MF_RFC822) {
-	    /* Not implemented yet */
-	} else if ((msg->flags & VESMAIL_IMAP_MF_INJ) && !(flags & VESMAIL_IMAP_MF_INJ)) {
+	if ((msg->flags & VESMAIL_IMAP_MF_INJ) && !(flags & VESMAIL_IMAP_MF_INJ)) {
 	    VESmail_imap_token *itoken = t0->list[0];
 	    int ilen = itoken->len;
 	    VESmail_imap_token **ilist = itoken->list;
@@ -340,7 +342,7 @@ int VESmail_imap_sect_apply_part(VESmail_imap_token *token, VESmail_imap_msg *ms
 	    itoken->list = NULL;
 	    VESmail_imap_token_splice(token, 0, token->len, 0);
 	    token->len = ilen;
-	    free(itoken->list);
+	    free(token->list);
 	    token->list = ilist;
 	    return VESmail_imap_sect_apply_part(token, msg, flags | VESMAIL_IMAP_MF_INJ);
 	} else {
@@ -353,8 +355,16 @@ int VESmail_imap_sect_apply_part(VESmail_imap_token *token, VESmail_imap_msg *ms
 	    }
 	    if (lidx < t0->len) VESmail_imap_token_splice(t0, lidx, t0->len - lidx, 0);
 	}
+    } else if (msg->flags & VESMAIL_IMAP_MF_RFC822) {
+	if (token->len < 10 || !VESmail_imap_token_isLSet(lst[8])) return VESMAIL_E_UNKNOWN;
+	VESmail_imap_msg *part = msg->rfc822;
+	VESmail_imap_sect_apply_part(lst[8]->list[0], part, (flags & ~VESMAIL_IMAP_MF_INJ));
+	if (msg->flags & VESMAIL_IMAP_MF_BODY) {
+	    VESmail_imap_token_splice(token, 6, 1, 1, VESmail_imap_token_uint(msg->bbytes));
+	    VESmail_imap_token_splice(token, 9, 1, 1, VESmail_imap_token_uint(msg->lines));
+	}
     } else if (msg->flags & VESMAIL_IMAP_MF_VES) {
-	if (token->len < 6) return VESMAIL_E_UNKNOWN;
+	if (token->len < 7) return VESMAIL_E_UNKNOWN;
 	VESmail_imap_token *ctparams = VESmail_imap_token_list(0);
 	const char *ctype = VESmail_imap_msg_header(msg, VESMAIL_IMAP_H_CONTENT_TYPE, &VESmail_imap_sect_render_params, ctparams);
 	const char *ct2;
@@ -383,7 +393,7 @@ int VESmail_imap_sect_apply_part(VESmail_imap_token *token, VESmail_imap_msg *ms
 	    VESmail_imap_token_nstring(ctenc)
 	);
 	if (msg->flags & VESMAIL_IMAP_MF_BODY) {
-	    VESmail_imap_token_splice(token, 6, 1, 1, VESmail_imap_token_uint(msg->bytes));
+	    VESmail_imap_token_splice(token, 6, 1, 1, VESmail_imap_token_uint(msg->bbytes));
 	}
 	if (ftxt) {
 	    unsigned int lines;

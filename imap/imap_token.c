@@ -1,6 +1,6 @@
 /***************************************************************************
  *  _____
- * |\    | >                   VESmail Project
+ * |\    | >                   VESmail
  * | \   | >  ___       ___    Email Encryption made Convenient and Reliable
  * |  \  | > /   \     /   \                               https://vesmail.email
  * |  /  | > \__ /     \ __/
@@ -353,6 +353,38 @@ VESmail_imap_token *VESmail_imap_token_getlist(VESmail_imap_token *token) {
 
 int VESmail_imap_token_xform_fn(VESmail_xform *xform, int final, const char *src, int *srclen) {
     if (!src) return 0;
+    if (xform->chain) {
+	int l = *srclen;
+	unsigned long rm = xform->imapToken->len;
+	if (xform->offset < 0) {
+	    if (xform->offset + l <= 0) {
+		xform->offset += l;
+		l = 0;
+	    } else {
+		l += xform->offset;
+		src -= xform->offset;
+		xform->offset = 0;
+	    }
+	} else {
+	    rm -= xform->offset;
+	}
+	if (l > rm) l = rm;
+	rm -= l;
+	xform->offset += l;
+	int rs = VESmail_xform_process(xform->chain, 0, src, l);
+	if (rs < 0) return rs;
+	if (final) while (rm) {
+	    const char *pad = "                                                                              \r\n";
+	    const int l0 = strlen(pad);
+	    int l = l0;
+	    if (l > rm) l = rm;
+	    rm -= l;
+	    int r = VESmail_xform_process(xform->chain, 0, pad + l0 - l, l);
+	    if (r < 0) return r;
+	    rs += r;
+	}
+	return rs;
+    }
     if (final) {
 	free(xform->imapToken->literal);
 	int r;
@@ -425,9 +457,29 @@ VESmail_imap_token *VESmail_imap_token_memsplice(VESmail_imap_token *token, int 
 int VESmail_imap_token_error(VESmail_imap_token *token) {
     if (!token) return VESMAIL_E_PARAM;
     if (VESmail_imap_token_isLiteral(token) && token->xform) return token->xform->eof;
-    else if (token->state == VESMAIL_IMAP_P_ERROR) return VESMAIL_E_UNKNOWN;
+    else if (VESmail_imap_token_hasList(token)) {
+	int i;
+	for (i = 0; i < token->len; i++) {
+	    int r = VESmail_imap_token_error(token->list[i]);
+	    if (r < 0) return r;
+	}
+    }
+    if (token->state == VESMAIL_IMAP_P_ERROR) return VESMAIL_E_UNKNOWN;
     return 0;
 }
+
+long long int VESmail_imap_token_chkbytes(VESmail_imap_token *token) {
+    if (!token) return 0;
+    long long int rs = 64;
+    if (token->type < VESMAIL_IMAP_T_LITERAL) {
+	int i;
+	for (i = 0; i < token->len; i++) rs += VESmail_imap_token_chkbytes(token->list[i]);
+    } else if (token->type > VESMAIL_IMAP_T_LITERAL || token->literal) {
+	rs += token->len;
+    }
+    return rs;
+}
+
 
 void VESmail_imap_token_free(VESmail_imap_token *token) {
     if (token) {

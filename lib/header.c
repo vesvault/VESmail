@@ -1,6 +1,6 @@
 /***************************************************************************
  *  _____
- * |\    | >                   VESmail Project
+ * |\    | >                   VESmail
  * | \   | >  ___       ___    Email Encryption made Convenient and Reliable
  * |  \  | > /   \     /   \                               https://vesmail.email
  * |  /  | > \__ /     \ __/
@@ -239,6 +239,12 @@ VESmail_header *VESmail_header_add_eol(VESmail_header *hdr, const VESmail_header
     } else return VESmail_header_add_val(hdr, 2, "\r\n");
 }
 
+int VESmail_header_chkbytes(VESmail_header *hdr) {
+    int rs = 0;
+    for (; hdr; hdr = hdr->chain) rs += 64 + hdr->len;
+    return rs;
+}
+
 int VESmail_header_push(VESmail_parse *parse, VESmail_header *hdr, int (* pushfn)(VESmail_parse *, VESmail_header *, int)) {
     int rs = 0;
     while (parse->hdrbuf) {
@@ -254,9 +260,10 @@ int VESmail_header_push(VESmail_parse *parse, VESmail_header *hdr, int (* pushfn
     }
     if (!parse->hdrbuf) {
 	int r = pushfn(parse, hdr, 0);
-	if (r >=0) return rs + r;
+	if (r >= 0) return rs + r;
 	if (r != VESMAIL_E_HOLD) return r;
     }
+    if (VESmail_header_chkbytes(parse->hdrbuf) + hdr->len > VESMAIL_HEADER_SAFEBYTES) return VESMAIL_E_BUF;
     parse->hdrbuf = VESmail_header_dup(hdr, parse->hdrbuf);
     return rs;
 }
@@ -314,6 +321,7 @@ int VESmail_header_commit(VESmail_parse *parse, VESmail_header *hdr) {
 }
 
 int VESmail_header_divert(VESmail_parse *parse, VESmail_header *hdr) {
+    if (VESmail_header_chkbytes(parse->divertbuf) + hdr->len > VESMAIL_HEADER_SAFEBYTES) return VESMAIL_E_BUF;
     parse->divertbuf = VESmail_header_dup(hdr, parse->divertbuf);
     return 0;
 }

@@ -1,6 +1,6 @@
 /***************************************************************************
  *  _____
- * |\    | >                   VESmail Project
+ * |\    | >                   VESmail
  * | \   | >  ___       ___    Email Encryption made Convenient and Reliable
  * |  \  | > /   \     /   \                               https://vesmail.email
  * |  /  | > \__ /     \ __/
@@ -41,6 +41,7 @@ typedef struct VESmail_imap_track {
     struct VESmail_imap_track *chain;
     struct VESmail_imap_track *queue;
     struct VESmail_imap_token *token;
+    void *ref;
 } VESmail_imap_track;
 
 

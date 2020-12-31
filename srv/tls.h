@@ -1,6 +1,6 @@
 /***************************************************************************
  *  _____
- * |\    | >                   VESmail Project
+ * |\    | >                   VESmail
  * | \   | >  ___       ___    Email Encryption made Convenient and Reliable
  * |  \  | > /   \     /   \                               https://vesmail.email
  * |  /  | > \__ /     \ __/
@@ -50,6 +50,7 @@ typedef struct VESmail_tls_server {
     char *key;
     int (* snifn)(struct VESmail_server *srv, const char *sni);
     char persist;
+    char sni_only;
 } VESmail_tls_server;
 
 struct VESmail_server;
@@ -61,9 +62,13 @@ int VESmail_tls_client_start(struct VESmail_server *srv, int starttls);
 #define VESmail_tls_client_none(srv)	((srv)->tls.client->level == VESMAIL_TLS_NONE)
 #define VESmail_tls_client_started(srv)	((srv)->flags & VESMAIL_SRVF_TLSC)
 void VESmail_tls_client_done(struct VESmail_server *srv);
+
 struct VESmail_tls_server *VESmail_tls_server_new();
+struct VESmail_tls_server *VESmail_tls_server_clone(struct VESmail_tls_server *tls);
 int VESmail_tls_server_start(struct VESmail_server *srv, int starttls);
 #define VESmail_tls_server_allow_starttls(srv)	((srv)->tls.server && !((srv)->flags & VESMAIL_SRVF_TLSS))
-#define VESmail_tls_server_allow_plain(srv)	(1)
+#define VESmail_tls_server_allow_plain(srv)	(!(srv)->tls.server->sni_only)
+void VESmail_tls_server_ctxinit(struct VESmail_server *srv);
 void VESmail_tls_server_ctxreset(struct VESmail_tls_server *tls);
 void VESmail_tls_server_done(struct VESmail_server *srv);
+void VESmail_tls_server_free(struct VESmail_tls_server *tls);

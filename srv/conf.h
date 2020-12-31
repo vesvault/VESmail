@@ -1,6 +1,6 @@
 /***************************************************************************
  *  _____
- * |\    | >                   VESmail Project
+ * |\    | >                   VESmail
  * | \   | >  ___       ___    Email Encryption made Convenient and Reliable
  * |  \  | > /   \     /   \                               https://vesmail.email
  * |  /  | > \__ /     \ __/
@@ -34,25 +34,37 @@ struct jVar;
 struct VESmail_optns;
 struct VESmail_tls_server;
 struct VESmail_tls_client;
+struct VESmail_server;
 
 typedef struct VESmail_conf {
     struct VESmail_optns *optns;
     struct VESmail_tls_server *tls;
     const char *hostname;
+    const char *progname;
     const char **banner;
     char **bannerPath;
     char *manifest;
     struct jVar *app;
+    void *mutex;
     struct {
 	char *prefix;
 	char *suffix;
 	int require;
     } sni;
+    struct {
+	char *filename;
+	void *fh;
+    } log;
+    char guard;
 } VESmail_conf;
 
 struct jVar *VESmail_conf_read(const char *path, void (* errfn)(const char *, ...));
 char *VESmail_conf_get_content(const char *path);
 void VESmail_conf_apply(struct VESmail_conf *conf, struct jVar *jconf);
+void VESmail_conf_applyroot(struct VESmail_conf *conf, struct jVar *jconf, int (* snifn)(struct VESmail_server *, const char *));
 struct jVar *VESmail_conf_sni_read(struct VESmail_conf *conf, const char *sni, void (* errfn)(const char *, ...));
 void VESmail_conf_setstr(char **val, struct jVar *conf);
-
+struct VESmail_conf *VESmail_conf_clone(struct VESmail_conf *conf);
+void VESmail_conf_vlog(struct VESmail_conf *conf, const char *fmt, void *va);
+void VESmail_conf_closelog(struct VESmail_conf *conf);
+void VESmail_conf_free(struct VESmail_conf *conf);

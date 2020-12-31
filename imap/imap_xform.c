@@ -1,6 +1,6 @@
 /***************************************************************************
  *  _____
- * |\    | >                   VESmail Project
+ * |\    | >                   VESmail
  * | \   | >  ___       ___    Email Encryption made Convenient and Reliable
  * |  \  | > /   \     /   \                               https://vesmail.email
  * |  /  | > \__ /     \ __/
@@ -76,7 +76,7 @@ int VESmail_imap_xform_fn(VESmail_xform *xform, int final, const char *src, int 
 		if (curr->xform) {
 		    int eof = (len >= xform->imap->skip);
 		    int r = VESmail_xform_process(curr->xform, eof, s, len);
-		    if (eof && !curr->literal) r = VESMAIL_E_INTERNAL;
+//		    if (eof && !curr->literal) r = VESMAIL_E_INTERNAL;
 		    if (r < 0) {
 			curr->len = 0;
 			curr->state = VESMAIL_IMAP_P_ERROR;
@@ -84,6 +84,7 @@ int VESmail_imap_xform_fn(VESmail_xform *xform, int final, const char *src, int 
 			rs += r;
 		    }
 		} else {
+		    if (!curr->literal && VESmail_imap_token_chkbytes(line) + curr->len > VESMAIL_IMAP_TOKEN_SAFEBYTES) return VESMAIL_E_BUF;
 		    memcpy(VESmail_imap_token_data(curr) + curr->len - xform->imap->skip, s, len);
 		}
 	    }
@@ -91,7 +92,10 @@ int VESmail_imap_xform_fn(VESmail_xform *xform, int final, const char *src, int 
 	    s += len;
 	}
 	const char *eol = memchr(s, '\n', tail - s);
-	if (!eol) break;
+	if (!eol) {
+	    if (VESmail_imap_token_chkbytes(line) + (tail - s) > VESMAIL_IMAP_TOKEN_SAFEBYTES) return VESMAIL_E_BUF;
+	    break;
+	}
 	const char *nextl = eol + 1;
 	const char *lthdr = NULL;
 	unsigned int ltlen;
@@ -294,7 +298,14 @@ VESmail_imap_token *VESmail_imap_xform_detach(VESmail_xform *xform, VESmail_imap
     return NULL;
 }
 
+VESmail_xform *VESmail_imap_xform_sync(VESmail_xform *xform) {
+    if (!xform->imap->sync) xform->imap->sync = VESmail_xform_new_null(NULL);
+    return xform->imap->sync;
+}
+
 void VESmail_imap_xform_fn_free(VESmail_xform *xform) {
+    VESmail_imap_token_free(xform->imap->line);
+    VESmail_xform_free(xform->imap->sync);
     free(xform->imap);
 }
 
@@ -304,6 +315,7 @@ VESmail_xform *VESmail_xform_new_imap(VESmail_server *srv, int (* procfn)(VESmai
     imapx->state = VESMAIL_IMAP_X_INIT;
     imapx->procfn = procfn;
     imapx->line = imapx->list = NULL;
+    imapx->sync = NULL;
     VESmail_xform *xform = VESmail_xform_new(&VESmail_imap_xform_fn, NULL, srv);
     xform->imap = imapx;
     xform->freefn = &VESmail_imap_xform_fn_free;

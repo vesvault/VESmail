@@ -6,7 +6,7 @@ service ves-smtp
 	socket_type     = stream
 	wait            = no
 	user            = mail
-	server          = /usr/local/bin/vesmail
+	server          = /usr/bin/vesmail
 	server_args     = smtp
 	log_on_failure  += USERID
 	instances	= 100

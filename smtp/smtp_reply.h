@@ -1,6 +1,6 @@
 /***************************************************************************
  *  _____
- * |\    | >                   VESmail Project
+ * |\    | >                   VESmail
  * | \   | >  ___       ___    Email Encryption made Convenient and Reliable
  * |  \  | > /   \     /   \                               https://vesmail.email
  * |  /  | > \__ /     \ __/
@@ -40,6 +40,10 @@ typedef struct VESmail_smtp_reply {
     short int dsn;
     char data[0];
 } VESmail_smtp_reply;
+
+#ifndef VESMAIL_SMTP_REPLY_SAFEBYTES
+#define	VESMAIL_SMTP_REPLY_SAFEBYTES	262143
+#endif
 
 #define	VESMAIL_SMTP_RF_FINAL	0x01
 #define	VESMAIL_SMTP_RF_NOEOL	0x02

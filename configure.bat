@@ -2,7 +2,7 @@
 
 rem /***************************************************************************
 rem  *  _____
-rem  * |\    | >                   VESmail Project
+rem  * |\    | >                   VESmail
 rem  * | \   | >  ___       ___    Email Encryption made Convenient and Reliable
 rem  * |  \  | > /   \     /   \                               https://vesmail.email
 rem  * |  /  | > \__ /     \ __/

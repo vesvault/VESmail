@@ -1,6 +1,6 @@
 /***************************************************************************
  *  _____
- * |\    | >                   VESmail Project
+ * |\    | >                   VESmail
  * | \   | >  ___       ___    Email Encryption made Convenient and Reliable
  * |  \  | > /   \     /   \                               https://vesmail.email
  * |  /  | > \__ /     \ __/
@@ -96,6 +96,8 @@ int VESmail_smtp_start_fn_r_ehlo(VESmail_smtp_track *trk, VESmail_smtp_reply *re
 	) {
 	    eol = VESmail_smtp_reply_get_eol(reply, txt);
 	    switch (VESmail_smtp_cmd_match_verb(&txt, eol, VESmail_smtp_verbs)) {
+		case VESMAIL_SMTP_V_XVES:
+		    return VESmail_smtp_start_login_fail(srv, "Forbidden remote capability XVES", NULL);
 		case VESMAIL_SMTP_V_STARTTLS:
 		    ftls = 1;
 		    break;

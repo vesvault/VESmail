@@ -1,6 +1,6 @@
 /***************************************************************************
  *  _____
- * |\    | >                   VESmail Project
+ * |\    | >                   VESmail
  * | \   | >  ___       ___    Email Encryption made Convenient and Reliable
  * |  \  | > /   \     /   \                               https://vesmail.email
  * |  /  | > \__ /     \ __/
@@ -42,7 +42,6 @@ typedef struct VESmail_sasl {
 #define	VESMAIL_VERB(verb)	VESMAIL_SASL_M_ ## verb,
     enum { VESMAIL_SASL_MECHS() VESMAIL_SASL__END } mech;
 #undef VESMAIL_VERB
-    char _algn;
     short int state;
     char *(* tokenfn)(struct VESmail_sasl *, const char *token, int len);
     void (* freefn)(struct VESmail_sasl *);

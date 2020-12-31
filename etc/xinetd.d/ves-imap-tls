@@ -6,7 +6,7 @@ service ves-imap-tls
 	socket_type     = stream
 	wait            = no
 	user            = mail
-	server          = /usr/local/bin/vesmail
+	server          = /usr/bin/vesmail
 	server_args     = imap -t
 	log_on_failure  += USERID
 	instances	= 100

@@ -1,6 +1,6 @@
 /***************************************************************************
  *  _____
- * |\    | >                   VESmail Project
+ * |\    | >                   VESmail
  * | \   | >  ___       ___    Email Encryption made Convenient and Reliable
  * |  \  | > /   \     /   \                               https://vesmail.email
  * |  /  | > \__ /     \ __/
@@ -42,7 +42,8 @@ typedef struct VESmail {
     struct VESmail_xform *out;
     char *nowUrl;
     struct libVES_List *share;
-    int (*logfn)(const char *, ...);
+    void (*logfn)(void *logref, const char *fmt, ...);
+    void *logref;
 } VESmail;
 
 struct VESmail_parse;

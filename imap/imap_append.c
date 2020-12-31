@@ -1,6 +1,6 @@
 /***************************************************************************
  *  _____
- * |\    | >                   VESmail Project
+ * |\    | >                   VESmail
  * | \   | >  ___       ___    Email Encryption made Convenient and Reliable
  * |  \  | > /   \     /   \                               https://vesmail.email
  * |  /  | > \__ /     \ __/
@@ -54,8 +54,10 @@ void VESmail_imap_append_xform_freefn(VESmail_xform *xform) {
     VESmail_free(xform->parse->mail);
 }
 
-int VESmail_imap_append_encrypt(VESmail_server *srv, VESmail_imap_token *body) {
-    VESmail *mail = VESmail_set_out(VESmail_new_encrypt(srv->ves, srv->optns), VESmail_imap_token_xform_new(body));
+int VESmail_imap_append_encrypt(VESmail_server *srv, VESmail_imap_token *body, VESmail_xform *sync) {
+    VESmail_xform *out = VESmail_imap_token_xform_new(body);
+    if ((out->chain = sync)) body->state = VESMAIL_IMAP_P_SYNC;
+    VESmail *mail = VESmail_set_out(VESmail_new_encrypt(srv->ves, srv->optns), out);
     mail->flags &= ~(VESMAIL_O_XCHG | VESMAIL_O_HDR_RCPT);
     VESmail_xform *in = VESmail_xform_new(&VESmail_imap_append_xform_fn, NULL, mail->root);
     in->freefn = &VESmail_imap_append_xform_freefn;

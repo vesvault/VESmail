@@ -1,6 +1,6 @@
 /***************************************************************************
  *  _____
- * |\    | >                   VESmail Project
+ * |\    | >                   VESmail
  * | \   | >  ___       ___    Email Encryption made Convenient and Reliable
  * |  \  | > /   \     /   \                               https://vesmail.email
  * |  /  | > \__ /     \ __/
@@ -35,8 +35,10 @@
 #include <signal.h>
 #include <sys/select.h>
 #include <sys/time.h>
+#include <sys/socket.h>
 #include <stdarg.h>
 #include <syslog.h>
+#include <pthread.h>
 
 const char *VESmail_arch_NAME = "Unix";
 
@@ -44,24 +46,73 @@ void VESmail_arch_sa_h_alrm(int sig) {
 }
 
 void VESmail_arch_init() {
-    static struct sigaction sa_alrm;
-    sigaction(SIGALRM, NULL, &sa_alrm);
-    sa_alrm.sa_handler = &VESmail_arch_sa_h_alrm;
-    sigaction(SIGALRM, &sa_alrm, NULL);
+    VESmail_arch_sigaction(SIGALRM, &VESmail_arch_sa_h_alrm);
+}
+
+int VESmail_arch_sigaction(int sig, void (* sigfn)(int)) {
+    struct sigaction sa;
+    sigaction(sig, NULL, &sa);
+    sa.sa_handler = sigfn;
+    return sigaction(sig, &sa, NULL) < 0 ? VESMAIL_E_IO : 0;
 }
 
 int VESmail_arch_set_nb(int fd, int nb) {
-    alarm(5);
+    if (!nb) {
+	struct timeval tmout = {
+	    .tv_sec = 5,
+	    .tv_usec = 0
+	};
+	setsockopt(fd, SOL_SOCKET, SO_RCVTIMEO, (char *)&tmout, sizeof(tmout));
+	setsockopt(fd, SOL_SOCKET, SO_SNDTIMEO, (char *)&tmout, sizeof(tmout));
+    }
     int flgs = fcntl(fd, F_GETFL, 0);
     if (flgs == -1) return VESMAIL_E_IO;
     flgs &= ~O_NONBLOCK;
     if (nb) flgs |= O_NONBLOCK;
-    return fcntl(fd, F_SETFL, flgs);
+    return fcntl(fd, F_SETFL, flgs) ? VESMAIL_E_IO : 0;
 }
 
-int VESmail_arch_thread(VESmail_server *srv, void (* threadfn)(void *)) {
-    return VESMAIL_E_PARAM;
+int VESmail_arch_thread(void *arg, void *(* threadfn)(void *), void **pth) {
+    pthread_t pt;
+    if (pthread_create(&pt, NULL, threadfn, arg)) return VESMAIL_E_IO;
+    if (pth) {
+	*pth = malloc(sizeof(pt));
+	memcpy(*pth, &pt, sizeof(pt));
+    } else {
+	pthread_detach(pt);
+    }
+    return 0;
 }
+
+int VESmail_arch_thread_kill(void *th) {
+    return th ? (pthread_kill(*((pthread_t *) th), SIGHUP) < 0 ? VESMAIL_E_IO : 0) : VESMAIL_E_PARAM;
+}
+
+void VESmail_arch_thread_done(void *th) {
+    if (th) {
+	pthread_join(*((pthread_t *) th), NULL);
+	free(th);
+    }
+}
+
+int VESmail_arch_mutex_lock(void **pmutex) {
+    if (!*pmutex) {
+	*pmutex = malloc(sizeof(pthread_mutex_t));
+	pthread_mutex_init(*pmutex, NULL);
+    }
+    return pthread_mutex_lock(*pmutex);
+}
+
+int VESmail_arch_mutex_unlock(void **pmutex) {
+    return pthread_mutex_unlock(*pmutex);
+}
+
+void VESmail_arch_mutex_done(void *mutex) {
+    if (mutex) pthread_mutex_destroy(mutex);
+    free(mutex);
+}
+
+
 
 int VESmail_arch_poll(int len, ...) {
     fd_set rd;
@@ -101,6 +152,10 @@ char *VESmail_arch_gethostname() {
 	free(h);
 	return NULL;
     }
+}
+
+int VESmail_arch_getpid() {
+    return getpid();
 }
 
 int VESmail_arch_creat(const char *path) {
@@ -143,4 +198,12 @@ int VESmail_arch_log(const char *fmt, ...) {
 
 int VESmail_arch_vlog(const char *fmt, void *va) {
     return VESmail_arch_valog(fmt, *((va_list *) va));
+}
+
+int VESmail_arch_usleep(unsigned long int t) {
+    struct timespec ts = {
+	.tv_sec = t / 1000000,
+	.tv_nsec = (t % 1000000) * 1000
+    };
+    return nanosleep(&ts, NULL);
 }

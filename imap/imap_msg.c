@@ -1,6 +1,6 @@
 /***************************************************************************
  *  _____
- * |\    | >                   VESmail Project
+ * |\    | >                   VESmail
  * | \   | >  ___       ___    Email Encryption made Convenient and Reliable
  * |  \  | > /   \     /   \                               https://vesmail.email
  * |  /  | > \__ /     \ __/
@@ -47,6 +47,7 @@
 #include "imap_result.h"
 #include "imap_sect.h"
 #include "imap_fetch.h"
+#include "imap_xform.h"
 #include "imap_msg.h"
 
 VESmail_imap_msg *VESmail_imap_msg_init(VESmail_imap_msg *msg, int flags) {
@@ -64,6 +65,7 @@ VESmail_imap_msg *VESmail_imap_msg_new(VESmail_server *srv) {
     VESmail_init(VESMAIL_IMAP_MAIL(msg), srv->ves, srv->optns);
     msg->server = srv;
     msg->result = NULL;
+    msg->rcount = 0;
     return msg;
 }
 
@@ -230,7 +232,6 @@ int VESmail_imap_msg_fn_hdr(VESmail_parse *parse, VESmail_header *hdr) {
 		}
 	    } else {
 		VESmail_imap_msg_collect(msg, parse);
-		msg->flags &= ~VESMAIL_IMAP_MF_PHDR;
 	    }
 	}
 	if (VESmail_imap_sect_hdr_skip(imap->results.filter, lckey)) return 0;
@@ -286,7 +287,7 @@ int VESmail_imap_msg_fn_hdr(VESmail_parse *parse, VESmail_header *hdr) {
 int VESmail_imap_msg_fn_xform_calc(VESmail_xform *xform, int final, const char *src, int *srclen) {
     if (!src) return *srclen = 0;
     VESmail_imap_msg *msg = (VESmail_imap_msg *) xform->data;
-    msg->bytes += *srclen;
+    msg->bbytes += *srclen;
     const char *tail = src + *srclen;
     const char *lf;
     for (lf = src; lf < tail && (lf = memchr(lf, '\n', tail - lf)); lf++) {
@@ -299,19 +300,25 @@ VESmail_parse *VESmail_imap_msg_parse_set_calc(VESmail_parse *parse) {
     VESmail_imap_msg *msg = (VESmail_imap_msg *) parse->ref;
     parse->xform = VESmail_xform_new(&VESmail_imap_msg_fn_xform_calc, parse->xform, parse);
     parse->xform->data = msg;
-    msg->bytes = 0;
+    msg->bbytes = 0;
+    msg->lines = 1;
     return parse;
 }
 
 void VESmail_imap_msg_fn_part(VESmail_parse *parse, VESmail_parse *child) {
     VESmail_imap_msg *msg = (VESmail_imap_msg *) parse->ref;
-    if (!msg || !(msg->flags & VESMAIL_IMAP_MF_PBODY)) return;
+    if (!msg) return;
+    if (!(msg->flags & VESMAIL_IMAP_MF_HDR) && parse->state == VESMAIL_S_HDR) msg->hbytes = msg->bbytes;
+    if (!(msg->flags & (VESMAIL_IMAP_MF_PHDR | VESMAIL_IMAP_MF_PBODY))) return;
+    msg->flags &= ~VESMAIL_IMAP_MF_PHDR;
     int inj = (parse->vespart == VESMAIL_VP_INJ);
     VESmail_imap_msg **ptr;
     if (child) {
 	VESmail_imap_msg *prev;
 	if (inj) {
 	    ptr = &msg;
+	} else if (child->encap == VESMAIL_EN_MSG) {
+	    ptr = &msg->rfc822;
 	} else if (parse->nested) {
 	    prev = (VESmail_imap_msg *) parse->nested->ref;
 	    ptr = parse->nested->vespart == VESMAIL_VP_BANNER ? &prev : &prev->chain;
@@ -331,16 +338,11 @@ void VESmail_imap_msg_fn_part(VESmail_parse *parse, VESmail_parse *child) {
 	}
 	switch (parse->state) {
 	    case VESMAIL_S_HDR:
-		if (msg->flags & VESMAIL_IMAP_MF_ROOT) {
-		    msg->totalBytes = msg->bytes;
-		}
-		msg->bytes = 0;
+		msg->hbytes = msg->bbytes;
+		msg->bbytes = 0;
 		msg->lines = 1;
 		break;
 	    case VESMAIL_S_BODY: {
-		if (msg->flags & VESMAIL_IMAP_MF_ROOT) {
-		    msg->totalBytes += msg->bytes;
-		}
 		VESmail_imap_msg *m;
 		for (ptr = &msg->sections; (m = *ptr); ) {
 		    if (m->flags & VESMAIL_IMAP_MF_HDR) {
@@ -358,6 +360,8 @@ void VESmail_imap_msg_fn_part(VESmail_parse *parse, VESmail_parse *child) {
 	    default:
 		break;
 	}
+    } else {
+	msg->flags |= VESMAIL_IMAP_MF_HDR;
     }
 }
 
@@ -379,17 +383,32 @@ void VESmail_imap_msg_parse_xform_freefn(VESmail_xform *xform) {
 
 int VESmail_imap_msg_decrypt(VESmail_imap_msg *msg, VESmail_imap_msg *root, int flags, VESmail_imap_token *token, VESmail_imap_fetch *filter) {
     if (!root || !msg) return VESMAIL_E_PARAM;
-    if (token->xform) return 0;
+    if (token->xform) return token->literal || !token->len ? 0 : VESMAIL_E_BUF;
+    VESmail_imap_fetch_free(VESMAIL_IMAP(msg->server)->results.filter);
     VESMAIL_IMAP(msg->server)->results.filter = filter;
     if (flags & VESMAIL_IMAP_MF_HDR) {
 	if (!(msg->flags & VESMAIL_IMAP_MF_HDR)) return VESMAIL_E_UNKNOWN;
     }
     VESmail_xform *out = VESmail_imap_token_xform_new(token);
     VESmail_parse *parse = VESmail_parse_new(VESMAIL_IMAP_MAIL(root), &VESmail_header_process_dec, out, VESMAIL_EN_UNDEF);
+    out->parse = parse;
     parse->ref = msg;
     parse->outfn = &VESmail_imap_msg_fn_hdr;
     VESmail_imap_msg_set_parse(msg, flags);
-    if (flags & VESMAIL_IMAP_MF_PBODY) {
+    if (token->len > VESMAIL_IMAP(msg->server)->maxBufd) {
+	token->state = VESMAIL_IMAP_P_RESYNC;
+	VESMAIL_SRV_DEBUG(msg->server, 2, sprintf(debug, "token len = %lu > %lu (flags=%x, msg->flags=%x)", token->len, VESMAIL_IMAP(msg->server)->maxBufd, flags, msg->flags))
+	if ((msg->flags & (VESMAIL_IMAP_MF_HDR | VESMAIL_IMAP_MF_RANGE))
+	    && (!(flags & VESMAIL_IMAP_MF_PBODY) || (msg->flags & VESMAIL_IMAP_MF_BODY))
+	    && (!(flags & VESMAIL_IMAP_MF_HDR) || (msg->flags & VESMAIL_IMAP_MF_RANGE))) {
+	    token->state = VESMAIL_IMAP_P_SYNC;
+	    token->len = (flags & VESMAIL_IMAP_MF_HDR) ? 0 : msg->hbytes;
+	    if ((flags & (VESMAIL_IMAP_MF_PBODY | VESMAIL_IMAP_MF_PHDR)) != VESMAIL_IMAP_MF_PHDR) token->len += msg->bbytes;
+	}
+	(out->chain = VESmail_imap_xform_sync(msg->server->rsp_in))->chain = NULL;
+	out->chain->obj = out;
+    }
+    if (!(msg->flags & VESMAIL_IMAP_MF_BODY)) {
 	parse->partfn = &VESmail_imap_msg_fn_part;
 	VESmail_imap_msg_parse_set_calc(parse);
     }
@@ -417,6 +436,7 @@ int VESmail_imap_msg_decrypt(VESmail_imap_msg *msg, VESmail_imap_msg *root, int 
     } else {
 	if (msg->flags & VESMAIL_IMAP_MF_INJ) parse->vespart = VESMAIL_VP_INJ;
     }
+    if (!(msg->flags & VESMAIL_IMAP_MF_BODY) && !(flags & (VESMAIL_IMAP_MF_PHDR | VESMAIL_IMAP_MF_PBODY))) msg->flags |= VESMAIL_IMAP_MF_RANGE;
     VESmail_xform *in = VESmail_xform_new(&VESmail_imap_msg_parse_xform_fn, NULL, parse);
     in->data = ((flags & VESMAIL_IMAP_MF_PBODY) ? NULL : out);
     in->freefn = &VESmail_imap_msg_parse_xform_freefn;

@@ -1,6 +1,6 @@
 /***************************************************************************
  *  _____
- * |\    | >                   VESmail Project
+ * |\    | >                   VESmail
  * | \   | >  ___       ___    Email Encryption made Convenient and Reliable
  * |  \  | > /   \     /   \                               https://vesmail.email
  * |  /  | > \__ /     \ __/
@@ -38,13 +38,14 @@
 #include "../VESmail.h"
 #include "../srv/server.h"
 #include "../lib/mail.h"
+#include "../lib/xform.h"
 #include "imap.h"
 #include "imap_token.h"
 #include "imap_msg.h"
 #include "imap_fetch.h"
 #include "imap_track.h"
 #include "imap_proxy.h"
-#include "imap_sect.h"
+#include "imap_xform.h"
 #include "imap_result.h"
 
 VESmail_imap_result *VESmail_imap_result_link(VESmail_imap_result *rslt) {
@@ -55,366 +56,12 @@ VESmail_imap_result *VESmail_imap_result_link(VESmail_imap_result *rslt) {
     return rslt;
 }
 
-#define VESmail_imap_result_QUERY(rslt, key, msg, flg)	\
-if (VESMAIL_IMAP((rslt)->server)->results.query && !((msg)->flags & (flg))) {\
-    VESmail_imap_result_addqry(VESMAIL_IMAP((rslt)->server)->results.query, key);\
-    (msg)->flags |= (flg);\
-}
-
-#define VESmail_imap_result_QUERYR(rslt, key, msg, flg, rs)	VESmail_imap_result_QUERY(rslt, key, msg, flg)\
-rs = VESMAIL_IMAP_RE_REQ;
-
-#define VESmail_imap_result_QUERYRS(rslt, sub, seclen, secp, msg, flg, rs)	VESmail_imap_result_QUERYR(\
-    rslt,\
-    VESmail_imap_fetch_new_body(VESMAIL_IMAP_FV_BODY_PEEK, VESMAIL_IMAP_FM_SECTION, sub, seclen, secp),\
-    msg, flg, rs\
-)
-
-
-#define VESmail_imap_result_DROP(msg, flg)	\
-if ((msg)->flags & (flg)) {\
-    (msg)->flags &= ~(flg);\
-    return VESMAIL_IMAP_RE_DROP;\
-}
-
-void VESmail_imap_result_addqry(VESmail_imap_token *qry, VESmail_imap_fetch *key) {
-    VESmail_imap_token *tk = VESmail_imap_fetch_render(key);
-    int i;
-    for (i = 0; tk && i < qry->len; i++) {
-	if (VESmail_imap_token_eq(qry->list[i], tk)) {
-	    VESmail_imap_token_free(tk);
-	    tk = NULL;
-	}
-    }
-    if (tk) VESmail_imap_token_splice(qry, -1, 0, 1, tk);
-    VESmail_imap_fetch_free(key);
-}
-
-int VESmail_imap_result_addqry_sect(void *rslt, VESmail_imap_msg *msg, VESmail_imap_fetch *fetch) {
-    if (msg->flags & VESMAIL_IMAP_MF_HDR) return 0;
-    if (!(msg->flags & VESMAIL_IMAP_MF_ROOT)) {
-	VESmail_imap_result_QUERY((VESmail_imap_result *) rslt,
-	    VESmail_imap_fetch_new_body(VESMAIL_IMAP_FV_BODY_PEEK, VESMAIL_IMAP_FM_SECTION, VESMAIL_IMAP_FS_MIME, fetch->seclen, fetch->section),
-	    msg, VESMAIL_IMAP_MF_QHDR
-	)
-	msg = (msg->flags & VESMAIL_IMAP_MF_RFC822) ? msg->rfc822 : NULL;
-    }
-    if (msg) VESmail_imap_result_QUERY((VESmail_imap_result *) rslt,
-	VESmail_imap_fetch_new_body(VESMAIL_IMAP_FV_BODY_PEEK, VESMAIL_IMAP_FM_SECTION, VESMAIL_IMAP_FS_HEADER, fetch->seclen, fetch->section),
-	msg, VESMAIL_IMAP_MF_QHDR
-    )
-    return 1;
-}
-
 int VESmail_imap_result_chkbug(void *rslt, VESmail_imap_msg *msg, VESmail_imap_fetch *fetch) {
     if (msg->flags & VESMAIL_IMAP_MF_CHKBUG) {
 	msg->flags = (msg->flags & ~(VESMAIL_IMAP_MF_CHKBUG | VESMAIL_IMAP_MF_HDR)) | VESMAIL_IMAP_MF_CFMBUG;
 	return 1;
     }
     return 0;
-}
-
-int VESmail_imap_result_process(VESmail_imap_result *rslt, VESmail_imap_fetch *fetch, VESmail_imap_token *key, VESmail_imap_token *val, int final) {
-    VESmail_imap_msg *msg = *rslt->msgptr;
-    int rs = VESMAIL_IMAP_RE_OK;
-    if (!fetch) return rs;
-    switch (fetch->type) {
-	case VESMAIL_IMAP_FV_BODY:
-	case VESMAIL_IMAP_FV_BODY_PEEK:
-	    break;
-	case VESMAIL_IMAP_FV_BODYSTRUCTURE:
-	    if (msg == &VESmail_imap_msg_PASS) return VESMAIL_IMAP_RE_OK;
-	    break;
-	default:
-	    if (VESmail_imap_msg_pass(msg)) return VESMAIL_IMAP_RE_OK;
-	    break;
-    }
-    switch (fetch->type) {
-	case VESMAIL_IMAP_FV_BODYSTRUCTURE:
-	case VESMAIL_IMAP_FV_ENVELOPE:
-	    if (!final) return VESMAIL_IMAP_RE_UNDEF;
-	case VESMAIL_IMAP_FV_RFC822_HEADER:
-	case VESMAIL_IMAP_FV_RFC822_TEXT:
-	case VESMAIL_IMAP_FV_RFC822:
-	case VESMAIL_IMAP_FV_BODY:
-	case VESMAIL_IMAP_FV_BODY_PEEK:
-	    break;
-	case VESMAIL_IMAP_FV_RFC822_SIZE:
-	    if (VESMAIL_IMAP(rslt->server)->flags & VESMAIL_IMAP_F_CALC) break;
-	    if (msg && (msg->flags & VESMAIL_IMAP_MF_BODY)) break;
-	default:
-	    return VESMAIL_IMAP_RE_OK;
-    }
-    if (!msg) msg = *rslt->msgptr = VESmail_imap_msg_new(rslt->server);
-    else if (msg != &VESmail_imap_msg_PASS && (msg->flags & VESMAIL_IMAP_MF_ERROR)) return VESMAIL_IMAP_RE_DROP;
-    int ffull = -1;
-    switch (fetch->type) {
-	case VESMAIL_IMAP_FV_RFC822_HEADER:
-	case VESMAIL_IMAP_FV_RFC822: {
-	    VESmail_imap_msg_decrypt(msg, msg,
-		(fetch->type == VESMAIL_IMAP_FV_RFC822 ? VESMAIL_IMAP_MF_PHDR | VESMAIL_IMAP_MF_PBODY : VESMAIL_IMAP_MF_PHDR),
-		val, NULL);
-	    msg->flags |= (fetch->type == VESMAIL_IMAP_FV_RFC822 ? VESMAIL_IMAP_MF_BODY : VESMAIL_IMAP_MF_HDR);
-	    break;
-	}
-	case VESMAIL_IMAP_FV_RFC822_TEXT: {
-	    if (msg->flags & VESMAIL_IMAP_MF_HDR) {
-		VESmail_imap_msg_decrypt(msg, msg, VESMAIL_IMAP_MF_HDR | VESMAIL_IMAP_MF_PBODY, val, NULL);
-	    } else {
-		VESmail_imap_result_QUERYRS(rslt, VESMAIL_IMAP_FS_HEADER, 0, NULL, msg, VESMAIL_IMAP_MF_QHDR, rs)
-	    }
-	    break;
-	}
-	case VESMAIL_IMAP_FV_RFC822_SIZE:
-	    if (msg->flags & VESMAIL_IMAP_MF_BODY) {
-		char buf[16];
-		sprintf(buf, "%lu", msg->totalBytes);
-		int l = strlen(buf);
-		if (l <= val->len) {
-		    memcpy(VESmail_imap_token_data(val), buf, (val->len = l));
-		}
-	    } else {
-		VESmail_imap_result_QUERYRS(rslt, VESMAIL_IMAP_FS_NONE, 0, NULL, msg, VESMAIL_IMAP_MF_QBODY, rs)
-	    }
-	    break;
-	case VESMAIL_IMAP_FV_BODYSTRUCTURE:
-	    if (!(msg->flags & VESMAIL_IMAP_MF_STRUCT)) {
-		msg->flags |= VESMAIL_IMAP_MF_STRUCT;
-		VESmail_imap_sect_learn(val, msg);
-	    }
-	    VESmail_imap_result_DROP(msg, VESMAIL_IMAP_MF_QSTRUCT)
-	case VESMAIL_IMAP_FV_BODY:
-	case VESMAIL_IMAP_FV_BODY_PEEK:
-	    if ((VESMAIL_IMAP(rslt->server)->flags & VESMAIL_IMAP_F_MIMEBUG)
-		&& fetch->seclen
-		&& !VESmail_imap_msg_pass(msg)
-		&& !(msg->flags & VESMAIL_IMAP_MF_BODY)
-	    ) {
-		VESmail_imap_result_QUERYRS(rslt, VESMAIL_IMAP_FS_NONE, 0, NULL, msg, VESMAIL_IMAP_MF_QBODY, rs)
-		break;
-	    }
-	    switch (fetch->mode) {
-		case VESMAIL_IMAP_FM_NONE: {
-		    if (VESmail_imap_msg_pass(msg)) return VESMAIL_IMAP_RE_OK;
-		    if (!final) return VESMAIL_IMAP_RE_UNDEF;
-		    if (fetch->type != VESMAIL_IMAP_FV_BODYSTRUCTURE) {
-			if (!(msg->flags & (VESMAIL_IMAP_MF_STRUCT | VESMAIL_IMAP_MF_PASS))) {
-			    VESmail_imap_sect_learn(val, msg);
-			}
-			if (!(msg->flags & VESMAIL_IMAP_MF_STRUCT)) {
-			    VESmail_imap_result_QUERYR(rslt, VESmail_imap_fetch_new(VESMAIL_IMAP_FV_BODYSTRUCTURE), msg, VESMAIL_IMAP_MF_QSTRUCT, rs)
-			}
-		    }
-		    if (VESmail_imap_msg_pass(msg)) return VESMAIL_IMAP_RE_OK;
-		    if ((VESMAIL_IMAP(rslt->server)->flags & (VESMAIL_IMAP_F_CALC | VESMAIL_IMAP_F_MIMEBUG)) && !(msg->flags & VESMAIL_IMAP_MF_BODY)) {
-			VESmail_imap_result_QUERYRS(rslt, VESMAIL_IMAP_FS_NONE, 0, NULL, msg, VESMAIL_IMAP_MF_QBODY, rs)
-			return rs;
-		    }
-		    int r = VESmail_imap_sect_traverse(msg, &VESmail_imap_result_addqry_sect, rslt);
-		    if (r > 0) return VESMAIL_IMAP_RE_REQ;
-		    if (msg->flags & VESMAIL_IMAP_MF_STRUCT) VESmail_imap_sect_apply(val, msg);
-		    break;
-		}
-		case VESMAIL_IMAP_FM_START:
-		case VESMAIL_IMAP_FM_RANGE:
-		    ffull = 0;
-		default: {
-		    VESmail_imap_msg *secm, *sech;
-		    if (VESmail_imap_msg_pass(msg)) {
-			secm = sech = NULL;
-		    } else if (fetch->seclen) {
-			if (msg->flags & VESMAIL_IMAP_MF_STRUCT) {
-			    secm = VESmail_imap_msg_section(msg, fetch->seclen, fetch->section);
-			    if (!secm) {
-				if (final) val->len = 0;
-				switch (fetch->stype) {
-				    case VESMAIL_IMAP_FS_HEADER:
-				    case VESMAIL_IMAP_FS_MIME:
-					return VESMAIL_IMAP_RE_CDROP;
-				    default:
-					if (!final) return VESMAIL_IMAP_RE_UNDEF;
-				}
-				break;
-			    }
-			    sech = VESmail_imap_msg_isRFC822(secm) ? secm->sections : NULL;
-			} else {
-			    secm = sech = NULL;
-			    VESmail_imap_result_QUERYR(rslt, VESmail_imap_fetch_new(VESMAIL_IMAP_FV_BODYSTRUCTURE), msg, VESMAIL_IMAP_MF_QSTRUCT, rs)
-			    switch (fetch->stype) {
-				case VESMAIL_IMAP_FS_NONE:
-				case VESMAIL_IMAP_FS_TEXT:
-				    VESmail_imap_result_QUERYR(
-					rslt,
-					VESmail_imap_sect_regqry(
-					    VESmail_imap_fetch_new_body(
-						VESMAIL_IMAP_FV_BODY_PEEK,
-						VESMAIL_IMAP_FM_SECTION,
-						(fetch->stype == VESMAIL_IMAP_FS_TEXT
-						    ? VESMAIL_IMAP_FS_HEADER
-						    : VESMAIL_IMAP_FS_MIME
-						),
-						fetch->seclen,
-						fetch->section
-					    ), msg
-					), msg, 0, rs
-				    )
-				default:
-				    break;
-			    }
-			}
-			switch (fetch->stype) {
-			    case VESMAIL_IMAP_FS_TEXT:
-				if (sech && !(sech->flags & VESMAIL_IMAP_MF_HDR)) {
-				    VESmail_imap_result_QUERYRS(rslt, VESMAIL_IMAP_FS_HEADER, fetch->seclen, fetch->section, sech, VESMAIL_IMAP_MF_QHDR, rs)
-				}
-				break;
-			    case VESMAIL_IMAP_FS_NONE:
-				if (!sech && secm && !(secm->flags & VESMAIL_IMAP_MF_HDR)) {
-				    VESmail_imap_result_QUERYRS(rslt, VESMAIL_IMAP_FS_MIME, fetch->seclen, fetch->section, secm, VESMAIL_IMAP_MF_QHDR, rs)
-				}
-			    default:
-				break;
-			}
-			if (!(msg->flags & (VESMAIL_IMAP_MF_ENCD | VESMAIL_IMAP_MF_PASS)) || !VESmail_imap_msg_get_msgid(msg)) {
-			    VESmail_imap_result_QUERYRS(rslt, VESMAIL_IMAP_FS_HEADER, 0, NULL, msg, VESMAIL_IMAP_MF_QHDR, rs)
-			    break;
-			}
-		    } else {
-			secm = NULL;
-			sech = msg;
-		    }
-		    switch (fetch->stype) {
-			case VESMAIL_IMAP_FS_HEADER_FIELDS:
-			case VESMAIL_IMAP_FS_HEADER_FIELDS_NOT: {
-			    if (rs != VESMAIL_IMAP_RE_OK) break;
-			    if (VESmail_imap_sect_hdr_unescape(fetch, key, &rslt->range) > 0) return VESMAIL_IMAP_RE_SILENT;
-			    if (!*fetch->fields) return VESMAIL_IMAP_RE_DROP;
-			    if (sech) {
-				VESmail_imap_msg_decrypt(sech, msg, (VESMAIL_IMAP_MF_PHDR & ffull), val, fetch);
-			    } else {
-				VESmail_imap_msg *m = VESMAIL_IMAP(rslt->server)->results.pass;
-				if (!m) {
-				    m = VESMAIL_IMAP(rslt->server)->results.pass = VESmail_imap_msg_new(rslt->server);
-				    m->flags |= VESMAIL_IMAP_MF_PASS;
-				    VESMAIL_IMAP_MAIL(m)->flags |= VESMAIL_F_PASS;
-				}
-				VESmail_imap_msg_decrypt(m, m, 0, val, fetch);
-			    }
-			}
-			default:
-			    break;
-		    }
-		    if (sech) switch (fetch->stype) {
-			case VESMAIL_IMAP_FS_HEADER:
-			    VESmail_imap_msg_decrypt(sech, msg, (VESMAIL_IMAP_MF_PHDR & ffull), val, NULL);
-			    sech->flags |= (VESMAIL_IMAP_MF_HDR & ffull);
-			    break;
-			case VESMAIL_IMAP_FS_TEXT:
-			    if (sech->flags & VESMAIL_IMAP_MF_HDR) {
-				VESmail_imap_msg_decrypt(sech, msg, VESMAIL_IMAP_MF_HDR | (VESMAIL_IMAP_MF_PBODY & ffull), val, NULL);
-			    } else {
-				VESmail_imap_result_QUERYRS(rslt, VESMAIL_IMAP_FS_HEADER, fetch->seclen, fetch->section, sech, VESMAIL_IMAP_MF_QHDR, rs)
-			    }
-			    break;
-			case VESMAIL_IMAP_FS_NONE:
-			    VESmail_imap_msg_decrypt(sech, msg, ((VESMAIL_IMAP_MF_PHDR | VESMAIL_IMAP_MF_PBODY) & ffull), val, NULL);
-			    secm = NULL;
-			default:
-			    break;
-		    }
-		    if (secm) switch (fetch->stype) {
-			case VESMAIL_IMAP_FS_MIME:
-			    VESmail_imap_msg_decrypt(secm, msg, (VESMAIL_IMAP_MF_PHDR & ffull) | VESMAIL_IMAP_MF_CHKBUG, val, NULL);
-			    if (!(VESMAIL_IMAP(rslt->server)->flags & (VESMAIL_IMAP_F_MIMEBUG | VESMAIL_IMAP_F_MIMEOK))) {
-				if (secm->flags & VESMAIL_IMAP_MF_CFMBUG) {
-				    if (!(msg->flags & VESMAIL_IMAP_MF_BODY)) {
-					secm->flags &= ~VESMAIL_IMAP_MF_HDR;
-					VESmail_imap_result_QUERYRS(rslt, VESMAIL_IMAP_FS_NONE, 0, NULL, msg, VESMAIL_IMAP_MF_QBODY, rs)
-					break;
-				    }
-				} else {
-				    rs = VESMAIL_IMAP_RE_UNDEF;
-				}
-			    }
-			    secm->flags |= (ffull & VESMAIL_IMAP_MF_HDR);
-			    break;
-			case VESMAIL_IMAP_FS_NONE:
-			    if (secm->flags & VESMAIL_IMAP_MF_HDR) {
-				VESmail_imap_msg_decrypt(secm, msg, VESMAIL_IMAP_MF_HDR | (VESMAIL_IMAP_MF_PBODY & ffull), val, NULL);
-			    }
-			default:
-			    break;
-		    }
-		    if (rs == VESMAIL_IMAP_RE_OK) switch (fetch->stype) {
-			case VESMAIL_IMAP_FS_NONE:
-			    if (sech || secm) {
-				VESmail_imap_result_DROP((secm ? secm : sech), VESMAIL_IMAP_MF_QBODY)
-			    }
-			    break;
-			case VESMAIL_IMAP_FS_HEADER:
-			    if (sech) {
-				VESmail_imap_result_DROP(sech, VESMAIL_IMAP_MF_QHDR)
-			    } else return VESMAIL_IMAP_RE_CDROP;
-			    break;
-			case VESMAIL_IMAP_FS_MIME:
-			    if (secm) {
-				VESmail_imap_result_DROP(secm, VESMAIL_IMAP_MF_QHDR)
-			    } else return VESMAIL_IMAP_RE_CDROP;
-			default:
-			    break;
-		    }
-		    break;
-		}
-	    }
-	    if (!ffull && rs == VESMAIL_IMAP_RE_OK && rslt->range) {
-		if (!final) return VESMAIL_IMAP_RE_UNDEF;
-		VESmail_imap_fetch *rng = VESmail_imap_fetch_unqueue(&rslt->range);
-		unsigned int len0 = val->len;
-		if (rng->range[0] > 0) VESmail_imap_token_memsplice(val, 0, rng->range[0], NULL);
-/**********************************
-* Auto-sense excessive Out-Of-Range requests
-* Native iOS email clients are notorious for falling into an infinite loop of OOR requests
-* if the actual body size doesn't match the number returned by BODYSRUCTURE
-***********************************/
-		if (rng->range[0] == len0) {
-		    if (VESmail_imap_token_isLiteral(val) && ++(VESMAIL_IMAP(rslt->server)->ctOOR) > 0) {
-			VESMAIL_IMAP(rslt->server)->flags |= VESMAIL_IMAP_F_CALC;
-			unsigned int l = rng->mode == VESMAIL_IMAP_FM_RANGE ? rng->range[1] : VESMAIL_IMAP(rslt->server)->ctOOR;
-			free(val->literal);
-			val->literal = malloc(val->len = l);
-			memset(val->literal, ' ', l);
-		    }
-		}
-		if (rng->mode == VESMAIL_IMAP_FM_RANGE) VESmail_imap_token_memsplice(val, rng->range[1], val->len, NULL);
-		char buf[16];
-		sprintf(buf, "<%lu>", rng->range[0]);
-		VESmail_imap_token_splice(key, 2, 1, 1, VESmail_imap_token_atom(buf));
-		VESmail_imap_fetch_free(rng);
-	    }
-	    break;
-	case VESMAIL_IMAP_FV_ENVELOPE: {
-	    VESmail_imap_token *lst;
-	    if (!VESmail_imap_token_isLSet(val) || val->len != 1 || !VESmail_imap_token_isList(lst = val->list[0]) || lst->len < 10) {
-		return VESMAIL_IMAP_RE_BAD;
-	    }
-	    if (!(msg->flags & (VESMAIL_IMAP_MF_ENCD | VESMAIL_IMAP_MF_PASS))) {
-		VESmail_imap_token *t = lst->list[9];
-		VESmail_imap_msg_set_msgid(msg, VESmail_imap_token_data(t), (VESmail_imap_token_isAtom(t) ? 0 : t->len));
-		if (VESmail_imap_msg_pass(msg)) return VESMAIL_IMAP_RE_OK;
-	    }
-	    if (!(msg->flags & VESMAIL_IMAP_MF_HDR)) {
-		VESmail_imap_result_QUERYR(rslt, VESmail_imap_fetch_new_body(VESMAIL_IMAP_FV_BODY_PEEK, VESMAIL_IMAP_FM_SECTION, VESMAIL_IMAP_FS_HEADER, 0, NULL), msg, VESMAIL_IMAP_MF_QHDR, rs)
-		break;
-	    }
-	    VESmail_imap_token_splice(lst, 1, 1, 1, VESmail_imap_token_nstring(VESmail_imap_msg_header(msg, VESMAIL_IMAP_H_SUBJECT, NULL, NULL)));
-	    VESmail_imap_token_splice(lst, 8, 1, 1, VESmail_imap_token_nstring(VESmail_imap_msg_header(msg, VESMAIL_IMAP_H_IN_REPLY_TO, NULL, NULL)));
-	    VESmail_imap_token_splice(lst, 9, 1, 1, VESmail_imap_token_nstring(VESmail_imap_msg_header(msg, VESMAIL_IMAP_H_MESSAGE_ID, NULL, NULL)));
-	    break;
-	}
-	default:
-	    break;
-    }
-    return rs;
 }
 
 void VESmail_imap_result_entry_free(struct VESmail_imap_result_entry *entry) {
@@ -426,10 +73,16 @@ int VESmail_imap_result_update(VESmail_imap_result *rslt) {
     struct VESmail_imap_result_entry **entp = &rslt->entry;
     VESmail_imap_token *lst = rslt->token->list[3]->list[0];
     int st = VESMAIL_IMAP_RE_OK;
-    int fdrop = 0;
+    rslt->fdrop = 0;
     int idx;
+    int rs = 0;
     for (idx = 0; idx + 1 < lst->len; ) {
-	struct VESmail_imap_result_entry *ent = *entp;
+	struct VESmail_imap_result_entry *ent;
+	while (1) {
+	    ent = *entp;
+	    if (!ent || ent->state != VESMAIL_IMAP_RE_DROPD) break;
+	    entp = &ent->chain;
+	}
 	if (!ent) {
 	    *entp = ent = malloc(sizeof(**entp));
 	    ent->chain = NULL;
@@ -456,19 +109,32 @@ int VESmail_imap_result_update(VESmail_imap_result *rslt) {
 		break;
 	}
 	switch (ent->state) {
+	    case VESMAIL_IMAP_RE_SYNC:
+		if (st == VESMAIL_IMAP_RE_OK) {
+		    VESmail_imap_xform_sync(rslt->server->rsp_in)->chain = rslt->server->rsp_out;
+		    rs = VESmail_imap_rsp_sync(rslt->server, rslt->token);
+		    ent->state = VESMAIL_IMAP_RE_SYNCD;
+		} else {
+		    VESmail_imap_xform_sync(rslt->server->rsp_in)->chain = NULL;
+		    ent->state = VESMAIL_IMAP_RE_RESYNC;
+		}
+	    default:
+		break;
+	}
+	switch (ent->state) {
 	    case VESMAIL_IMAP_RE_CDROP:
-		if (!fdrop) {
+		if (!rslt->fdrop) {
 		    ent->state = cpl ? VESMAIL_IMAP_RE_OK : VESMAIL_IMAP_RE_UNDEF;
 		    break;
 		}
 		ent->state = VESMAIL_IMAP_RE_DROP;
 	    case VESMAIL_IMAP_RE_DROP:
-		fdrop = 1;
+		rslt->fdrop = 1;
 		if (!cpl) break;
-		*entp = ent->chain;
-		VESmail_imap_result_entry_free(ent);
+		ent->state = VESMAIL_IMAP_RE_DROPD;
 		VESmail_imap_token_splice(lst, idx, 2, 0);
 		continue;
+	    case VESMAIL_IMAP_RE_RESYNC:
 	    case VESMAIL_IMAP_RE_SILENT:
 		if (st == VESMAIL_IMAP_RE_UNDEF) break;
 	    case VESMAIL_IMAP_RE_UNDEF:
@@ -476,6 +142,7 @@ int VESmail_imap_result_update(VESmail_imap_result *rslt) {
 	    case VESMAIL_IMAP_RE_REQ:
 		st = ent->state;
 	    case VESMAIL_IMAP_RE_OK:
+	    case VESMAIL_IMAP_RE_SYNCD:
 		break;
 	    default:
 		rslt->state = ent->state;
@@ -487,7 +154,7 @@ int VESmail_imap_result_update(VESmail_imap_result *rslt) {
     if (rslt->token->state != VESMAIL_IMAP_P_CONT) {
 	rslt->state = st;
     }
-    return 0;
+    return rs;
 }
 
 void VESmail_imap_result_chkreq(VESmail_imap_result *rslt) {
@@ -516,6 +183,24 @@ int VESmail_imap_result_sendreq(VESmail_imap_result *rslt) {
     return rs;
 }
 
+int VESmail_imap_result_fn_rsp_resync(int verb, VESmail_imap_token *rsp, VESmail_imap_track *trk) {
+    VESmail_server *srv = trk->server;
+    VESmail_imap_debug_token(srv, 1, "<<<<", rsp);
+    VESmail_imap_result *rslt = trk->ref;
+    rslt->state = VESMAIL_IMAP_RE_DROP;
+    VESmail_imap_track_free(trk);
+    if (rslt->msgptr && *rslt->msgptr != &VESmail_imap_msg_PASS) {
+	VESmail_imap_result **ptr;
+	for (ptr = &(*(rslt->msgptr))->result; *ptr; ptr = &(*ptr)->mchain) {
+	    if (*ptr == rslt) {
+		*ptr = rslt->mchain;
+		break;
+	    }
+	}
+    }
+    return VESmail_imap_result_flush(VESMAIL_IMAP(srv));
+}
+
 int VESmail_imap_result_commit(VESmail_imap_result *rslt) {
     if (!rslt) return VESMAIL_E_PARAM;
     VESmail_imap_rsp_detach(rslt->server, rslt->token);
@@ -523,25 +208,91 @@ int VESmail_imap_result_commit(VESmail_imap_result *rslt) {
     int rs = 0;
     VESmail_imap_result_chkreq(rslt);
     VESmail_imap_result **ptr;
-    if (rslt->msgptr && *(rslt->msgptr) && *(rslt->msgptr) != &VESmail_imap_msg_PASS) {
-	rslt->mchain = *(ptr = &(*(rslt->msgptr))->result);
+    VESmail_imap_msg *msg;
+    if (rslt->msgptr && (msg = *(rslt->msgptr)) && msg != &VESmail_imap_msg_PASS) {
+	if (msg->rcount >= VESMAIL_IMAP_MSG_RESULTBUF && rslt->state != VESMAIL_IMAP_RE_OK) {
+	    VESmail_imap_debug_token(rslt->server, 1, "[overflow] dropping a result", rslt->token);
+	    rslt->state = VESMAIL_IMAP_RE_DROP;
+	    msg->rcount--;
+	}
+	rslt->mchain = *(ptr = &msg->result);
     } else {
 	rslt->mchain = NULL;
 	ptr = NULL;
+	msg = NULL;
     }
     VESmail_imap_result *rr = rslt;
     VESmail_imap_result *rq = NULL;
+    int ct = 0;
     while (1) {
 	VESmail_imap_result *next = rr->mchain;
 	switch (rr->state) {
+	    case VESMAIL_IMAP_RE_RESYNC: {
+		struct VESmail_imap_result_entry *re;
+		VESmail_imap_token *lst = VESmail_imap_token_list(0);
+		VESmail_imap_fetch *f = NULL;
+		int idx = 0;
+		int sidx = 0;
+		for (re = rr->entry; re; re = re->chain) {
+		    f = re->fetch;
+		    switch (re->state) {
+			case VESMAIL_IMAP_RE_DROPD:
+			    if (!f || f->stype != VESMAIL_IMAP_FS_HEADER_FIELDS) continue;
+			    break;
+			case VESMAIL_IMAP_RE_SYNCD:
+			    sidx = idx + 2;
+			default:
+			    idx += 2;
+			    break;
+		    }
+		    if (!f) break;
+		    if (f->type == VESMAIL_IMAP_FV_BODY && f->mode != VESMAIL_IMAP_FM_NONE) f->type = VESMAIL_IMAP_FV_BODY_PEEK;
+		    VESmail_imap_token_splice(lst, -1, 0, 1, VESmail_imap_fetch_render(f));
+		}
+		if (f && rr->token) {
+		    VESmail_imap_token *req = VESmail_imap_req_new(NULL, "FETCH");
+		    VESmail_imap_token_splice(req, -1, 0, 2,
+			VESmail_imap_token_clone(rr->token->list[1]),
+			lst
+		    );
+		    VESmail_imap_debug_token(rr->server, 1, "resync >>>>", req);
+		    VESmail_imap_track *trk = VESmail_imap_track_new_queue(rr->server, req);
+		    trk->ref = rr;
+		    trk->rspfn = &VESmail_imap_result_fn_rsp_resync;
+		    if (VESmail_imap_req_ready(rr->server)) {
+			int r = VESmail_imap_track_out(&imap->reqq);
+			if (r < 0) rs = r;
+			else rs += r;
+		    }
+		    rr->state = VESMAIL_IMAP_RE_RESYNCD;
+		} else {
+		    VESmail_imap_token_free(lst);
+		    VESmail_imap_result_free(rr);
+		    break;
+		}
+		if (sidx && rs >= 0) {
+		    VESmail_imap_token *lst = rr->token->list[3];
+		    if (VESmail_imap_token_isLSet(lst)) {
+			lst = lst->list[0];
+			VESmail_imap_token_splice(lst, sidx, lst->len - sidx, 0);
+			int r = VESmail_imap_result_send(rr);
+			if (r < 0) rs = r;
+			rs += r;
+		    }
+		}
+		if (rs < 0) return rs;
+	    }
 	    case VESMAIL_IMAP_RE_REQ:
 	    case VESMAIL_IMAP_RE_UNDEF:
-		rq = rr;
+	    case VESMAIL_IMAP_RE_RESYNCD:
+		if (rr->state == VESMAIL_IMAP_RE_REQ) rq = rr;
 		if (ptr) {
 		    *ptr = rr;
 		    ptr = &rr->mchain;
-		    break;
+		    ct++;
 		}
+		break;
+	    case VESMAIL_IMAP_RE_SYNCD:
 	    case VESMAIL_IMAP_RE_OK: {
 		if (imap->flags & VESMAIL_IMAP_F_ORDER) break;
 		int r = VESmail_imap_result_send(rr);
@@ -553,8 +304,17 @@ int VESmail_imap_result_commit(VESmail_imap_result *rslt) {
 		break;
 	}
 	if ((rr = next)) {
-	    VESmail_imap_result_update(rr);
-	    VESmail_imap_result_chkreq(rr);
+	    switch (rr->state) {
+		case VESMAIL_IMAP_RE_OK:
+		case VESMAIL_IMAP_RE_SYNCD:
+		case VESMAIL_IMAP_RE_RESYNCD:
+		case VESMAIL_IMAP_RE_DROP:
+		    break;
+		default:
+		    VESmail_imap_result_update(rr);
+		    VESmail_imap_result_chkreq(rr);
+		    break;
+	    }
 	} else {
 	    if (ptr) *ptr = NULL;
 	    break;
@@ -563,6 +323,17 @@ int VESmail_imap_result_commit(VESmail_imap_result *rslt) {
     int r = rq ? VESmail_imap_result_sendreq(rq) : 0;
     if (r < 0) return r;
     rs += r;
+    if (msg) {
+	if (ct) msg->rcount++;
+	else msg->rcount = 0;
+    }
+    while (ct > VESMAIL_IMAP_MSG_RESULTBUF) {
+	ptr = &(*(rslt->msgptr))->result;
+	VESmail_imap_result *next = (*ptr)->mchain;
+	VESmail_imap_result_free(*ptr);
+	*ptr = next;
+	ct--;
+    }
     r = VESmail_imap_result_flush(imap);
     if (r < 0) return r;
     rs += r;
@@ -571,7 +342,8 @@ int VESmail_imap_result_commit(VESmail_imap_result *rslt) {
 
 int VESmail_imap_result_send(VESmail_imap_result *rslt) {
     if (rslt->token && rslt->token->list[3]->list[0]->len) {
-	int r = VESmail_imap_rsp_send(rslt->server, rslt->token);
+	int r = VESmail_imap_rsp_sync(rslt->server, rslt->token);
+	VESmail_imap_token_free(rslt->token);
 	rslt->token = NULL;
 	return r;
     } else return 0;
@@ -584,6 +356,7 @@ int VESmail_imap_result_flush(VESmail_imap *imap) {
 	switch (rslt->state) {
 	    case VESMAIL_IMAP_RE_REQ:
 	    case VESMAIL_IMAP_RE_UNDEF:
+	    case VESMAIL_IMAP_RE_RESYNCD:
 		return rs;
 	    case VESMAIL_IMAP_RE_OK: {
 		int r = VESmail_imap_result_send(rslt);
@@ -620,6 +393,7 @@ void VESmail_imap_result_free(VESmail_imap_result *rslt) {
 	} else {
 	    VESMAIL_IMAP(rslt->server)->results.tail = rslt->sprev;
 	}
+	VESMAIL_IMAP(rslt->server)->results.qbytes -= rslt->qbytes;
     }
     free(rslt);
 }
@@ -640,6 +414,7 @@ VESmail_imap_result *VESmail_imap_result_new(VESmail_imap_token *rsp, VESmail_se
 	    rslt->msgptr = msgptr;
 	    rslt->state = VESMAIL_IMAP_RE_UNDEF;
 	    rslt->range = NULL;
+	    rslt->qbytes = 0;
 	    return rslt;
 	}
     }

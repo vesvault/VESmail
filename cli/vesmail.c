@@ -1,6 +1,6 @@
 /***************************************************************************
  *  _____
- * |\    | >                   VESmail Project
+ * |\    | >                   VESmail
  * | \   | >  ___       ___    Email Encryption made Convenient and Reliable
  * |  \  | > /   \     /   \                               https://vesmail.email
  * |  /  | > \__ /     \ __/
@@ -56,6 +56,9 @@
 #include "../now/now.h"
 #include "../now/now_store.h"
 #include "../srv/conf.h"
+#include "../srv/daemon.h"
+#include "../srv/proc.h"
+#include "../srv/guard.h"
 #include "help.h"
 #include "vesmail.h"
 
@@ -64,8 +67,13 @@ struct VESmail_conf conf = {
     .banner = NULL,
     .manifest = NULL,
     .app = NULL,
+    .guard = 0,
     .sni = {
 	.prefix = NULL
+    },
+    .log = {
+	.filename = NULL,
+	.fh = NULL
     }
 };
 
@@ -79,12 +87,48 @@ struct param_st params = {
     .debug = 0
 };
 
-int vm_error(e) {
+int vm_error(int e) {
     switch (e) {
+	case 0: return 0;
 	case VESMAIL_E_IO: return E_IO;
 	case VESMAIL_E_VES: return E_VES;
 	default: return E_INTERNAL;
     }
+}
+
+void cli_logfn(void *logref, const char *fmt, ...) {
+    va_list va;
+    va_start(va, fmt);
+    VESmail_conf_vlog(&conf, fmt, &va);
+    va_end(va);
+}
+
+void errfn_stderr(const char *fmt, ...) {
+    va_list va;
+    va_start(va, fmt);
+    vfprintf(stderr, fmt, va);
+    va_end(va);
+}
+
+void errfn_sni(const char *fmt, ...) {
+    char fb[256];
+    sprintf(fb, "sni error %s", fmt);
+    va_list va;
+    va_start(va, fmt);
+    VESmail_arch_vlog(fb, &va);
+    va_end(va);
+}
+
+int cli_snifn(VESmail_server *srv, const char *sni) {
+    VESmail_arch_log("sni host=%s", sni);
+    jVar *jconf = VESmail_conf_sni_read(&conf, sni, &errfn_sni);
+    if (!jconf && conf.sni.require) return VESMAIL_E_CONF;
+    VESmail_conf_apply(&conf, jVar_get(jconf, "*"));
+    if (srv) {
+	VESmail_conf_apply(&conf, jVar_get(jconf, srv->type));
+	VESmail_tls_server_ctxreset(srv->tls.server);
+    }
+    return 0;
 }
 
 int do_convert(VESmail *mail, int in, int out) {
@@ -120,63 +164,27 @@ int do_convert(VESmail *mail, int in, int out) {
 
 int run_server(VESmail_server *srv, int in, int out) {
     srv->debug = params.debug;
+    srv->logfn = &cli_logfn;
     if (params.sni && conf.tls->snifn) conf.tls->snifn(srv, params.sni);
     if (params.dumpfd) sscanf(params.dumpfd, "%d", &srv->dumpfd);
     if (conf.hostname) srv->host = conf.hostname;
     VESmail_server_set_tls(srv, conf.tls);
     int r = VESmail_server_set_fd(srv, in, out);
-    if (r >= 0) r = VESmail_server_run(srv, 0);
-    VESmail_server_free(srv);
+    if (r >= 0) r = VESmail_server_run(srv, VESMAIL_SRVR_NOTHR);
     if (r < 0) {
 	if (srv->debug > 0) {
 	    char *er = VESmail_server_errorStr(srv, r);
 	    fprintf(stderr, "%s\n", er);
 	    free(er);
 	}
-	return vm_error(r);
     }
-    return r;
-}
-
-void errfn_stderr(const char *fmt, ...) {
-    va_list va;
-    va_start(va, fmt);
-    vfprintf(stderr, fmt, va);
-    va_end(va);
-}
-
-void errfn_sni(const char *fmt, ...) {
-    char fb[256];
-    sprintf(fb, "sni error %s", fmt);
-    va_list va;
-    va_start(va, fmt);
-    VESmail_arch_vlog(fb, &va);
-    va_end(va);
-}
-
-int cli_snifn(VESmail_server *srv, const char *sni) {
-    VESmail_arch_log("sni host=%s", sni);
-    jVar *jconf = VESmail_conf_sni_read(&conf, sni, &errfn_sni);
-    if (!jconf && conf.sni.require) return VESMAIL_E_CONF;
-    VESmail_conf_apply(&conf, jVar_get(jconf, "*"));
-    if (srv) {
-	VESmail_conf_apply(&conf, jVar_get(jconf, srv->type));
-	VESmail_tls_server_ctxreset(srv->tls.server);
-    }
-    return 0;
+    VESmail_server_free(srv);
+    return vm_error(r);
 }
 
 void apply_conf(jVar *jconf) {
-    VESmail_conf_apply(&conf, jconf);
+    VESmail_conf_applyroot(&conf, jconf, &cli_snifn);
     VESmail_conf_setstr(&params.veskeyPath, jVar_get(jconf, "veskey-dir"));
-    jVar *sni = jVar_get(jconf, "sni");
-    if (sni) {
-	VESmail_conf_setstr(&conf.sni.prefix, jVar_get(sni, "prefix"));
-	VESmail_conf_setstr(&conf.sni.suffix, jVar_get(sni, "suffix"));
-	jVar *rq = jVar_get(sni, "require");
-	if (rq) conf.sni.require = jVar_getBool(rq);
-	conf.tls->snifn = &cli_snifn;
-    }
 }
 
 int main(int argc, char **argv) {
@@ -187,15 +195,16 @@ int main(int argc, char **argv) {
     char **argp = argv + 1;
     char *arg = NULL;
     enum { o_null, o_error, o_data, o_ver, o_a, o_f, o_x, o_v, o_tls, o_sni, o_demo, o_cap, o_rcpt, o_noenc, o_xchg, o_token,
-	o_help, o_dumpfd, o_conf } op = o_null;
-    enum { cmd_null, cmd_enc, cmd_dec, cmd_smtp, cmd_imap, cmd_now } cmd = cmd_null;
+	o_help, o_dumpfd, o_conf, o_guard } op = o_null;
+    enum { cmd_null, cmd_enc, cmd_dec, cmd_smtp, cmd_imap, cmd_now, cmd_daemon } cmd = cmd_null;
     const struct { char op; char *argw; } argwords[] = {
 	{o_a, "account"}, {o_x, "debug"}, {o_v, "veskey"}, {o_v, "VESkey"}, {o_v, "unlock"}, {o_token, "token"},
 	{o_tls, "tls"}, {o_cap, "capabilities"}, {o_ver, "version"}, {o_rcpt, "rcpt"}, {o_noenc, "headers"},
-	{o_conf, "conf"}, {o_sni, "sni"}, {o_demo, "demo"}, {o_help, "help"}, {o_dumpfd, "dumpfd"}
+	{o_guard, "guard"}, {o_conf, "conf"}, {o_sni, "sni"}, {o_demo, "demo"}, {o_help, "help"}, {o_dumpfd, "dumpfd"}
     };
     const struct { char cmd; char *cmdw; } cmdwords[] = {
-	{cmd_enc, "encrypt"}, {cmd_dec, "decrypt"}, {cmd_smtp, "smtp"}, {cmd_imap, "imap"}, {cmd_now, "now"}
+	{cmd_enc, "encrypt"}, {cmd_dec, "decrypt"}, {cmd_smtp, "smtp"}, {cmd_imap, "imap"}, {cmd_now, "now"},
+	{cmd_daemon, "daemon"}
     };
     struct {
 	void **ptr;
@@ -205,6 +214,9 @@ int main(int argc, char **argv) {
     } in = {.ptr = NULL, .putfn = NULL, .getfn = NULL, .setptr = NULL};
 
     conf.hostname = VESmail_arch_gethostname();
+    conf.progname = argv[0];
+    const char *prg1;
+    for (; (prg1 = strchr(conf.progname, '/')); conf.progname = prg1 + 1);
     conf.optns = VESmail_optns_new();
     conf.tls = VESmail_tls_server_new();
 //    params.optns->getBanners = &init_banner;
@@ -250,6 +262,7 @@ int main(int argc, char **argv) {
 	    case 'T': op = o_token; break;
 	    case 'V': op = o_ver; break;
 	    case 'C': op = o_conf; break;
+	    case 'G': op = o_guard; break;
 	    case '-': break;
 	    case '=': op = o_data; break;
 	    default:
@@ -262,7 +275,7 @@ int main(int argc, char **argv) {
 	    case o_error:
 		break;
 	    case o_help:
-		VESmail_help();
+		VESmail_help(0);
 		return 0;
 	    default:
 		if (in.ptr) switch (op) {
@@ -301,6 +314,9 @@ int main(int argc, char **argv) {
 			break;
 		    case o_conf:
 			in.ptr = (void *) &params.confPath;
+			break;
+		    case o_guard:
+			conf.guard++;
 			break;
 		    case o_dumpfd:
 			in.ptr = (void *) &params.dumpfd;
@@ -351,8 +367,8 @@ int main(int argc, char **argv) {
 	return E_PARAM;
     }
     if (cmd == cmd_null) {
-	VESmail_help();
-	fprintf(stderr, "Missing a command\n");
+	VESmail_help(1);
+	fprintf(stderr, "Missing a command, see --help\n");
 	return E_PARAM;
     }
     
@@ -394,7 +410,7 @@ int main(int argc, char **argv) {
 		    ? VESmail_now_store_apply(VESmail_new_encrypt(ves, conf.optns))
 		    : VESmail_new_decrypt(ves, conf.optns);
 		if (mail) {
-		    mail->logfn = &VESmail_arch_log;
+		    mail->logfn = &cli_logfn;
 		    rs = do_convert(mail, 0, 1);
 		    VESmail_free(mail);
 		} else {
@@ -408,18 +424,50 @@ int main(int argc, char **argv) {
 	}
 	case cmd_imap: {
 	    apply_conf(jVar_get(jconf, "imap"));
-	    return run_server(VESmail_server_new_imap(conf.optns), 0, 1);
+	    rs = vm_error(run_server(VESmail_server_new_imap(conf.optns), 0, 1));
+	    break;
 	}
 	case cmd_smtp: {
 	    apply_conf(jVar_get(jconf, "smtp"));
-	    return run_server(VESmail_server_new_smtp(conf.optns), 0, 1);
+	    rs = vm_error(run_server(VESmail_server_new_smtp(conf.optns), 0, 1));
+	    break;
 	}
 	case cmd_now: {
 	    apply_conf(jVar_get(jconf, "now"));
-	    return run_server(VESmail_server_new_now(conf.optns), 0, 1);
+	    rs = vm_error(run_server(VESmail_server_new_now(conf.optns), 0, 1));
+	    break;
+	}
+	case cmd_daemon: {
+	    VESmail_daemon **daemons = VESmail_daemon_execute(&conf, jconf);
+	    if (!daemons) {
+		rs = E_CONF;
+		break;
+	    }
+	    if (params.debug) {
+		VESmail_daemon **d;
+		for (d = daemons; *d; d++) (*d)->debug += params.debug;
+	    }
+	    int g = VESmail_guard(daemons, conf.guard);
+	    if (g > 0) {
+		if (VESmail_daemon_launchall(daemons) > 0) {
+		    VESmail_arch_usleep(2000000);
+		    while (VESmail_daemon_watchall(daemons, NULL, NULL) > 0) {
+			VESmail_arch_usleep(2000000);
+		    }
+		} else {
+		    rs = E_IO;
+		}
+	    } else if (g < 0) {
+		rs = E_IO;
+	    }
+	    VESmail_daemon_freeall(daemons);
+	    break;
 	}
 	default:
 	    break;
     }
+    VESmail_optns_free(conf.optns);
+    VESmail_tls_server_free(conf.tls);
+    jVar_free(jconf);
     return rs;
 }

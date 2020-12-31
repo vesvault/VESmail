@@ -1,0 +1,7 @@
+[Unit]
+Description=VESmail Proxy
+
+[Service]
+User=vesmail
+Group=vesmail
+ExecStart=/usr/bin/vesmail daemon -GG

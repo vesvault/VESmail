@@ -1,6 +1,6 @@
 /***************************************************************************
  *  _____
- * |\    | >                   VESmail Project
+ * |\    | >                   VESmail
  * | \   | >  ___       ___    Email Encryption made Convenient and Reliable
  * |  \  | > /   \     /   \                               https://vesmail.email
  * |  /  | > \__ /     \ __/
@@ -38,7 +38,8 @@ now/: HTTP mini server for instant access to spooled encrypted emails
 cli/: Command line utility components
 
 etc/vesmail/: Sample config and template files
-etc/xinetd.d/: A sample daemonizer conf for IMAP & SMTP proxies
+etc/xinetd.d/: A sample external daemonizer conf for IMAP & SMTP proxies
+etc/systemd/: A sample internal daemonizer conf
 
 VESmail account is needed in order to use VESmail proxy and utility
 [https://vesmail.email]

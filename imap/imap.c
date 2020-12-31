@@ -1,6 +1,6 @@
 /***************************************************************************
  *  _____
- * |\    | >                   VESmail Project
+ * |\    | >                   VESmail
  * | \   | >  ___       ___    Email Encryption made Convenient and Reliable
  * |  \  | > /   \     /   \                               https://vesmail.email
  * |  /  | > \__ /     \ __/
@@ -48,10 +48,22 @@
 #include "imap_xform.h"
 #include "imap_msg.h"
 #include "imap_result.h"
+#include "imap_fetch.h"
 #include "imap.h"
 
 int VESmail_imap_rsp_send(VESmail_server *srv, VESmail_imap_token *rsp) {
     return VESmail_imap_token_render(rsp, srv->rsp_out, NULL);
+}
+
+int VESmail_imap_rsp_sync(VESmail_server *srv, VESmail_imap_token *rsp) {
+    int rs = 0;
+    while (1) {
+	int r = VESmail_imap_token_render(rsp, srv->rsp_out, &rsp->hold);
+	if (r < 0) return r;
+	rs += r;
+	if (!rsp->hold || (!rsp->hold->literal && rsp->hold->state == VESMAIL_IMAP_P_SYNC && rsp->state == VESMAIL_IMAP_P_CONT)) break;
+    }
+    return rs;
 }
 
 int VESmail_imap_req_next(VESmail_server *srv) {
@@ -59,14 +71,25 @@ int VESmail_imap_req_next(VESmail_server *srv) {
     return VESmail_imap_track_out(&VESMAIL_IMAP(srv)->reqq);
 }
 
-int VESmail_imap_req_fwd(VESmail_server *srv, VESmail_imap_token *req) {
+void VESmail_imap_chk_detached(VESmail_server *srv) {
+    if (VESMAIL_IMAP(srv)->flags & VESMAIL_IMAP_F_DETACHD) {
+	VESmail_imap_token_free(VESMAIL_IMAP(srv)->cont);
+	VESMAIL_IMAP(srv)->cont = NULL;
+	VESMAIL_IMAP(srv)->flags &= ~VESMAIL_IMAP_F_DETACHD;
+    }
+}
+
+int VESmail_imap_req_fwd(VESmail_server *srv, VESmail_imap_token *req, int flags) {
     if (req) {
 	if (VESMAIL_IMAP(srv)->cont && VESMAIL_IMAP(srv)->cont != req) return VESMAIL_E_PARAM;
 	VESMAIL_IMAP(srv)->cont = req;
+	VESMAIL_IMAP(srv)->flags |= flags;
     }
     if (!VESMAIL_IMAP(srv)->cont) return 0;
     int r = VESmail_imap_token_render(VESMAIL_IMAP(srv)->cont, srv->req_out, &VESMAIL_IMAP(srv)->cont->hold);
+    if (r < 0) return r;
     if (!VESMAIL_IMAP(srv)->cont->hold) {
+	VESmail_imap_chk_detached(srv);
 	int r2 = VESmail_imap_req_next(srv);
 	if (r2 < 0) return r2;
 	r += r2;
@@ -153,7 +176,7 @@ VESmail_imap_token *VESmail_imap_rsp_new(VESmail_imap_token *tag, const char *ve
 const char *VESmail_imap_verbs[] = { VESMAIL_IMAP_VERBS() NULL };
 #undef VESMAIL_VERB
 
-int VESmail_imap_get_verb(VESmail_imap_token *token, const char **verbs) {
+int VESmail_imap_get_verb_arg(VESmail_imap_token *token, const char **verbs, int *aoffs) {
     char ucbuf[128];
     if (token && token->type == VESMAIL_IMAP_T_ATOM && token->len > 0 && token->len < sizeof(ucbuf)) {
 	const char *s = token->data;
@@ -161,9 +184,14 @@ int VESmail_imap_get_verb(VESmail_imap_token *token, const char **verbs) {
 	char *d = ucbuf;
 	while (s < tail) {
 	    char c = *s++;
+	    if (c == '=' && aoffs) {
+		*aoffs = s - token->data;
+		break;
+	    }
 	    *d++ = c >= 'a' && c <= 'z' ? c - 0x20 : c;
 	}
 	*d = 0;
+	if (aoffs && s == tail) *aoffs = -1;
 	const char **v;
 	for (v = verbs; *v; v++) if (!strcmp(*v, ucbuf)) return v - verbs;
     }
@@ -171,7 +199,21 @@ int VESmail_imap_get_verb(VESmail_imap_token *token, const char **verbs) {
 }
 
 VESmail_imap_token *VESmail_imap_caps(VESmail_server *srv, VESmail_imap_token *token, int start) {
-    if (!token) token = VESmail_imap_token_list(0);
+    if (token) {
+	int i;
+	int aoffs;
+	for (i = 0; i < token->len; i++) {
+	    switch (VESmail_imap_get_verb_arg(token->list[i], VESmail_imap_verbs, &aoffs)) {
+		case VESMAIL_IMAP_V_COMPRESS:
+		    VESmail_imap_token_splice(token, i--, 1, 0);
+		    break;
+		default:
+		    break;
+	    }
+	}
+    } else {
+	token = VESmail_imap_token_list(0);
+    }
     if (start) {
 	VESmail_imap_token_splice(token, -1, 0, 4,
 	    VESmail_imap_token_atom("IMAP4rev1"),
@@ -240,7 +282,7 @@ int VESmail_imap_rsp_fn(VESmail_server *srv, VESmail_imap_token *token) {
 		    case '+': {
 			if (srv->sasl) return VESmail_imap_start_sasl_cont(srv, (token->len == 2 ? token->list[1] : NULL));
 			int hld = imap->cont && imap->cont->hold;
-			if (hld && imap->cont->hold->literal) return VESmail_imap_req_fwd(srv, NULL);
+			if (hld && imap->cont->hold->literal) return VESmail_imap_req_fwd(srv, NULL, 0);
 			srv->flags &= ~VESMAIL_SRVF_OVER;
 			if (!hld) VESMAIL_IMAP(srv)->flags |= VESMAIL_IMAP_F_CDATA;
 			else if (srv->req_in->imap->state != VESMAIL_IMAP_X_HOLD) return 0;
@@ -289,9 +331,10 @@ void VESmail_imap_reset(VESmail_server *srv) {
 }
 
 int VESmail_imap_idle(VESmail_server *srv, int tmout) {
-    if (tmout < 30) return 0;
-    if (srv->req_out && (tmout < 120
-	|| ((srv->req_in->imap->state != VESMAIL_IMAP_X_INIT || srv->req_in->imap->state != VESMAIL_IMAP_X_INIT) && tmout < 300)
+    if (tmout < srv->tmout.unauthd) return 0;
+    if (srv->req_out && (tmout < srv->tmout.authd
+	|| ((srv->req_in->imap->state != VESMAIL_IMAP_X_INIT || srv->req_in->imap->state != VESMAIL_IMAP_X_INIT) && tmout < srv->tmout.data)
+	|| ((VESMAIL_IMAP(srv)->flags & VESMAIL_IMAP_F_CDATA) && tmout < srv->tmout.data)
     )) return 0;
     srv->flags |= VESMAIL_SRVF_TMOUT;
     return 0;
@@ -300,11 +343,22 @@ int VESmail_imap_idle(VESmail_server *srv, int tmout) {
 void VESmail_imap_fn_free(VESmail_server *srv) {
     VESmail_imap *imap = VESMAIL_IMAP(srv);
     VESmail_imap_reset(srv);
+    VESmail_imap_chk_detached(srv);
     while (imap->track) VESmail_imap_track_done(&imap->track);
     while (imap->results.track) VESmail_imap_track_done(&imap->results.track);
-    VESmail_imap_result_free(imap->results.curr);
+    while (imap->reqq) {
+	VESmail_imap_track *tr = imap->reqq;
+	imap->reqq = tr->queue;
+	tr->queue = NULL;
+	VESmail_imap_track_free(tr);
+    }
+    if (imap->results.curr) {
+	if (imap->results.curr->token == srv->rsp_in->imap->line) imap->results.curr->token = NULL;
+	VESmail_imap_result_free(imap->results.curr);
+    }
     VESmail_imap_msg_free(imap->results.pass);
     VESmail_imap_token_free(imap->results.query);
+    VESmail_imap_fetch_free(imap->results.filter);
 }
 
 VESmail_server *VESmail_server_new_imap(VESmail_optns *optns) {
@@ -314,6 +368,7 @@ VESmail_server *VESmail_server_new_imap(VESmail_optns *optns) {
     srv->debugfn = &VESmail_imap_debug;
     srv->freefn = &VESmail_imap_fn_free;
     srv->idlefn = &VESmail_imap_idle;
+    srv->tmout.data = 1800;
     imap->untaggedfn = NULL;
     imap->state = VESMAIL_IMAP_S_HELLO;
     imap->flags = VESMAIL_IMAP_F_INIT;
@@ -334,6 +389,10 @@ VESmail_server *VESmail_server_new_imap(VESmail_optns *optns) {
     imap->results.filter = NULL;
     imap->results.pass = NULL;
     imap->results.query = NULL;
+    imap->results.qbytes = 0;
+    
+    imap->maxBufd = optns->maxbuf;
+    imap->maxQueue = optns->maxbuf * 4;
 
     srv->req_in = VESmail_xform_new_imap(srv, &VESmail_imap_start_req_fn);
 

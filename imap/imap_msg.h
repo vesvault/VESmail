@@ -1,6 +1,6 @@
 /***************************************************************************
  *  _____
- * |\    | >                   VESmail Project
+ * |\    | >                   VESmail
  * | \   | >  ___       ___    Email Encryption made Convenient and Reliable
  * |  \  | > /   \     /   \                               https://vesmail.email
  * |  /  | > \__ /     \ __/
@@ -67,6 +67,7 @@ enum { VESMAIL_IMAP_HEADERS() VESMAIL_IMAP_H__END };
 #define VESMAIL_IMAP_MF_HDR	0x00010000
 #define VESMAIL_IMAP_MF_BODY	0x00020000
 #define VESMAIL_IMAP_MF_STRUCT	0x00040000
+#define VESMAIL_IMAP_MF_RANGE	0x00080000
 
 #define VESMAIL_IMAP_MF_VES	0x00100000
 #define VESMAIL_IMAP_MF_INJ	0x00200000
@@ -79,9 +80,10 @@ enum { VESMAIL_IMAP_HEADERS() VESMAIL_IMAP_H__END };
 
 #define VESMAIL_IMAP_MF_INIT	0
 
+#define VESMAIL_IMAP_MSG_RESULTBUF	8
+
 
 typedef struct VESmail_imap_msg {
-    int flags;
     union {
 	struct VESmail_imap_msg *sections;
 	struct VESmail_imap_msg *rfc822;
@@ -90,14 +92,16 @@ typedef struct VESmail_imap_msg {
 	struct VESmail_imap_msg *chain;
 	struct VESmail_imap_fetch *queries;
     };
-    unsigned long int bytes;
+    int flags;
+    unsigned long int hbytes;
+    unsigned long int bbytes;
     unsigned long int lines;
     struct VESmail_server *server;
     char *boundary;
     struct VESmail_header *cphdrs;
     char *headers[VESMAIL_IMAP_H__END];
     struct VESmail_imap_result *result;
-    unsigned long int totalBytes;
+    int rcount;
     struct {} mail;
 } VESmail_imap_msg;
 

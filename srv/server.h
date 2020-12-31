@@ -1,6 +1,6 @@
 /***************************************************************************
  *  _____
- * |\    | >                   VESmail Project
+ * |\    | >                   VESmail
  * | \   | >  ___       ___    Email Encryption made Convenient and Reliable
  * |  \  | > /   \     /   \                               https://vesmail.email
  * |  /  | > \__ /     \ __/
@@ -53,10 +53,22 @@ typedef struct VESmail_server {
     } tls;
     struct VESmail_sasl *sasl;
     const char *host;
+    void (* logfn)(void *logref, const char *fmt, ...);
+    struct {
+	int unauthd;
+	int authd;
+	int data;
+    } tmout;
+    union {
+	struct VESmail_proc *proc;
+	void *logref;
+    };
     short int flags;
     short int debug;
     int lastread;
     int dumpfd;
+    long long int reqbytes;
+    long long int rspbytes;
     struct {} ctl;
 } VESmail_server;
 
@@ -70,7 +82,7 @@ typedef struct VESmail_server {
 #define	VESMAIL_SRVF_OVER	0x0010
 #define	VESMAIL_SRVF_SHUTDOWN	0x0020
 #define	VESMAIL_SRVF_TMOUT	0x0040
-#define	VESMAIL_SRVF_LOCK	0x0080
+#define	VESMAIL_SRVF_KILL	0x0080
 
 #define	VESMAIL_SRVF_TLSS	0x0100
 #define	VESMAIL_SRVF_TLSC	0x0200
@@ -81,11 +93,8 @@ typedef struct VESmail_server {
     (srv)->debugfn(srv, debug);\
 }
 
-extern const char *VESmail_server_ARCH;
-
 struct VESmail_server *VESmail_server_init(struct VESmail_server *srv, struct VESmail_optns *optns);
 int VESmail_server_set_fd(struct VESmail_server *srv, int in, int out);
-int VESmail_server_run_sk(struct VESmail_server *srv, int sk);
 int VESmail_server_run(struct VESmail_server *srv, int flags);
 #define VESmail_server_set_tls(srv, _tls)	(srv->tls.server = _tls)
 int VESmail_server_connect(struct VESmail_server *srv, struct jVar *conf, const char *dport);
@@ -94,8 +103,8 @@ int VESmail_server_disconnect(struct VESmail_server *srv);
 int VESmail_server_auth(struct VESmail_server *srv, const char *user, const char *pwd, int pwlen);
 struct VESmail_sasl *VESmail_server_sasl_client(int mech, struct jVar *uconf);
 char *VESmail_server_errorStr(struct VESmail_server *srv, int err);
-int VESmail_server_lock(struct VESmail_server *srv);
-int VESmail_server_release(struct VESmail_server *srv);
 char *VESmail_server_sockname(struct VESmail_server *srv, int peer);
+void VESmail_server_bytes(struct VESmail_server *srv, int done, int st);
 char *VESmail_server_timestamp();
+#define VESmail_server_log(srv, ...)	if ((srv)->logfn) (srv)->logfn((srv)->logref, __VA_ARGS__)
 void VESmail_server_free(struct VESmail_server *srv);

@@ -1,6 +1,6 @@
 /***************************************************************************
  *  _____
- * |\    | >                   VESmail Project
+ * |\    | >                   VESmail
  * | \   | >  ___       ___    Email Encryption made Convenient and Reliable
  * |  \  | > /   \     /   \                               https://vesmail.email
  * |  /  | > \__ /     \ __/
@@ -60,7 +60,7 @@ VESmail_header *VESmail_header_encrypt(VESmail_parse *parse, VESmail_header *hdr
     int len = eol - hdr->key;
     char *ctext = NULL;
     int ctlen = libVES_Cipher_encrypt(ci, 1, hdr->key, len, &ctext);
-    if (ctlen < 0) return NULL;
+    if (ctlen < 0) return libVES_Cipher_free(ci), free(ctext), NULL;
     VESmail_header *enc = VESmail_header_new("X-VESmail-Header:", VESMAIL_H_VES, ctlen * 3 / 2);
     char *ctail = ctext + ctlen;
     char *c = ctext;
@@ -253,6 +253,7 @@ int VESmail_header_push_enc(VESmail_parse *parse, VESmail_header *hdr, int bufd)
 	    return rs;
 	}
 	case VESMAIL_H_MSGID: {
+	    if (parse->encap != VESMAIL_EN_ROOT) return VESmail_header_encrypt_push(parse, hdr);
 	    if (parse->mail->flags & VESMAIL_F_ENCD) break;
 	    if (parse->mail->msgid) {
 		int r = VESmail_header_encd_msgid(parse, hdr->key, hdr);
@@ -263,6 +264,7 @@ int VESmail_header_push_enc(VESmail_parse *parse, VESmail_header *hdr, int bufd)
 	}
 	case VESMAIL_H_RCPT:
 	case VESMAIL_H_NOENC:
+	    if (parse->encap != VESMAIL_EN_ROOT) return VESmail_header_encrypt_push(parse, hdr);
 	    break;
 	case VESMAIL_H_BLANK: {
 	    if (parse->encap == VESMAIL_EN_ROOT) {

@@ -1,6 +1,6 @@
 /***************************************************************************
  *  _____
- * |\    | >                   VESmail Project
+ * |\    | >                   VESmail
  * | \   | >  ___       ___    Email Encryption made Convenient and Reliable
  * |  \  | > /   \     /   \                               https://vesmail.email
  * |  /  | > \__ /     \ __/
@@ -165,6 +165,15 @@ VESmail_xform *VESmail_xform_new_inject(VESmail_parse *parse, struct VESmail_xfo
     return xform;
 }
 
+int VESmail_xform_fn_null(VESmail_xform *xform, int final, const char *src, int *srclen) {
+    return src ? VESmail_xform_process(xform->chain, final, src, *srclen) : 0;
+}
+
+VESmail_xform *VESmail_xform_new_null(void *obj) {
+    return VESmail_xform_new(&VESmail_xform_fn_null, NULL, obj);
+}
+
+
 int VESmail_xform_capture_buf(VESmail_xform *xform, char **buf) {
     if (!xform) return 0;
     if (buf) *buf = xform->buf;
@@ -186,8 +195,8 @@ VESmail_xform *VESmail_xform_free_chain(VESmail_xform *xform, void *obj) {
 
 void VESmail_xform_free(VESmail_xform *xform) {
     if (xform) {
-	free(xform->buf);
 	if (xform->freefn) xform->freefn(xform);
+	free(xform->buf);
     }
     free(xform);
 }

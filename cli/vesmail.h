@@ -1,6 +1,6 @@
 /***************************************************************************
  *  _____
- * |\    | >                   VESmail Project
+ * |\    | >                   VESmail
  * | \   | >  ___       ___    Email Encryption made Convenient and Reliable
  * |  \  | > /   \     /   \                               https://vesmail.email
  * |  /  | > \__ /     \ __/
@@ -36,6 +36,7 @@
 #define	E_PARAM		64
 #define E_IO		65
 #define E_VES		66
+#define E_CONF		67
 #define	E_INTERNAL	80
 
 struct setfn_st {

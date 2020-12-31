@@ -1,6 +1,6 @@
 /***************************************************************************
  *  _____
- * |\    | >                   VESmail Project
+ * |\    | >                   VESmail
  * | \   | >  ___       ___    Email Encryption made Convenient and Reliable
  * |  \  | > /   \     /   \                               https://vesmail.email
  * |  /  | > \__ /     \ __/
@@ -44,6 +44,9 @@ struct VESmail_parse;
 enum {VESMAIL_H_UNDEF, VESMAIL_H_MSGID, VESMAIL_H_CTYPE, VESMAIL_H_CTENC, VESMAIL_H_CDISP, VESMAIL_H_SUBJ, VESMAIL_H_RCVD,
     VESMAIL_H_VES, VESMAIL_H_VESID, VESMAIL_H_PART, VESMAIL_H_XCHG, VESMAIL_H_RCPT, VESMAIL_H_NOENC, VESMAIL_H_OTHER, VESMAIL_H_BLANK};
 
+#ifndef VESMAIL_HEADER_SAFEBYTES
+#define	VESMAIL_HEADER_SAFEBYTES	1048575
+#endif
 
 struct VESmail_header *VESmail_header_new(const char *key, int type, int len);
 struct VESmail_header *VESmail_header_dup(struct VESmail_header *hdr, struct VESmail_header *chain);
