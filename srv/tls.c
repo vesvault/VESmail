@@ -30,10 +30,18 @@
  *
  ***************************************************************************/
 
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
+
 #include <sys/types.h>
 #include <stddef.h>
 #include <string.h>
 #include <stdlib.h>
+
+#ifdef HAVE_CURL_CURL_H
+#include <curl/curl.h>
+#endif
 
 #include <openssl/bio.h>
 #include <openssl/ssl.h>
@@ -42,13 +50,16 @@
 #include <openssl/x509.h>
 #include <openssl/x509v3.h>
 #include <openssl/x509_vfy.h>
-
 #include "../VESmail.h"
 #include <jVar.h>
+#include <libVES.h>
 #include "server.h"
 #include "../lib/xform.h"
 #include "arch.h"
 #include "tls.h"
+
+
+char *VESmail_tls_caBundle = NULL;
 
 int VESmail_tls_init() {
     OpenSSL_add_all_algorithms();
@@ -74,11 +85,11 @@ int VESmail_tls_cert_ok(VESmail_server *srv, X509 *crt) {
     return srv->tls.client->level <= VESMAIL_TLS_UNSECURE
 	|| X509_check_host(crt, srv->tls.client->peer, 0, 0, NULL) > 0;
 #else
-#warning
-#warning ********************************************************
-#warning Peer host validation is not supported in OpenSSL < 1.0.2
-#warning ********************************************************
-#warning
+#pragma message ("!")
+#pragma message ("! ********************************************************")
+#pragma message ("! Peer host validation is not supported in OpenSSL < 1.0.2")
+#pragma message ("! ********************************************************")
+#pragma message ("!")
 	return 1;
 #endif
 }
@@ -93,6 +104,7 @@ int VESmail_tls_client_start(VESmail_server *srv, int starttls) {
     SSL_CTX *ctx = SSL_CTX_new(method);
     if (!ctx) return VESMAIL_E_TLS;
     SSL_CTX_set_default_verify_paths(ctx);
+    if (VESmail_tls_caBundle) SSL_CTX_load_verify_locations(ctx, VESmail_tls_caBundle, NULL);
     SSL_CTX_set_verify(ctx, SSL_VERIFY_NONE, NULL);
     SSL_CTX_set_verify_depth(ctx, 8);
     if (srv->tls.client->level > VESMAIL_TLS_MEDIUM) {
@@ -257,4 +269,18 @@ void VESmail_tls_server_free(VESmail_tls_server *tls) {
 	VESmail_tls_server_ctxreset(tls);
     }
     free(tls);
+}
+
+
+void VESmail_tls_fn_veshttp(libVES *ves) {
+#ifdef HAVE_CURL_CURL_H
+    if (VESmail_tls_caBundle) curl_easy_setopt(ves->curl, CURLOPT_CAINFO, VESmail_tls_caBundle);
+#else
+#pragma message ("Cannot set CA bundle for libVES - need curl/curl.h")
+#endif
+}
+
+libVES *VESmail_tls_initVES(libVES *ves) {
+    ves->httpInitFn = &VESmail_tls_fn_veshttp;
+    return ves;
 }

@@ -38,13 +38,18 @@ typedef struct VESmail_daemon {
     struct VESmail_conf *conf;
     struct jVar *jconf;
     struct VESmail_server *(* srvfn)(struct VESmail_optns *);
-    void *thread;
-    struct VESmail_proc *procs;
+    struct VESmail_daemon_sock {
+	struct VESmail_daemon *daemon;
+	struct VESmail_daemon_sock *chain;
+	void *thread;
+	struct VESmail_proc *procs;
+	struct addrinfo *ainfo;
+	int sock;
+    } *sock;
     struct {
 	void *mutex;
 	struct jTree *jtree;
     } sni;
-    int sock;
     short int flags;
     char debug;
 } VESmail_daemon;

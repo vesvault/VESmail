@@ -39,6 +39,7 @@
 #include <stdarg.h>
 #include <syslog.h>
 #include <pthread.h>
+#include <stdio.h>
 
 const char *VESmail_arch_NAME = "Unix";
 
@@ -150,7 +151,7 @@ char *VESmail_arch_gethostname() {
 	return realloc(h, strlen(h) + 1);
     } else {
 	free(h);
-	return NULL;
+	return strdup("localhost");
     }
 }
 
@@ -172,6 +173,10 @@ int VESmail_arch_read(int fd, char *buf, int len) {
 
 int VESmail_arch_write(int fd, const char *src, int len) {
     return write(fd, src, len);
+}
+
+int VESmail_arch_setlinebuf(void *file) {
+    return setlinebuf(file), 0;
 }
 
 int VESmail_arch_close(int fd) {

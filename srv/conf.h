@@ -40,6 +40,7 @@ typedef struct VESmail_conf {
     struct VESmail_optns *optns;
     struct VESmail_tls_server *tls;
     const char *hostname;
+    const char *progpath;
     const char *progname;
     const char **banner;
     char **bannerPath;

@@ -63,11 +63,6 @@
 #include "server.h"
 
 VESmail_server *VESmail_server_init(VESmail_server *srv, VESmail_optns *optns) {
-    static int initf = 0;
-    if (!initf) {
-	VESmail_arch_init();
-	initf = 1;
-    }
     srv->req_in = NULL;
     srv->req_out = NULL;
     srv->rsp_in = NULL;
@@ -175,6 +170,15 @@ int VESmail_server_set_fd(VESmail_server *srv, int in, int out) {
     return VESmail_tls_server_start(srv, 0);
 }
 
+int VESmail_server_set_sock(VESmail_server *srv, int sock) {
+    if (srv->rsp_out || !srv->req_in) return VESMAIL_E_PARAM;
+    VESmail_xform_free(srv->rsp_out);
+    srv->rsp_out = VESmail_server_xform_new_bio_out(srv, BIO_new_socket(sock, BIO_CLOSE));
+    BIO_free(srv->req_bio);
+    srv->req_bio = BIO_new_socket(sock, BIO_NOCLOSE);
+    return VESmail_tls_server_start(srv, 0);
+}
+
 void *VESmail_server_fn_th_rsp(void *srv) {
     VESmail_server_run((VESmail_server *) srv, VESMAIL_SRVR_NOTHR | VESMAIL_SRVR_NOREQ);
     return NULL;
@@ -252,6 +256,7 @@ int VESmail_server_auth(VESmail_server *srv, const char *user, const char *pwd, 
 	ref->externalId[tail - user] = 0;
 	srv->ves = libVES_fromRef(ref);
     }
+    VESmail_tls_initVES(srv->ves);
     if (srv->debug > VESMAIL_DEBUG_LIBVES) srv->ves->debug = srv->debug - VESMAIL_DEBUG_LIBVES;
     if (libVES_unlock(srv->ves, pwlen, pwd)) {
 	if (srv->optns->acl) {

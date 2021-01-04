@@ -69,7 +69,7 @@ typedef struct VESmail_server {
     int dumpfd;
     long long int reqbytes;
     long long int rspbytes;
-    struct {} ctl;
+    char ctl[0];
 } VESmail_server;
 
 #define	VESMAIL_E_REQ_PARSE	-81
@@ -95,6 +95,7 @@ typedef struct VESmail_server {
 
 struct VESmail_server *VESmail_server_init(struct VESmail_server *srv, struct VESmail_optns *optns);
 int VESmail_server_set_fd(struct VESmail_server *srv, int in, int out);
+int VESmail_server_set_sock(struct VESmail_server *srv, int sock);
 int VESmail_server_run(struct VESmail_server *srv, int flags);
 #define VESmail_server_set_tls(srv, _tls)	(srv->tls.server = _tls)
 int VESmail_server_connect(struct VESmail_server *srv, struct jVar *conf, const char *dport);

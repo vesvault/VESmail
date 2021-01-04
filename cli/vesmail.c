@@ -99,7 +99,7 @@ int vm_error(int e) {
 void cli_logfn(void *logref, const char *fmt, ...) {
     va_list va;
     va_start(va, fmt);
-    VESmail_conf_vlog(&conf, fmt, &va);
+    VESmail_conf_vlog(&conf, fmt, va);
     va_end(va);
 }
 
@@ -115,7 +115,7 @@ void errfn_sni(const char *fmt, ...) {
     sprintf(fb, "sni error %s", fmt);
     va_list va;
     va_start(va, fmt);
-    VESmail_arch_vlog(fb, &va);
+    VESmail_arch_vlog(fb, va);
     va_end(va);
 }
 
@@ -214,9 +214,10 @@ int main(int argc, char **argv) {
     } in = {.ptr = NULL, .putfn = NULL, .getfn = NULL, .setptr = NULL};
 
     conf.hostname = VESmail_arch_gethostname();
-    conf.progname = argv[0];
+    conf.progname = conf.progpath = argv[0];
     const char *prg1;
     for (; (prg1 = strchr(conf.progname, '/')); conf.progname = prg1 + 1);
+    for (; (prg1 = strchr(conf.progname, '\\')); conf.progname = prg1 + 1);
     conf.optns = VESmail_optns_new();
     conf.tls = VESmail_tls_server_new();
 //    params.optns->getBanners = &init_banner;
@@ -376,6 +377,7 @@ int main(int argc, char **argv) {
     apply_conf(jVar_get(jconf, "*"));
     
     libVES_init(VESMAIL_VERSION_SHORT);
+    VESmail_arch_init();
     VESmail_tls_init();
     
     int rs = 0;
@@ -403,6 +405,7 @@ int main(int argc, char **argv) {
 		libVES_Ref *ref = libVES_External_new(VESMAIL_VES_DOMAIN, params.user);
 		ves = libVES_fromRef(ref);
 	    }
+	    VESmail_tls_initVES(ves);
 	    if (params.debug > 1) ves->debug = params.debug - 1;
 	    if (params.token) libVES_setSessionToken(ves, params.token);
 	    if (!params.veskey || libVES_unlock(ves, strlen(params.veskey), params.veskey)) {

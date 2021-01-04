@@ -39,6 +39,6 @@ echo * Quick config for Windows + Visual Studio
 echo *
 echo * Makefile created
 echo *
-echo * Set the proper paths to OpenSSL and libcURL in Makefile,
+echo * Set the proper paths to OpenSSL, libcURL and libVES in Makefile,
 echo * then run nmake
 echo *

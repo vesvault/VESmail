@@ -42,8 +42,8 @@
 #include <time.h>
 #include "../VESmail.h"
 #include "../lib/optns.h"
-#include "../srv/tls.h"
-#include "../srv/arch.h"
+#include "tls.h"
+#include "arch.h"
 #include "conf.h"
 
 
@@ -242,6 +242,7 @@ void VESmail_conf_applyroot(VESmail_conf *conf, jVar *jconf, int (* snifn)(struc
 	if (rq) conf->sni.require = jVar_getBool(rq);
 	conf->tls->snifn = snifn;
     }
+    VESmail_conf_setstr(&VESmail_tls_caBundle, jVar_get(jconf, "caBundle"));
 }
 
 jVar *VESmail_conf_sni_read(VESmail_conf *conf, const char *sni, void (* errfn)(const char *fmt, ...)) {
@@ -281,7 +282,7 @@ VESmail_conf *VESmail_conf_clone(VESmail_conf *conf) {
 void VESmail_conf_vlog(VESmail_conf *conf, const char *fmt, void *va) {
     if (conf->log.filename) {
 	if (!conf->log.fh) {
-	    if ((conf->log.fh = fopen(conf->log.filename, "a"))) setlinebuf(conf->log.fh);
+	    if ((conf->log.fh = fopen(conf->log.filename, "a"))) VESmail_arch_setlinebuf(conf->log.fh);
 	}
 	if (conf->log.fh) {
 	    char fbuf[320];

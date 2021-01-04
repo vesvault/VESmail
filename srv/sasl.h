@@ -46,7 +46,7 @@ typedef struct VESmail_sasl {
     char *(* tokenfn)(struct VESmail_sasl *, const char *token, int len);
     void (* freefn)(struct VESmail_sasl *);
     struct VESmail_sasl *chain;
-    struct {} data;
+    char data[0];
 } VESmail_sasl;
 
 #define	VESMAIL_SASL_SRV_LAST	VESMAIL_SASL_M_LOGIN

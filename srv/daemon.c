@@ -63,22 +63,8 @@
 
 
 VESmail_daemon *VESmail_daemon_new(VESmail_conf *conf, jVar *jconf, const char *type) {
-    VESmail_daemon *daemon = malloc(sizeof(VESmail_daemon));
-    daemon->type = type;
-    daemon->conf = conf;
-    daemon->jconf = jconf;
-    daemon->thread = NULL;
-    daemon->procs = NULL;
-    daemon->sock = -1;
-    daemon->debug = jVar_getInt(jVar_get(jconf, "debug"));
-    daemon->sni.mutex = NULL;
-    daemon->sni.jtree = NULL;
-    return daemon;
-}
-
-int VESmail_daemon_listen(VESmail_daemon *daemon) {
-    char *host = jVar_getString(jVar_get(daemon->jconf, "host"));
-    char *port = jVar_getString(jVar_get(daemon->jconf, "port"));
+    char *host = jVar_getString(jVar_get(jconf, "host"));
+    char *port = jVar_getString(jVar_get(jconf, "port"));
     struct addrinfo hint = {
 	.ai_family = AF_UNSPEC,
 	.ai_socktype = SOCK_STREAM,
@@ -89,68 +75,100 @@ int VESmail_daemon_listen(VESmail_daemon *daemon) {
 	.ai_canonname = NULL,
 	.ai_next = NULL
     };
-    struct addrinfo *res = NULL;
-    int rs = 0;
-    if (!getaddrinfo(host, port, &hint, &res)) {
-	struct addrinfo *r;
-	rs = VESMAIL_E_CONN;
-	for (r = res; r; r = r->ai_next) {
-	    if (daemon->sock < 0) {
-		int fd = socket(r->ai_family, r->ai_socktype, r->ai_protocol);
-		if (fd < 0) continue;
-		int flg = 1;
-		setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &flg, sizeof(flg));
-		setsockopt(fd, SOL_SOCKET, SO_REUSEPORT, &flg, sizeof(flg));
-		daemon->sock = fd;
-	    }
-	    VESMAIL_DAEMON_DEBUG(daemon, 1, {
-		char abuf[64];
-		char pbuf[16];
-		getnameinfo(r->ai_addr, r->ai_addrlen, abuf, sizeof(abuf), pbuf, sizeof(pbuf), NI_NUMERICHOST | NI_NUMERICSERV);
-		fprintf(stderr, "Binding to [%s]:%s ...\n", abuf, pbuf);
-	    })
-	    int connr;
-	    if ((connr = bind(daemon->sock, r->ai_addr, r->ai_addrlen)) < 0) {
-		VESMAIL_DAEMON_DEBUG(daemon, 1, fprintf(stderr, "... bind failed (%d)\n", connr));
-		continue;
-	    }
-	    if ((connr = listen(daemon->sock, 16)) < 0) {
-		VESMAIL_DAEMON_DEBUG(daemon, 1, fprintf(stderr, "... listen failed (%d)\n", connr));
-		continue;
-	    }
-	    VESMAIL_DAEMON_DEBUG(daemon, 1, fprintf(stderr, "... success\n"));
-	    rs = 0;
-	    break;
-	}
-	freeaddrinfo(res);
-    } else {
-	rs = VESMAIL_E_RESOLV;
-    }
-    free(port);
+    struct addrinfo *ai = NULL;
+    int r = getaddrinfo(host, port, &hint, &ai);
     free(host);
-    return rs;
-}
-
-int VESmail_daemon_run(VESmail_daemon *daemon) {
-    if (!strcmp(daemon->type, "imap")) {
+    free(port);
+    if (r) return NULL;
+    VESmail_daemon *daemon = malloc(sizeof(VESmail_daemon));
+    daemon->type = type;
+    if (!strcmp(type, "imap")) {
 	daemon->srvfn = &VESmail_server_new_imap;
-    } else if (!strcmp(daemon->type, "smtp")) {
+    } else if (!strcmp(type, "smtp")) {
 	daemon->srvfn = &VESmail_server_new_smtp;
-    } else if (!strcmp(daemon->type, "now")) {
+    } else if (!strcmp(type, "now")) {
 	daemon->srvfn = &VESmail_server_new_now;
     } else {
-	VESmail_daemon_shutdown(daemon);
-	return VESMAIL_E_CONF;
+	daemon->srvfn = NULL;
     }
-    if (daemon->sock < 0) while (VESmail_daemon_listen(daemon)) {
+    daemon->conf = conf;
+    daemon->jconf = jconf;
+    daemon->debug = jVar_getInt(jVar_get(jconf, "debug"));
+    daemon->sni.mutex = NULL;
+    daemon->sni.jtree = NULL;
+    struct VESmail_daemon_sock **psk = &daemon->sock;
+    struct VESmail_daemon_sock *sk;
+    struct addrinfo *a;
+    for (a = ai; a; a = a->ai_next) {
+	*psk = sk = malloc(sizeof(**psk));
+	sk->daemon = daemon;
+	sk->ainfo = a;
+	sk->procs = NULL;
+	sk->thread = NULL;
+	sk->sock = -1;
+	psk = &sk->chain;
+    }
+    *psk = NULL;
+    return daemon;
+}
+
+int VESmail_daemon_listen(VESmail_daemon *daemon) {
+    struct VESmail_daemon_sock *sk;
+    for (sk = daemon->sock; sk; sk = sk->chain) {
+	int r = VESmail_daemon_sock_listen(sk);
+	if (r < 0) return r;
+    }
+    return 0;
+}
+
+int VESmail_daemon_sock_listen(struct VESmail_daemon_sock *sk) {
+    if (sk->sock < 0) {
+	int fd = socket(sk->ainfo->ai_family, sk->ainfo->ai_socktype, sk->ainfo->ai_protocol);
+	if (fd < 0) return VESMAIL_E_CONN;
+	int flg = 1;
+	setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &flg, sizeof(flg));
+#ifdef SO_REUSEPORT
+	setsockopt(fd, SOL_SOCKET, SO_REUSEPORT, &flg, sizeof(flg));
+#endif
+	sk->sock = fd;
+    }
+    VESMAIL_DAEMON_DEBUG(sk->daemon, 1, {
+	char abuf[64];
+	char pbuf[16];
+	getnameinfo(sk->ainfo->ai_addr, sk->ainfo->ai_addrlen, abuf, sizeof(abuf), pbuf, sizeof(pbuf), NI_NUMERICHOST | NI_NUMERICSERV);
+	fprintf(stderr, "Binding to [%s]:%s ...\n", abuf, pbuf);
+    })
+    int connr;
+    if ((connr = bind(sk->sock, sk->ainfo->ai_addr, sk->ainfo->ai_addrlen)) < 0) {
+	VESMAIL_DAEMON_DEBUG(sk->daemon, 1, fprintf(stderr, "... bind failed (%d)\n", connr));
+	return VESMAIL_E_CONN;
+    }
+    if ((connr = listen(sk->sock, 16)) < 0) {
+	VESMAIL_DAEMON_DEBUG(sk->daemon, 1, fprintf(stderr, "... listen failed (%d)\n", connr));
+	return VESMAIL_E_CONN;
+    }
+    VESMAIL_DAEMON_DEBUG(sk->daemon, 1, fprintf(stderr, "... success\n"));
+    return 0;
+}
+
+int VESmail_daemon_sock_run(struct VESmail_daemon_sock *sk) {
+    if (sk->sock < 0) while (VESmail_daemon_sock_listen(sk)) {
 	VESmail_arch_usleep(15000000);
     }
     int fd;
-    while (daemon->sock >= 0) {
-	fd = accept(daemon->sock, NULL, NULL);
+    while (sk->sock >= 0) {
+	fd = accept(sk->sock, NULL, NULL);
 	if (fd >= 0) {
-	    VESmail_proc *p = daemon->procs = VESmail_proc_new(daemon, fd);
-	    VESmail_proc_launch(p);
+	    VESmail_proc *pp = sk->procs;
+	    VESmail_proc *p = sk->procs = VESmail_proc_new(sk->daemon, fd);
+	    if (p) {
+		p->chain = pp;
+		if (p->flags & VESMAIL_PRF_SHUTDOWN) {
+		    shutdown(fd, 2);
+		} else {
+		    VESmail_proc_launch(p);
+		}
+	    }
 	} else {
 	    VESmail_arch_usleep(1000000);
 	}
@@ -158,15 +176,19 @@ int VESmail_daemon_run(VESmail_daemon *daemon) {
     return 0;
 }
 
-void *VESmail_daemon_run_fn(void *ptr) {
-    VESmail_daemon_run(ptr);
+void *VESmail_daemon_sock_run_fn(void *ptr) {
+    VESmail_daemon_sock_run(ptr);
     return NULL;
 }
 
 int VESmail_daemon_launch(VESmail_daemon *daemon) {
-    if (daemon->thread) return 0;
     VESMAIL_DAEMON_DEBUG(daemon, 2, fprintf(stderr, "Launching %s...\n", daemon->type))
-    return VESmail_arch_thread(daemon, &VESmail_daemon_run_fn, &daemon->thread);
+    struct VESmail_daemon_sock *sk;
+    for (sk = daemon->sock; sk; sk = sk->chain) if (!sk->thread) {
+	int r = VESmail_arch_thread(sk, &VESmail_daemon_sock_run_fn, &sk->thread);
+	if (r < 0) return r;
+    }
+    return 0;
 }
 
 
@@ -186,7 +208,7 @@ void VESmail_daemon_snierrfn(const char *fmt, ...) {
     sprintf(fb, "sni error %s", fmt);
     va_list va;
     va_start(va, fmt);
-    VESmail_arch_vlog(fb, &va);
+    VESmail_arch_vlog(fb, va);
     va_end(va);
 }
 
@@ -251,15 +273,11 @@ void VESmail_daemon_sigfn(int sig) {
     if (sig == VESMAIL_DAEMON_SIG_TERM || !VESmail_daemon_SIG) VESmail_daemon_SIG = sig;
 }
 
-int VESmail_daemon_watch(VESmail_daemon *daemon, void (* watchfn)(VESmail_proc *, void *), void *arg) {
-    VESmail_proc *p = daemon->procs;
+int VESmail_daemon_sock_watch(struct VESmail_daemon_sock *sk, void (* watchfn)(VESmail_proc *, void *), void *arg) {
+    VESmail_proc *p = sk->procs;
     VESmail_proc *p2;
     int rs = 0;
-    if (VESmail_daemon_SIG) {
-	if (daemon->sock >= 0) VESmail_arch_log("shutdown srv=%s sig=%d", daemon->type, VESmail_daemon_SIG);
-	VESmail_daemon_shutdown(daemon);
-    }
-    if (daemon->sock >= 0) rs++;
+    if (sk->sock >= 0) rs++;
     if (p) {
 	int kl = VESmail_daemon_SIG == VESMAIL_DAEMON_SIG_TERM;
 	if (kl) VESmail_proc_kill(p);
@@ -277,21 +295,43 @@ int VESmail_daemon_watch(VESmail_daemon *daemon, void (* watchfn)(VESmail_proc *
     return rs;
 }
 
+int VESmail_daemon_watch(VESmail_daemon *daemon, void (* watchfn)(VESmail_proc *, void *), void *arg) {
+    if (VESmail_daemon_SIG) {
+	if (daemon->sock >= 0) VESmail_arch_log("shutdown srv=%s sig=%d", daemon->type, VESmail_daemon_SIG);
+	VESmail_daemon_shutdown(daemon);
+    }
+    struct VESmail_daemon_sock *sk;
+    int rs = 0;
+    for (sk = daemon->sock; sk; sk = sk->chain) {
+	rs += VESmail_daemon_sock_watch(sk, watchfn, arg);
+    }
+    return rs;
+}
+
 void VESmail_daemon_shutdown(VESmail_daemon *daemon) {
-    if (daemon->sock >= 0) {
-	VESmail_arch_close(daemon->sock);
-	VESmail_arch_thread_kill(daemon->thread);
-	daemon->sock = -2;
+    struct VESmail_daemon_sock *sk;
+    for (sk = daemon->sock; sk; sk = sk->chain) {
+	if (sk->sock >= 0) {
+	    shutdown(sk->sock, 2);
+	    VESmail_arch_thread_kill(sk->thread);
+	    sk->sock = -2;
+	}
     }
 }
 
 void VESmail_daemon_free(VESmail_daemon *daemon) {
     if (daemon) {
-	VESmail_arch_thread_done(daemon->thread);
-	while (daemon->procs) {
-	    VESmail_proc *p = daemon->procs;
-	    daemon->procs = p->chain;
-	    VESmail_proc_free(p);
+	if (daemon->sock && daemon->sock->ainfo) freeaddrinfo(daemon->sock->ainfo);
+	struct VESmail_daemon_sock *sk, *sknext;
+	for (sk = daemon->sock; sk; sk = sknext) {
+	    sknext = sk->chain;
+	    VESmail_arch_thread_done(sk->thread);
+	    while (sk->procs) {
+		VESmail_proc *p = sk->procs;
+		sk->procs = p->chain;
+		VESmail_proc_free(p);
+	    }
+	    free(sk);
 	}
 	VESmail_daemon_snifree(daemon);
     }
@@ -311,6 +351,7 @@ VESmail_daemon **VESmail_daemon_execute(VESmail_conf *conf, jVar *jconf) {
     VESmail_arch_sigaction(VESMAIL_DAEMON_SIG_TERM, &VESmail_daemon_sigfn);
     VESmail_daemon **daemons = malloc((jds->len + 1) * sizeof(VESmail_daemon *));
     int i;
+    VESmail_daemon **dp = daemons;
     for (i = 0; i < jds->len; i++) {
 	jVar *jd = jVar_index(jds, i);
 	VESmail_conf *cf = VESmail_conf_clone(conf);
@@ -322,9 +363,13 @@ VESmail_daemon **VESmail_daemon_execute(VESmail_conf *conf, jVar *jconf) {
 	VESmail_conf_applyroot(cf, jd, &VESmail_daemon_snifn);
 	jVar *tlsp = jVar_get(jVar_get(jd, "tls"), "persist");
 	if (tlsp) cf->tls->persist = jVar_getBool(tlsp);
-	daemons[i] = VESmail_daemon_new(cf, jd, srv);
+	if ((*dp = VESmail_daemon_new(cf, jd, srv))) {
+	    dp++;
+	} else {
+	    VESmail_conf_free(cf);
+	}
     }
-    daemons[i] = NULL;
+    *dp = NULL;
     return daemons;
 }
 

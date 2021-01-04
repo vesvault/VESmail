@@ -32,6 +32,8 @@
 
 struct VESmail_server;
 
+extern char *VESmail_tls_caBundle;
+
 typedef struct VESmail_tls_client {
     char *peer;
     enum {
@@ -72,3 +74,5 @@ void VESmail_tls_server_ctxinit(struct VESmail_server *srv);
 void VESmail_tls_server_ctxreset(struct VESmail_tls_server *tls);
 void VESmail_tls_server_done(struct VESmail_server *srv);
 void VESmail_tls_server_free(struct VESmail_tls_server *tls);
+
+struct libVES *VESmail_tls_initVES(struct libVES *ves);

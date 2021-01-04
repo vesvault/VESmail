@@ -54,7 +54,7 @@ void VESmail_proc_logfn(void *logref, const char *fmt, ...) {
     sprintf(fbuf, "[t%04d]: %s", proc->tid, fmt);
     va_list va;
     va_start(va, fmt);
-    VESmail_conf_vlog(proc->conf, fbuf, &va);
+    VESmail_conf_vlog(proc->conf, fbuf, va);
     va_end(va);
 }
 
@@ -64,7 +64,6 @@ VESmail_proc *VESmail_proc_new(VESmail_daemon *daemon, int fd) {
     VESmail_proc *proc = malloc(sizeof(VESmail_proc));
     proc->daemon = daemon;
     proc->conf = daemon->conf;
-    proc->chain = daemon->procs;
     proc->thread = NULL;
     proc->ref = NULL;
     proc->fdesc = fd;
@@ -73,14 +72,14 @@ VESmail_proc *VESmail_proc_new(VESmail_daemon *daemon, int fd) {
     proc->tid = tid;
     if (++tid >= 10000) tid = 1;
     VESmail_arch_mutex_unlock(&tid_mutex);
-    VESmail_server *srv = daemon->srvfn(daemon->conf->optns);
+    VESmail_server *srv = daemon->srvfn ? daemon->srvfn(daemon->conf->optns) : NULL;
     if ((proc->server = srv)) {
 	srv->proc = proc;
 	srv->debug = daemon->debug;
 	srv->logfn = &VESmail_proc_logfn;
 	srv->host = daemon->conf->hostname;
 	VESmail_server_set_tls(srv, daemon->conf->tls);
-	int r = VESmail_server_set_fd(srv, fd, fd);
+	int r = VESmail_server_set_sock(srv, fd);
 	if (r < 0) VESmail_proc_shutdown(proc, r);
     } else {
 	VESmail_proc_free(proc);
@@ -115,7 +114,6 @@ void VESmail_proc_kill(VESmail_proc *proc) {
 }
 
 int VESmail_proc_shutdown(VESmail_proc *proc, int e) {
-    VESmail_arch_close(proc->fdesc);
     proc->exitcode = e;
     proc->flags |= VESMAIL_PRF_SHUTDOWN;
     return e;

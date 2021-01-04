@@ -63,7 +63,7 @@ int VESmail_guard(VESmail_daemon **daemons, int nworkers) {
     pid_t *workers = malloc(total * sizeof(pid_t));
     int i;
     for (i = 0; i < total; i++) workers[i] = 0;
-    
+    VESmail_arch_log("guard started");
     long long int tnext = time(NULL);
     char sig = 0;
     int ct = 0;

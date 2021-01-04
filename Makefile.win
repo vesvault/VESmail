@@ -1,10 +1,11 @@
-OPENSSL_PATH="c:\Program Files (x86)\OpenSSL-Win32"
-CURL_PATH=c:\src\curl32
+OPENSSL_PATH="c:\\Program Files (x86)\\OpenSSL-Win32"
+CURL_PATH=c:\\src\\curl32
 LIBVES_PATH="../libVES-c"
 
 CFLAGS=-I $(OPENSSL_PATH)\\include \
 -I $(CURL_PATH)\\include \
--I $(LIBVES_PATH)/lib
+-I $(LIBVES_PATH)/lib \
+-DHAVE_CURL_CURL_H
 
 LDFLAGS=$(OPENSSL_PATH)\\lib\\VC\\libcrypto32MD.lib \
 $(OPENSSL_PATH)\\lib\\VC\\libssl32MD.lib \
@@ -22,12 +23,15 @@ EXTRA_OBJS=applink.obj
 
 COBJS=lib\\mail.obj lib\\optns.obj lib\\parse.obj lib\\header.obj lib\\xform.obj lib\\multi.obj lib\\cte.obj lib\\ves.obj \
     lib\\encrypt.obj lib\\decrypt.obj lib\\banner.obj lib\\util.obj \
-    srv\\server.obj srv\\arch.obj srv\\tls.obj srv\\sasl.obj \
+    srv\\server.obj srv\\arch.obj srv\\tls.obj srv\\sasl.obj srv\\proc.obj srv\\daemon.obj srv\\conf.obj srv\\guard.obj \
     imap\\imap.obj imap\\imap_xform.obj imap\\imap_token.obj imap\\imap_track.obj imap\\imap_start.obj imap\\imap_proxy.obj \
-    imap\\imap_msg.obj imap\\imap_fetch.obj imap\\imap_result.obj imap\\imap_sect.obj imap\\imap_append.obj imap\\imap_xves.obj \
+    imap\\imap_msg.obj imap\\imap_fetch.obj imap\\imap_result.obj imap\\imap_result_proc.obj imap\\imap_sect.obj \
+    imap\\imap_append.obj imap\\imap_xves.obj \
     smtp\\smtp.obj smtp\\smtp_cmd.obj smtp\\smtp_reply.obj smtp\\smtp_track.obj smtp\\smtp_start.obj smtp\\smtp_proxy.obj \
     smtp\\smtp_xves.obj \
-    cli\\vesmail.obj cli\\help.obj cli\\tty.obj
+    now\\now.obj now\\now_store.obj \
+    cli\\vesmail.obj cli\\help.obj cli\\tty.obj \
+    util\\jTree.obj
 
 all:	vesmail.exe
 

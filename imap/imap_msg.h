@@ -102,7 +102,7 @@ typedef struct VESmail_imap_msg {
     char *headers[VESMAIL_IMAP_H__END];
     struct VESmail_imap_result *result;
     int rcount;
-    struct {} mail;
+    char mail[0];
 } VESmail_imap_msg;
 
 union VESmail_imap_msg_page;

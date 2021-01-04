@@ -48,6 +48,7 @@ int VESmail_arch_creat(const char *path);
 int VESmail_arch_openr(const char *path);
 int VESmail_arch_read(int fd, char *buf, int len);
 int VESmail_arch_write(int fd, const char *src, int len);
+int VESmail_arch_setlinebuf(void *file);
 int VESmail_arch_close(int fd);
 int VESmail_arch_log(const char *fmt, ...);
 int VESmail_arch_vlog(const char *fmt, void *va);
