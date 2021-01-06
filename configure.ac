@@ -17,7 +17,7 @@ AC_PROG_RANLIB
 # Checks for libraries.
 
 # Checks for header files.
-AC_CHECK_HEADERS([string.h stddef.h fcntl.h unistd.h sys/ioctl.h openssl/evp.h curl/curl.h termios.h windows.h libVES.h jVar.h])
+AC_CHECK_HEADERS([string.h stddef.h fcntl.h unistd.h sys/ioctl.h openssl/evp.h curl/curl.h termios.h windows.h libVES.h jVar.h poll.h])
 AC_CHECK_HEADERS([pthread.h], [AM_CONDITIONAL([HAVE_PTHREAD_H], [test 1])])
 
 # Checks for typedefs, structures, and compiler characteristics.

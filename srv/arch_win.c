@@ -50,6 +50,14 @@ int VESmail_arch_sigaction(int sig, void (* sigfn)(int)) {
 }
 
 int VESmail_arch_set_nb(int fd, int nb) {
+    if (!nb) {
+	struct timeval tmout = {
+	    .tv_sec = 30,
+	    .tv_usec = 0
+	};
+	setsockopt(fd, SOL_SOCKET, SO_RCVTIMEO, (char *)&tmout, sizeof(tmout));
+	setsockopt(fd, SOL_SOCKET, SO_SNDTIMEO, (char *)&tmout, sizeof(tmout));
+    }
     u_long flags = nb ? 1 : 0;
     return NO_ERROR == ioctlsocket(fd, FIONBIO, &flags) ? 0 : VESMAIL_E_IO;
 }
@@ -110,7 +118,18 @@ void VESmail_arch_mutex_done(void *mutex) {
 
 
 int VESmail_arch_poll(int len, ...) {
-    return VESMAIL_E_PARAM;
+    int r, i;
+    WSAPOLLFD pl[4];
+    va_list va;
+    va_start(va, len);
+    if (len > sizeof(pl) / sizeof(*pl)) len = sizeof(pl) / sizeof(*pl);
+    for (i = 0; i < len; i++) {
+	pl[i].fd = va_arg(va, int);
+	pl[i].events = POLLIN;
+    }
+    va_end(va);
+    r = WSAPoll(pl, len, 5000);
+    return r < 0 ? VESMAIL_E_IO : 0;
 }
 
 char *VESmail_arch_gethostname() {

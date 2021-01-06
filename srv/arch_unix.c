@@ -41,12 +41,17 @@
 #include <pthread.h>
 #include <stdio.h>
 
+#ifdef HAVE_POLL_H
+#include <poll.h>
+#endif
+
 const char *VESmail_arch_NAME = "Unix";
 
 void VESmail_arch_sa_h_alrm(int sig) {
 }
 
 void VESmail_arch_init() {
+    signal(SIGPIPE, SIG_IGN);
     VESmail_arch_sigaction(SIGALRM, &VESmail_arch_sa_h_alrm);
 }
 
@@ -60,7 +65,7 @@ int VESmail_arch_sigaction(int sig, void (* sigfn)(int)) {
 int VESmail_arch_set_nb(int fd, int nb) {
     if (!nb) {
 	struct timeval tmout = {
-	    .tv_sec = 5,
+	    .tv_sec = 30,
 	    .tv_usec = 0
 	};
 	setsockopt(fd, SOL_SOCKET, SO_RCVTIMEO, (char *)&tmout, sizeof(tmout));
@@ -116,6 +121,19 @@ void VESmail_arch_mutex_done(void *mutex) {
 
 
 int VESmail_arch_poll(int len, ...) {
+    int r, i;
+#ifdef HAVE_POLL_H
+    struct pollfd pl[4];
+    va_list va;
+    va_start(va, len);
+    if (len > sizeof(pl) / sizeof(*pl)) len = sizeof(pl) / sizeof(*pl);
+    for (i = 0; i < len; i++) {
+	pl[i].fd = va_arg(va, int);
+	pl[i].events = POLLIN;
+    }
+    va_end(va);
+    r = poll(pl, len, 5000);
+#else
     fd_set rd;
     struct timeval tmout = {
 	.tv_sec = 5,
@@ -125,7 +143,6 @@ int VESmail_arch_poll(int len, ...) {
     int nfds = 1;
     va_list va;
     va_start(va, len);
-    int i;
     for (i = 0; i < len; i++) {
 	int fd = va_arg(va, int);
 	if (fd >= FD_SETSIZE) return VESMAIL_E_PARAM;
@@ -133,8 +150,8 @@ int VESmail_arch_poll(int len, ...) {
 	FD_SET(fd, &rd);
     }
     va_end(va);
-    alarm(0);
-    int r = select(nfds, &rd, NULL, NULL, &tmout);
+    r = select(nfds, &rd, NULL, NULL, &tmout);
+#endif
     if (r < 0) switch (errno) {
 	case EINTR:
 	case EAGAIN:

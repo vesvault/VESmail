@@ -200,33 +200,26 @@ int VESmail_server_run(VESmail_server *srv, int flags) {
 	    if (VESmail_arch_thread(srv, &VESmail_server_fn_th_rsp, NULL) >= 0) flags |= VESMAIL_SRVR_NORSP;
 	}
 	if (!(flags & VESMAIL_SRVR_NOREQ)) {
-	    int r = VESmail_xform_process(srv->req_in, 0, "", 0);
-	    if (r < 0) return r;
-	    rs += r;
+	    rs = VESmail_xform_process(srv->req_in, 0, "", 0);
+	    if (rs < 0) break;
 	}
 	int pl = VESmail_arch_poll(2, BIO_get_fd(srv->req_bio, NULL), BIO_get_fd(srv->rsp_bio, NULL));
 	VESMAIL_SRV_DEBUG(srv, 2, sprintf(debug, "[poll] %d", pl))
-	int r;
-	r = VESmail_server_bio_read(srv->req_bio, srv->req_in, pl >= 0 || (!(flags & VESMAIL_SRVR_NORSP) && (srv->flags & VESMAIL_SRVF_OVER)));
-	if (r < 0) return r;
-	rs += r;
-	srv->reqbytes += r;
-	r = VESmail_server_bio_read(srv->rsp_bio, srv->rsp_in, pl >= 0 || (!(flags & VESMAIL_SRVR_NOREQ) && !(srv->flags & VESMAIL_SRVF_OVER)));
-	if (r < 0) return r;
-	rs += r;
-	srv->rspbytes += r;
+	rs = VESmail_server_bio_read(srv->req_bio, srv->req_in, pl >= 0 || (!(flags & VESMAIL_SRVR_NORSP) && (srv->flags & VESMAIL_SRVF_OVER)));
+	if (rs < 0) break;
+	srv->reqbytes += rs;
+	rs = VESmail_server_bio_read(srv->rsp_bio, srv->rsp_in, pl >= 0 || (!(flags & VESMAIL_SRVR_NOREQ) && !(srv->flags & VESMAIL_SRVF_OVER)));
+	if (rs < 0) break;
+	srv->rspbytes += rs;
 	if (srv->idlefn) {
-	    r = srv->idlefn(srv, time(NULL) - srv->lastread);
-	    if (r < 0) return r;
-	    rs += r;
+	    rs = srv->idlefn(srv, time(NULL) - srv->lastread);
+	    if (rs < 0) break;
 	    if (srv->flags & (VESMAIL_SRVF_TMOUT | VESMAIL_SRVF_KILL)) {
 		VESmail_server_log(srv, (srv->flags & VESMAIL_SRVF_TMOUT ? "timeout" : "shutdown"));
-		r = VESmail_xform_process(srv->req_in, 1, "", 0);
-		if (r < 0) return r;
-		rs += r;
-		r = VESmail_xform_process(srv->req_out, 1, "", 0);
-		if (r < 0) return r;
-		rs += r;
+		rs = VESmail_xform_process(srv->req_in, 1, "", 0);
+		if (rs < 0) break;
+		rs = VESmail_xform_process(srv->req_out, 1, "", 0);
+		if (rs < 0) break;
 	    }
 	}
     }
