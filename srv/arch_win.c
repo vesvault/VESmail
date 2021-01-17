@@ -51,10 +51,7 @@ int VESmail_arch_sigaction(int sig, void (* sigfn)(int)) {
 
 int VESmail_arch_set_nb(int fd, int nb) {
     if (!nb) {
-	struct timeval tmout = {
-	    .tv_sec = 30,
-	    .tv_usec = 0
-	};
+	DWORD tmout = 30000;
 	setsockopt(fd, SOL_SOCKET, SO_RCVTIMEO, (char *)&tmout, sizeof(tmout));
 	setsockopt(fd, SOL_SOCKET, SO_SNDTIMEO, (char *)&tmout, sizeof(tmout));
     }

@@ -67,5 +67,6 @@ struct jVar *VESmail_conf_sni_read(struct VESmail_conf *conf, const char *sni, v
 void VESmail_conf_setstr(char **val, struct jVar *conf);
 struct VESmail_conf *VESmail_conf_clone(struct VESmail_conf *conf);
 void VESmail_conf_vlog(struct VESmail_conf *conf, const char *fmt, void *va);
+void VESmail_conf_log(struct VESmail_conf *conf, const char *fmt, ...);
 void VESmail_conf_closelog(struct VESmail_conf *conf);
 void VESmail_conf_free(struct VESmail_conf *conf);

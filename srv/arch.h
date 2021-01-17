@@ -56,10 +56,22 @@ int VESmail_arch_usleep(unsigned long int t);
 
 #ifdef _WIN32
 
+#ifndef VESMAIL_CONF_PATH
 #define VESMAIL_CONF_PATH	""
+#endif
+
+#ifndef VESMAIL_LOG_MUTEX
+#define VESMAIL_LOG_MUTEX	1
+#endif
 
 #else
 
+#ifndef VESMAIL_CONF_PATH
 #define VESMAIL_CONF_PATH	"/etc/vesmail/"
+#endif
+
+#ifndef VESMAIL_LOG_MUTEX
+#define VESMAIL_LOG_MUTEX	0
+#endif
 
 #endif

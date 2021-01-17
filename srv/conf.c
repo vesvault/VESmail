@@ -38,6 +38,7 @@
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdarg.h>
 #include <jVar.h>
 #include <time.h>
 #include "../VESmail.h"
@@ -280,6 +281,7 @@ VESmail_conf *VESmail_conf_clone(VESmail_conf *conf) {
 }
 
 void VESmail_conf_vlog(VESmail_conf *conf, const char *fmt, void *va) {
+    static void *mutex = NULL;
     if (conf->log.filename) {
 	if (!conf->log.fh) {
 	    if ((conf->log.fh = fopen(conf->log.filename, "a"))) VESmail_arch_setlinebuf(conf->log.fh);
@@ -290,10 +292,19 @@ void VESmail_conf_vlog(VESmail_conf *conf, const char *fmt, void *va) {
 	    strftime(fbuf, sizeof(fbuf), "%b %d %H:%M:%S ", localtime(&t));
 	    char *d = fbuf + strlen(fbuf);
 	    sprintf(d, "%s %s[%d]: %s\n", conf->hostname, conf->progname, VESmail_arch_getpid(), fmt);
-	    if (vfprintf(conf->log.fh, fbuf, va) > 0) return;
+	    int r = (!VESMAIL_LOG_MUTEX || !VESmail_arch_mutex_lock(&mutex)) && (vfprintf(conf->log.fh, fbuf, va) > 0);
+	    if (VESMAIL_LOG_MUTEX) VESmail_arch_mutex_unlock(&mutex);
+	    if (r) return;
 	}
     }
     VESmail_arch_vlog(fmt, va);
+}
+
+void VESmail_conf_log(VESmail_conf *conf, const char *fmt, ...) {
+    va_list va;
+    va_start(va, fmt);
+    VESmail_conf_vlog(conf, fmt, va);
+    va_end(va);
 }
 
 void VESmail_conf_closelog(VESmail_conf *conf) {

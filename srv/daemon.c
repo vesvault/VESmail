@@ -112,15 +112,6 @@ VESmail_daemon *VESmail_daemon_new(VESmail_conf *conf, jVar *jconf, const char *
     return daemon;
 }
 
-int VESmail_daemon_listen(VESmail_daemon *daemon) {
-    struct VESmail_daemon_sock *sk;
-    for (sk = daemon->sock; sk; sk = sk->chain) {
-	int r = VESmail_daemon_sock_listen(sk);
-	if (r < 0) return r;
-    }
-    return 0;
-}
-
 int VESmail_daemon_sock_listen(struct VESmail_daemon_sock *sk) {
     if (sk->sock < 0) {
 	int fd = socket(sk->ainfo->ai_family, sk->ainfo->ai_socktype, sk->ainfo->ai_protocol);
@@ -148,6 +139,15 @@ int VESmail_daemon_sock_listen(struct VESmail_daemon_sock *sk) {
 	return VESMAIL_E_CONN;
     }
     VESMAIL_DAEMON_DEBUG(sk->daemon, 1, fprintf(stderr, "... success\n"));
+    return 0;
+}
+
+int VESmail_daemon_listen(VESmail_daemon *daemon) {
+    struct VESmail_daemon_sock *sk;
+    for (sk = daemon->sock; sk; sk = sk->chain) {
+	int r = VESmail_daemon_sock_listen(sk);
+	if (r < 0) return r;
+    }
     return 0;
 }
 
@@ -346,6 +346,7 @@ void VESmail_daemon_free(VESmail_daemon *daemon) {
 VESmail_daemon **VESmail_daemon_execute(VESmail_conf *conf, jVar *jconf) {
     jVar *jds = jVar_get(jconf, "daemons");
     if (!jVar_isArray(jds) || !jds->len) return NULL;
+    VESmail_conf_log(conf, "start daemons");
     VESmail_arch_sigaction(VESMAIL_DAEMON_SIG_DOWN, &VESmail_daemon_sigfn);
     if (VESMAIL_DAEMON_SIG_DOWN2) VESmail_arch_sigaction(VESMAIL_DAEMON_SIG_DOWN2, &VESmail_daemon_sigfn);
     VESmail_arch_sigaction(VESMAIL_DAEMON_SIG_TERM, &VESmail_daemon_sigfn);

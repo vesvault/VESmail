@@ -335,7 +335,7 @@ int VESmail_server_connect(VESmail_server *srv, jVar *conf, const char *dport) {
 	    int connr;
 	    if ((connr = connect(fd, r->ai_addr, r->ai_addrlen)) < 0) {
 		VESMAIL_SRV_DEBUG(srv, 1, sprintf(debug, "... failed (%d)", connr));
-		VESmail_arch_close(fd);
+		shutdown(fd, 2);
 		continue;
 	    }
 	    VESMAIL_SRV_DEBUG(srv, 1, sprintf(debug, "... connected"))
@@ -355,6 +355,7 @@ int VESmail_server_connect(VESmail_server *srv, jVar *conf, const char *dport) {
     }
     free(port);
     free(host);
+    if (rs < 0) VESmail_server_disconnect(srv);
     return rs;
 }
 
