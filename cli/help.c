@@ -73,7 +73,7 @@ const char *VESmail_cli_help =
  " \x1b[1mvesmail encrypt\x1b[0m -a <VESmail_account>\n"
  " \x1b[1mvesmail decrypt\x1b[0m -a <VESmail_account>\n"
  " \x1b[1mvesmail now\x1b[0m [--tls]\n"
- " \x1b[1mvesmail daemon\x1b[0m\n"
+ " \x1b[1mvesmail daemon\x1b[0m [--guard]\n"
  "\n";
 
 void out_ansi_str(int fdi, const char *str) {

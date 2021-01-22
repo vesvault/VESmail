@@ -317,7 +317,7 @@ int VESmail_imap_start_req_fn(VESmail_server *srv, VESmail_imap_token *token) {
 			if (token->len > 3) {
 			    rs = 0;
 			    VESmail_imap_ARG_CHK(rs, srv, token, 3, AString)
-			    if (rs < 0) return VESmail_imap_rsp_send_bad(srv, VESmail_imap_cp_tag(token), "Invalid SASL-IR");
+			    if (rs < 0) return VESmail_imap_rsp_send_bad(srv, tag, "Invalid SASL-IR");
 			    ir = token->list[3];
 			} else ir = NULL;
 			VESmail_imap_token_free(tag);

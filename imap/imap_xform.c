@@ -76,7 +76,6 @@ int VESmail_imap_xform_fn(VESmail_xform *xform, int final, const char *src, int 
 		if (curr->xform) {
 		    int eof = (len >= xform->imap->skip);
 		    int r = VESmail_xform_process(curr->xform, eof, s, len);
-//		    if (eof && !curr->literal) r = VESMAIL_E_INTERNAL;
 		    if (r < 0) {
 			curr->len = 0;
 			curr->state = VESMAIL_IMAP_P_ERROR;

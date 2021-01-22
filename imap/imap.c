@@ -298,7 +298,7 @@ int VESmail_imap_rsp_fn(VESmail_server *srv, VESmail_imap_token *token) {
     }
     int rs;
     if (trkptr) {
-	int curr = !(*trkptr)->chain && VESMAIL_IMAP(srv)->cont;
+	int curr = (*trkptr == VESMAIL_IMAP(srv)->track && VESMAIL_IMAP(srv)->cont);
 	VESmail_imap_track *trk = VESmail_imap_track_unlink(trkptr);
 	rs = trk->rspfn(verb, token, trk);
 	if (curr && rs >= 0) {

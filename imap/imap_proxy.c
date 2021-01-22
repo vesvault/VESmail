@@ -104,6 +104,11 @@ int VESmail_imap_proxy_fn_rsp_t(int verb, VESmail_imap_token *rsp, VESmail_imap_
     return rs;
 }
 
+int VESmail_imap_proxy_fn_rsp_h(int verb, VESmail_imap_token *rsp, VESmail_imap_track *trk) {
+    trk->server->req_in->imap->state = VESMAIL_IMAP_X_INIT;
+    return VESmail_imap_proxy_fn_rsp_t(verb, rsp, trk);
+}
+
 int VESmail_imap_proxy_fn_rsp_fetch(int verb, VESmail_imap_token *rsp, VESmail_imap_track *trk) {
     VESmail_imap *imap = VESMAIL_IMAP(trk->server);
     if (imap->results.queue) {
@@ -355,7 +360,7 @@ int VESmail_imap_proxy_fn_req(VESmail_server *srv, VESmail_imap_token *token) {
 		if (body->len > VESMAIL_IMAP(srv)->maxBufd) {
 		    if (!token->hold) {
 			trk = VESmail_imap_track_new_fwd(srv, token);
-			trk->rspfn = &VESmail_imap_proxy_fn_rsp_t;
+			trk->rspfn = &VESmail_imap_proxy_fn_rsp_h;
 		    }
 		    sync = srv->req_out;
 		    long long int l = VESmail_imap_append_syncl(body->len);
@@ -385,7 +390,7 @@ int VESmail_imap_proxy_fn_req(VESmail_server *srv, VESmail_imap_token *token) {
 		    if (!trk || trk->token) return VESMAIL_E_INTERNAL;
 		} else {
 		    trk = VESmail_imap_track_new_fwd(srv, token);
-		    trk->rspfn = &VESmail_imap_proxy_fn_rsp_t;
+		    trk->rspfn = &VESmail_imap_proxy_fn_rsp_h;
 		}
 		VESmail_imap_req_detach(srv, token);
 		trk->token = token;
