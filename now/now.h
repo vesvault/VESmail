@@ -33,3 +33,5 @@
 struct VESmail_optns;
 
 struct VESmail_server *VESmail_server_new_now(struct VESmail_optns *optns);
+
+#define	VESMAIL_MERR_NOW	0x0100

@@ -58,6 +58,18 @@
 #include "arch.h"
 #include "tls.h"
 
+#if	(OPENSSL_VERSION_NUMBER < 0x10100000L)
+#pragma message ("! Using an external thread locking function for OpenSSL < 1.1")
+#define	VESMAIL_OPENSSL_LOCKFN	1
+void **VESmail_tls_extLocks;
+void VESmail_tls_extLockFn(int mode, int n, const char *file, int line) {
+    if (mode & CRYPTO_LOCK) {
+	VESmail_arch_mutex_lock(VESmail_tls_extLocks + n);
+    } else {
+	VESmail_arch_mutex_unlock(VESmail_tls_extLocks + n);
+    }
+}
+#endif
 
 char *VESmail_tls_caBundle = NULL;
 
@@ -67,6 +79,12 @@ int VESmail_tls_init() {
     ERR_load_crypto_strings();
     SSL_load_error_strings();
     if (SSL_library_init() < 0) return VESMAIL_E_TLS;
+#ifdef VESMAIL_OPENSSL_LOCKFN
+    int n = CRYPTO_num_locks();
+    VESmail_tls_extLocks = malloc(n * sizeof(*VESmail_tls_extLocks));
+    while (n > 0) VESmail_tls_extLocks[--n] = NULL;
+    CRYPTO_set_locking_callback(&VESmail_tls_extLockFn);
+#endif
     return 0;
 }
 

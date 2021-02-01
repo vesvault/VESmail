@@ -34,9 +34,12 @@ typedef struct VESmail {
     struct libVES *ves;
     struct VESmail_optns *optns;
     struct libVES_VaultItem *vaultItem;
-    int flags;
+    short int flags;
+    short int error;
     char *msgid;
 /****************************
+    None of the fields below are needed for a decrypt-only fragment parser,
+    such as for VESmail_imap_msg
 *****************************/
     struct VESmail_parse *root;
     struct VESmail_xform *out;

@@ -36,6 +36,11 @@ typedef struct VESmail_proc {
     struct VESmail_proc *chain;
     void *thread;
     struct VESmail_server *server;
+    struct VESmail_proc_ctx {
+	struct VESmail_conf *conf;
+	struct jVar *jconf;
+	int refct;
+    } *ctx;
     void *ref;
     int fdesc;
     short int tid;
@@ -53,3 +58,7 @@ int VESmail_proc_shutdown(struct VESmail_proc *proc, int e);
 void VESmail_proc_kill(struct VESmail_proc *proc);
 void VESmail_proc_done(struct VESmail_proc *proc);
 void VESmail_proc_free(struct VESmail_proc *proc);
+
+struct VESmail_proc_ctx *VESmail_proc_ctx_new(struct VESmail_proc *proc, struct jVar *jconf);
+void VESmail_proc_ctx_apply(struct VESmail_proc_ctx *ctx, struct VESmail_proc *proc);
+void VESmail_proc_ctx_free(struct VESmail_proc_ctx *ctx);

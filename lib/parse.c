@@ -374,6 +374,7 @@ VESmail_xform *VESmail_parse_xform_null(VESmail_parse *parse) {
 
 void VESmail_parse_free(struct VESmail_parse *parse) {
     if (parse) {
+	parse->mail->error |= parse->error;
 	VESmail_header *h;
 	for (h = parse->hdrbuf; h;) {
 	    VESmail_header *hchain = h->chain;

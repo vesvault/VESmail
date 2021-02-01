@@ -46,6 +46,7 @@
 #include "../lib/xform.h"
 #include "../lib/header.h"
 #include "../srv/server.h"
+#include "../srv/conf.h"
 #include "../srv/arch.h"
 #include "../now/now_store.h"
 #include "smtp.h"
@@ -78,9 +79,24 @@ void VESmail_smtp_proxy_plain(VESmail_server *srv) {
 }
 
 int VESmail_smtp_proxy_replyw(VESmail_server *srv, VESmail_smtp_reply *reply) {
-    int rs = (reply->code < 400 && (VESMAIL_SMTP(srv)->flags & VESMAIL_SMTP_F_PLAIN) && !(VESMAIL_SMTP(srv)->flags & VESMAIL_SMTP_F_NOWARN))
-	? VESmail_smtp_reply_sendln(srv, reply->code, reply->dsn, 0, "VESmail WARNING: This email will NOT be encypted")
-	: 0;
+    int rs = 0;
+    if (reply->code < 400 && !(VESMAIL_SMTP(srv)->flags & VESMAIL_SMTP_F_NOWARN)) {
+	if (VESMAIL_SMTP(srv)->flags & VESMAIL_SMTP_F_PLAIN) {
+	    rs = VESmail_smtp_reply_sendln(srv, reply->code, reply->dsn, 0, "VESmail WARNING: This email will NOT be encypted");
+	} else {
+	    char **au = srv->optns->audit;
+	    if (au) for (; *au; au++) {
+		char rp[80];
+		sprintf(rp, "VESmail WARNING: Big Brother %.48s", *au);
+		int r = VESmail_smtp_reply_sendln(srv, reply->code, reply->dsn, 0, rp);
+		if (r >= 0) rs += r;
+		else {
+		    rs = r;
+		    break;
+		}
+	    }
+	}
+    }
     if (rs < 0) return rs;
     int r = VESmail_smtp_reply_send(srv, reply);
     if (r < 0) return r;
@@ -95,14 +111,9 @@ int VESmail_smtp_proxy_fn_r(VESmail_smtp_track *trk, VESmail_smtp_reply *reply) 
 int VESmail_smtp_proxy_fn_r_mail(VESmail_smtp_track *trk, VESmail_smtp_reply *reply) {
     VESmail_server *srv = trk->server;
     VESmail_smtp *smtp = VESMAIL_SMTP(srv);
-    if (reply->code == 250) {
+    if (reply->code != 250) {
 	VESmail_free(smtp->mail);
-	smtp->mail = VESmail_set_out(VESmail_now_store_apply(VESmail_new_encrypt(srv->ves, srv->optns)), VESmail_xform_new_smtp_data(srv));
-	smtp->mail->logref = srv->logref;
-	smtp->mail->logfn = srv->logfn;
-	smtp->mail->flags &= ~(VESMAIL_O_XCHG | VESMAIL_O_HDR_RCPT);
-	if (smtp->mode <= VESMAIL_SMTP_M_XCHG) smtp->mail->flags |= VESMAIL_O_XCHG;
-	if (smtp->mode == VESMAIL_SMTP_M_PLAIN || (smtp->flags & VESMAIL_SMTP_F_PLAIN)) VESmail_smtp_proxy_plain(srv);
+	smtp->mail = NULL;
     }
     return VESmail_smtp_proxy_replyw(srv, reply);
 }
@@ -133,6 +144,16 @@ int VESmail_smtp_proxy_fn_r_rcpt(VESmail_smtp_track *trk, VESmail_smtp_reply *re
 
 void VESmail_smtp_proxy_fn_f_rcpt(VESmail_smtp_track *trk) {
     libVES_User_free(trk->ref);
+}
+
+int VESmail_smtp_proxy_bcc(VESmail_server *srv);
+
+int VESmail_smtp_proxy_fn_r_bcc(VESmail_smtp_track *trk, VESmail_smtp_reply *reply) {
+    VESmail_server *srv = trk->server;
+    if (reply->code != 250 && VESMAIL_SMTP(srv)->mail) {
+	VESMAIL_SMTP(srv)->mail->error |= VESMAIL_MERR_BCC;
+    }
+    return VESmail_smtp_proxy_bcc(srv);
 }
 
 int VESmail_smtp_proxy_fn_r_over(VESmail_smtp_track *trk, VESmail_smtp_reply *reply) {
@@ -185,7 +206,7 @@ int VESmail_smtp_proxy_cmd_rcpt(VESmail_server *srv, VESmail_smtp_cmd *cmd) {
 	    case VESMAIL_SMTP_M_FALLBACK: {
 		libVES_List *l = libVES_User_activeVaultKeys(u, NULL, srv->ves);
 		libVES_List_free(l);
-		if (l) break;
+		if (l || !libVES_checkError(srv->ves, LIBVES_E_NOTFOUND)) break;
 		if (smtp->mode == VESMAIL_SMTP_M_REJECT) {
 		    static const VESmail_smtp_reply re = {
 			.code = 450,
@@ -262,6 +283,40 @@ int VESmail_smtp_proxy_scmd(VESmail_server *srv, VESmail_smtp_cmd *cmd) {
     return VESmail_smtp_track_unqueue(trk);
 }
 
+int VESmail_smtp_proxy_bcc(VESmail_server *srv) {
+    VESmail_smtp *smtp = VESMAIL_SMTP(srv);
+    int rs = 0;
+    while (smtp->pbcc && ((smtp->flags & VESMAIL_SMTP_F_PIPE) || !smtp->track)) {
+	const char *bcc = *smtp->pbcc;
+	int r;
+	if (bcc) {
+	    smtp->pbcc++;
+	    const char *lt = strchr(bcc, '<');
+	    if (lt) lt++;
+	    else lt = bcc;
+	    const char *gt = strchr(lt, '>');
+	    if (!gt) gt = lt + strlen(lt);
+	    int l = gt - lt;
+	    char buf[144];
+	    if (l >= 1 && l <= sizeof(buf) - 8) {
+		sprintf(buf, "TO:<%.*s>", l, lt);
+		VESmail_smtp_track_new(srv, &VESmail_smtp_proxy_fn_r_bcc);
+		r = VESmail_smtp_cmd_fwda(srv, "RCPT", 1, buf);
+	    } else {
+		r = 0;
+		if (smtp->mail) smtp->mail->error |= VESMAIL_MERR_BCC;
+	    }
+	} else {
+	    smtp->pbcc = NULL;
+	    VESmail_smtp_track_new(srv, &VESmail_smtp_proxy_fn_r_data);
+	    r = VESmail_smtp_cmd_fwda(srv, "DATA", 0);
+	}
+	if (r < 0) return r;
+	rs += r;
+    }
+    return rs;
+}
+
 int VESmail_smtp_proxy_cmd(VESmail_server *srv, VESmail_smtp_cmd *cmd) {
     VESmail_smtp *smtp = VESMAIL_SMTP(srv);
     switch (cmd->verb) {
@@ -271,11 +326,20 @@ int VESmail_smtp_proxy_cmd(VESmail_server *srv, VESmail_smtp_cmd *cmd) {
 	    break;
 	case VESMAIL_SMTP_V_MAIL:
 	    VESmail_smtp_track_new(srv, &VESmail_smtp_proxy_fn_r_mail);
+	    VESmail_free(smtp->mail);
+	    smtp->mail = VESmail_set_out(VESmail_now_store_apply(VESmail_new_encrypt(srv->ves, srv->optns)), VESmail_xform_new_smtp_data(srv));
+	    smtp->mail->logref = srv->logref;
+	    smtp->mail->logfn = srv->logfn;
+	    smtp->mail->flags &= ~(VESMAIL_O_XCHG | VESMAIL_O_HDR_RCPT);
+	    if (smtp->mode <= VESMAIL_SMTP_M_XCHG) smtp->mail->flags |= VESMAIL_O_XCHG;
+	    if (smtp->mode == VESMAIL_SMTP_M_PLAIN || (smtp->flags & VESMAIL_SMTP_F_PLAIN)) VESmail_smtp_proxy_plain(srv);
 	    break;
 	case VESMAIL_SMTP_V_RCPT:
 	    return VESmail_smtp_proxy_cmd_rcpt(srv, cmd);
 	case VESMAIL_SMTP_V_DATA:
 	    smtp->state = VESMAIL_SMTP_S_HOLD;
+	    smtp->pbcc = smtp->flags & VESMAIL_SMTP_F_PLAIN ? NULL : VESmail_smtp_get_bcc(srv);
+	    if (smtp->pbcc) return VESmail_smtp_proxy_bcc(srv);
 	    VESmail_smtp_track_new(srv, &VESmail_smtp_proxy_fn_r_data);
 	    break;
 	case VESMAIL_SMTP_V_AUTH:

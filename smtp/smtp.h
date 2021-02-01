@@ -69,7 +69,7 @@ typedef struct VESmail_smtp {
 	VESMAIL_SMTP_S_DATA
     } state;
 #define VESMAIL_VERB(verb)	VESMAIL_SMTP_M_ ## verb,
-enum { VESMAIL_SMTP_MODES() VESMAIL_SMTP_M__END } mode;
+    enum { VESMAIL_SMTP_MODES() VESMAIL_SMTP_M__END } mode;
 #undef VESMAIL_VERB
     short int flags;
     struct jVar *uconf;
@@ -81,7 +81,10 @@ enum { VESMAIL_SMTP_MODES() VESMAIL_SMTP_M__END } mode;
 	char msg[12];
     } *debug;
     const char *lf;
+    char **pbcc;
 } VESmail_smtp;
+
+#define	VESMAIL_MERR_BCC	0x0200
 
 #define VESMAIL_SMTP(server)	((VESmail_smtp *) &server->ctl)
 
@@ -99,3 +102,4 @@ extern const char *VESmail_smtp_modes[];
 
 struct VESmail_server *VESmail_server_new_smtp(struct VESmail_optns *optns);
 int VESmail_smtp_debug_flush(struct VESmail_server *srv, int code, int dsn);
+#define VESmail_smtp_get_bcc(srv)	(((VESmail_conf *)(srv->optns->ref))->bcc)

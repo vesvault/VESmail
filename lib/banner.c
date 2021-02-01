@@ -68,6 +68,31 @@ char *VESmail_banner_get_var(VESmail *mail, const char *var) {
     return NULL;
 }
 
+int VESmail_banner_crlf(VESmail_xform *xform, int final, const char *src, int srclen) {
+    const char *s = src;
+    const char *s0 = s;
+    const char *tail = s + srclen;
+    int r;
+    int rs = 0;
+    while (s < tail) {
+	const char *lf = memchr(s, '\n', tail - s);
+	if (!lf) break;
+	s = lf + 1;
+	if (lf <= s0 || lf[-1] != '\r') {
+	    r = VESmail_xform_process(xform, 0, s0, lf - s0);
+	    if (r < 0) return r;
+	    rs += r;
+	    r = VESmail_xform_process(xform, 0, "\r\n", 2);
+	    if (r < 0) return r;
+	    rs += r;
+	    s0 = s;
+	}
+    }
+    r = VESmail_xform_process(xform, final, s0, tail - s0);
+    if (r < 0) return r;
+    return rs + r;
+}
+
 int VESmail_banner_resolve(VESmail *mail, VESmail_xform *xform, const char *banner, int len) {
     const char *s = banner;
     const char *s0 = s;
@@ -87,11 +112,11 @@ int VESmail_banner_resolve(VESmail *mail, VESmail_xform *xform, const char *bann
 		    *d = 0;
 		    char *val = VESmail_banner_get_var(mail, var);
 		    if (val) {
-			r = VESmail_xform_process(xform, 0, s0, v - s0);
+			r = VESmail_banner_crlf(xform, 0, s0, v - s0);
 			s0 = s;
 			if (r >= 0) {
 			    rs += r;
-			    r = VESmail_xform_process(xform, 0, val, strlen(val));
+			    r = VESmail_banner_crlf(xform, 0, val, strlen(val));
 			    if (r >= 0) rs += r;
 			}
 			free(val);
@@ -105,7 +130,7 @@ int VESmail_banner_resolve(VESmail *mail, VESmail_xform *xform, const char *bann
 	}
     }
     if (tail > s0) {
-	r = VESmail_xform_process(xform, 0, s0, tail - s0);
+	r = VESmail_banner_crlf(xform, 0, s0, tail - s0);
 	if (r < 0) return r;
 	rs += r;
     }

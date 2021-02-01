@@ -46,6 +46,7 @@ typedef struct VESmail_conf {
     char **bannerPath;
     char *manifest;
     struct jVar *app;
+    char **bcc;
     void *mutex;
     struct {
 	char *prefix;
@@ -57,13 +58,14 @@ typedef struct VESmail_conf {
 	void *fh;
     } log;
     char guard;
+    char allocd;
 } VESmail_conf;
 
 struct jVar *VESmail_conf_read(const char *path, void (* errfn)(const char *, ...));
 char *VESmail_conf_get_content(const char *path);
 void VESmail_conf_apply(struct VESmail_conf *conf, struct jVar *jconf);
 void VESmail_conf_applyroot(struct VESmail_conf *conf, struct jVar *jconf, int (* snifn)(struct VESmail_server *, const char *));
-struct jVar *VESmail_conf_sni_read(struct VESmail_conf *conf, const char *sni, void (* errfn)(const char *, ...));
+struct jVar *VESmail_conf_sni_read(struct VESmail_conf *conf, const char *sni, void (* errfn)(const char *, ...), unsigned long *mtime);
 void VESmail_conf_setstr(char **val, struct jVar *conf);
 struct VESmail_conf *VESmail_conf_clone(struct VESmail_conf *conf);
 void VESmail_conf_vlog(struct VESmail_conf *conf, const char *fmt, void *va);

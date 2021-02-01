@@ -41,6 +41,7 @@
 #include "../lib/xform.h"
 #include "../lib/parse.h"
 #include "../srv/arch.h"
+#include "now.h"
 #include "now_store.h"
 
 
@@ -74,8 +75,11 @@ int VESmail_now_store_xform_fn(VESmail_xform *xform, int final, const char *src,
 	    s += w;
 	    l -= w;
 	}
-	if (final) VESmail_arch_close(xform->fd);
+	if (final) {
+	    if (VESmail_arch_close(xform->fd) < 0) xform->fd = VESMAIL_E_IO;
+	}
     }
+    if (xform->fd < 0) xform->parse->error |= VESMAIL_MERR_NOW;
     return VESmail_xform_process(xform->chain, final, src, *srclen);
 }
 

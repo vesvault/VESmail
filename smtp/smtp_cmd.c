@@ -251,7 +251,7 @@ int VESmail_smtp_cmd_xform_fn(VESmail_xform *xform, int final, const char *src, 
 		cmdfn = &VESmail_smtp_start_cmd;
 		break;
 	    case VESMAIL_SMTP_S_PROXY:
-		cmdfn = &VESmail_smtp_proxy_cmd;
+		cmdfn = ((smtp->flags & VESMAIL_SMTP_F_PIPE) || !smtp->track) ? &VESmail_smtp_proxy_cmd : NULL;
 		break;
 	    case VESMAIL_SMTP_S_AUTH:
 		if (lf) {

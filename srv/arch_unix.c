@@ -36,6 +36,7 @@
 #include <sys/select.h>
 #include <sys/time.h>
 #include <sys/socket.h>
+#include <sys/stat.h>
 #include <stdarg.h>
 #include <syslog.h>
 #include <pthread.h>
@@ -228,4 +229,10 @@ int VESmail_arch_usleep(unsigned long int t) {
 	.tv_nsec = (t % 1000000) * 1000
     };
     return nanosleep(&ts, NULL);
+}
+
+unsigned long VESmail_arch_mtime(const char *path) {
+    struct stat st;
+    if (stat(path, &st)) return 0;
+    return st.st_mtime;
 }

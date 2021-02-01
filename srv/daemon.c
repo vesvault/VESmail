@@ -194,8 +194,8 @@ int VESmail_daemon_launch(VESmail_daemon *daemon) {
 
 
 struct VESmail_daemon_snirec {
-    VESmail_conf *conf;
-    jVar *jconf;
+    struct VESmail_proc_ctx *ctx;
+    unsigned long mtime;
     char sni[0];
 };
 
@@ -224,29 +224,21 @@ int VESmail_daemon_snifn(VESmail_server *srv, const char *sni) {
 	rec = *pobj;
 	VESMAIL_DAEMON_DEBUG(daemon, 2, fprintf(stderr, "sni rec loaded for %s: %lx\n", sni, rec))
     } else {
-	jVar *jconf = VESmail_conf_sni_read(daemon->conf, sni, &VESmail_daemon_snierrfn);
-	if (!jconf && daemon->conf->sni.require) {
-	    r = VESMAIL_E_CONF;
-	} else {
-	    rec = malloc(sizeof(struct VESmail_daemon_snirec) + strlen(sni) + 1);
-	    strcpy(rec->sni, sni);
-	    if ((rec->jconf = jconf)) {
-		rec->conf = VESmail_conf_clone(srv->proc->daemon->conf);
-		VESmail_conf_apply(rec->conf, jVar_get(jconf, "*"));
-		VESmail_conf_apply(rec->conf, jVar_get(jconf, srv->type));
-	    } else {
-		rec->conf = NULL;
-	    }
-	    *pobj = rec;
-	    VESMAIL_DAEMON_DEBUG(daemon, 2, fprintf(stderr, "sni rec created for %s: %lx\n", sni, rec))
-	}
+	rec = malloc(sizeof(struct VESmail_daemon_snirec) + strlen(sni) + 1);
+	strcpy(rec->sni, sni);
+	rec->ctx = NULL;
+	rec->mtime = 0;
+	*pobj = rec;
     }
-    if (!r && rec->conf) {
-	srv->proc->conf = rec->conf;
-	srv->optns = rec->conf->optns;
-	srv->tls.server = rec->conf->tls;
+    jVar *jconf = VESmail_conf_sni_read(daemon->conf, sni, &VESmail_daemon_snierrfn, &rec->mtime);
+    if (jconf) {
+	VESmail_server_log(srv, "sni conf loaded");
+	VESmail_proc_ctx_free(rec->ctx);
+	rec->ctx = VESmail_proc_ctx_new(srv->proc, jconf);
+    } else if (!rec->ctx && daemon->conf->sni.require) {
+	r = VESMAIL_E_CONF;
     }
-    if (!r) VESmail_tls_server_ctxinit(srv);
+    VESmail_proc_ctx_apply(rec->ctx, srv->proc);
     VESmail_arch_mutex_unlock(&daemon->sni.mutex);
     return r;
 }
@@ -256,8 +248,7 @@ void VESmail_daemon_snifree(VESmail_daemon *daemon) {
     for (pobj = jTree_first(daemon->sni.jtree); pobj; pobj = jTree_next(pobj)) {
 	struct VESmail_daemon_snirec *rec = *pobj;
 	if (rec) {
-	    VESmail_conf_free(rec->conf);
-	    jVar_free(rec->jconf);
+	    VESmail_proc_ctx_free(rec->ctx);
 	    free(rec);
 	    *pobj = NULL;
 	}

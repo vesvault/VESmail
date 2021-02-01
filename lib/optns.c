@@ -57,7 +57,8 @@ struct VESmail_optns VESmail_optns_default = {
 	.dir = NULL
     },
     .acl = NULL,
-    .unspecd = "[unspecified]"
+    .unspecd = "[unspecified]",
+    .audit = NULL
 };
 
 VESmail_optns *VESmail_optns_new() {

@@ -276,10 +276,34 @@ separate conf file based on a negotiated SNI hostname.
 The internal daemonizer starts a thread for each proxy, defined in the conf
 file. Each proxy session runs in a separate thread.
 
+SNI conf files are automatically reloaded when modified. Changes to the main
+conf require full restart to take effect. Changes to the SSL certificate and
+private key files are not automatically tracked, update the mtime on the SNI
+conf file to reload a renewed certificate.
+
 On *nix platforms, SIGHUP initiated a graceful termination of all daemons,
 SIGTERM invokes a forced termination. A guard option (-G) starts a guard
 process and one or more forked workers, the guard keeps the listening sockets
 and restarts terminated workers. SIGHUP sent to the guard initiates graceful
 restart of all workers, SIGTERM initiates a forced termination.
 
+
+SECURITY CONSIDERATIONS:
+
+Unless run on localhost, all communications between the client and the proxy
+should be handled over TLS.
+
+VESmail proxy process must have read access to the private key matching the SSL
+certificate. It is recommended to run VESmail proxy as a dedicated user account
+(e.g. "vesmail") that has access to sensitive files like private keys.
+
+The "audit" option in the conf file enables compliance audit which might be
+required for corporate instances. An encryption key for every email encrypted
+through the VESmail proxy instance will be shared with one or more VESmail
+accounts specified in the "audit" array. The specified audit account must
+already exist on VES and VESmail, otherwise the encryptor will fail.
+
+Write access to the main vesmail.conf and all SNI conf files should be
+appropriately restricted to avoid any kind of unauthorized access to the
+content of the encrypted emails.
 

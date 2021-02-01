@@ -47,6 +47,9 @@
 #include "arch.h"
 #include "conf.h"
 
+#define VESmail_conf_ALLOCD_bannerPath	0x01
+#define VESmail_conf_ALLOCD_audit	0x10
+#define VESmail_conf_ALLOCD_bcc		0x20
 
 jVar *VESmail_conf_read(const char *path, void (* errfn)(const char *fmt, ...)) {
     int fd = VESmail_arch_openr(path);
@@ -199,6 +202,28 @@ void VESmail_conf_setstr(char **val, jVar *conf) {
     if (conf) *val = jVar_getStringP(conf);
 }
 
+int VESmail_conf_setpstr(char ***d, jVar *b) {
+    char **p;
+    if (jVar_isArray(b)) {
+	p = *d = malloc((jVar_count(b) + 1) * sizeof(*p));
+	int i;
+	for (i = 0; i < jVar_count(b); i++) {
+	    *p = jVar_getStringP(jVar_index(b, i));
+	    if (*p) p++;
+	}
+	*p = NULL;
+	return 1;
+    } else if (jVar_isString(b)) {
+	p = *d = malloc(2 * sizeof(*p));
+	p[0] = jVar_getStringP(b);
+	p[1] = NULL;
+	return 1;
+    } else if (jVar_isNull(b)) {
+	*d = NULL;
+    }
+    return 0;
+}
+
 void VESmail_conf_apply(VESmail_conf *conf, jVar *jconf) {
     VESmail_conf_setstr(&conf->optns->acl, jVar_get(jconf, "acl"));
     VESmail_conf_setstr(&conf->optns->now.url, jVar_get(jconf, "now-url"));
@@ -214,20 +239,9 @@ void VESmail_conf_apply(VESmail_conf *conf, jVar *jconf) {
 	VESmail_conf_closelog(conf);
 	VESmail_conf_setstr(&conf->log.filename, jlog);
     }
-    jVar *b = jVar_get(jconf, "banner");
-    if (jVar_isArray(b)) {
-	free(conf->bannerPath);
-	char **p = conf->bannerPath = malloc((jVar_count(b) + 1) * sizeof(*p));
-	int i;
-	for (i = 0; i < jVar_count(b); i++) {
-	    *p = jVar_getStringP(jVar_index(b, i));
-	    if (*p) p++;
-	}
-	*p = NULL;
-    } else if (jVar_isNull(b)) {
-	free(conf->bannerPath);
-	conf->bannerPath = NULL;
-    }
+    if (VESmail_conf_setpstr(&conf->bannerPath, jVar_get(jconf, "banner"))) conf->allocd |= VESmail_conf_ALLOCD_bannerPath;
+    if (VESmail_conf_setpstr(&conf->optns->audit, jVar_get(jconf, "audit"))) conf->allocd |= VESmail_conf_ALLOCD_audit;
+    if (VESmail_conf_setpstr(&conf->bcc, jVar_get(jconf, "bcc"))) conf->allocd |= VESmail_conf_ALLOCD_bcc;
     conf->optns->getBanners = &VESmail_conf_get_banners;
     conf->optns->getApp = &VESmail_conf_get_app;
     conf->optns->ref = conf;
@@ -246,11 +260,16 @@ void VESmail_conf_applyroot(VESmail_conf *conf, jVar *jconf, int (* snifn)(struc
     VESmail_conf_setstr(&VESmail_tls_caBundle, jVar_get(jconf, "caBundle"));
 }
 
-jVar *VESmail_conf_sni_read(VESmail_conf *conf, const char *sni, void (* errfn)(const char *fmt, ...)) {
+jVar *VESmail_conf_sni_read(VESmail_conf *conf, const char *sni, void (* errfn)(const char *fmt, ...), unsigned long *mtime) {
     if (!conf->sni.prefix || !sni) return NULL;
     if (!conf->sni.suffix) conf->sni.suffix = "";
     char *buf = malloc(strlen(conf->sni.prefix) + strlen(sni) + strlen(conf->sni.suffix) + 1);
     sprintf(buf, "%s%s%s", conf->sni.prefix, sni, conf->sni.suffix);
+    if (mtime) {
+	unsigned long t = VESmail_arch_mtime(buf);
+	if (t == *mtime) return free(buf), NULL;
+	*mtime = t;
+    }
     jVar *jconf = VESmail_conf_read(buf, errfn);
     free(buf);
     return jconf;
@@ -270,13 +289,7 @@ VESmail_conf *VESmail_conf_clone(VESmail_conf *conf) {
     if (cf->optns) cf->optns = VESmail_optns_clone(cf->optns);
     if (cf->tls) cf->tls = VESmail_tls_server_clone(cf->tls);
     cf->banner = NULL;
-    if (cf->bannerPath) {
-	char **p = cf->bannerPath;
-	while (*p) p++;
-	int l = (p - cf->bannerPath + 1) * sizeof(*p);
-	cf->bannerPath = malloc(l);
-	memcpy(cf->bannerPath, conf->bannerPath, l);
-    }
+    cf->allocd = 0;
     return cf;
 }
 
@@ -316,6 +329,8 @@ void VESmail_conf_closelog(VESmail_conf *conf) {
 
 void VESmail_conf_free(VESmail_conf *conf) {
     if (conf) {
+	if (conf->allocd & VESmail_conf_ALLOCD_audit) free(conf->optns->audit);
+	if (conf->allocd & VESmail_conf_ALLOCD_bcc) free(conf->bcc);
 	VESmail_optns_free(conf->optns);
 	VESmail_tls_server_free(conf->tls);
 	jVar_free(conf->app);
@@ -324,7 +339,7 @@ void VESmail_conf_free(VESmail_conf *conf) {
 	    for (b = (char **) conf->banner; *b; b++) free(*b);
 	    free(conf->banner);
 	}
-	free(conf->bannerPath);
+	if (conf->allocd & VESmail_conf_ALLOCD_bannerPath) free(conf->bannerPath);
 	VESmail_arch_mutex_done(conf->mutex);
     }
     free(conf);

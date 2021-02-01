@@ -35,6 +35,7 @@
 #include <signal.h>
 #include <stdarg.h>
 #include <windows.h>
+#include <sys/stat.h>
 #include <stdio.h>
 
 
@@ -178,5 +179,11 @@ int VESmail_arch_usleep(unsigned long int usec) {
 
 int VESmail_arch_getpid() {
     return _getpid();
+}
+
+unsigned long VESmail_arch_mtime(const char *path) {
+    struct _stat st;
+    if (_stat(path, &st)) return 0;
+    return st.st_mtime;
 }
 

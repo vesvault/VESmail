@@ -68,6 +68,7 @@ struct VESmail_conf conf = {
     .manifest = NULL,
     .app = NULL,
     .guard = 0,
+    .bcc = NULL,
     .sni = {
 	.prefix = NULL
     },
@@ -121,7 +122,7 @@ void errfn_sni(const char *fmt, ...) {
 
 int cli_snifn(VESmail_server *srv, const char *sni) {
     VESmail_arch_log("sni host=%s", sni);
-    jVar *jconf = VESmail_conf_sni_read(&conf, sni, &errfn_sni);
+    jVar *jconf = VESmail_conf_sni_read(&conf, sni, &errfn_sni, NULL);
     if (!jconf && conf.sni.require) return VESMAIL_E_CONF;
     VESmail_conf_apply(&conf, jVar_get(jconf, "*"));
     if (srv) {

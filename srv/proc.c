@@ -39,6 +39,7 @@
 #include <stdlib.h>
 #include <stdarg.h>
 #include <stdio.h>
+#include <jVar.h>
 #include "../VESmail.h"
 #include "arch.h"
 #include "conf.h"
@@ -65,6 +66,7 @@ VESmail_proc *VESmail_proc_new(VESmail_daemon *daemon, int fd) {
     proc->daemon = daemon;
     proc->conf = daemon->conf;
     proc->thread = NULL;
+    proc->ctx = NULL;
     proc->ref = NULL;
     proc->fdesc = fd;
     proc->flags = 0;
@@ -131,6 +133,37 @@ void VESmail_proc_free(VESmail_proc *proc) {
     if (proc) {
 	VESmail_arch_thread_done(proc->thread);
 	VESmail_proc_done(proc);
+	VESmail_proc_ctx_free(proc->ctx);
     }
     free(proc);
+}
+
+
+struct VESmail_proc_ctx *VESmail_proc_ctx_new(struct VESmail_proc *proc, jVar *jconf) {
+    if (!jconf) return NULL;
+    struct VESmail_proc_ctx *ctx = malloc(sizeof(struct VESmail_proc_ctx));
+    ctx->jconf = jconf;
+    ctx->conf = VESmail_conf_clone(proc->daemon->conf);
+    VESmail_conf_apply(ctx->conf, jVar_get(jconf, "*"));
+    VESmail_conf_apply(ctx->conf, jVar_get(jconf, proc->server->type));
+    ctx->refct = 1;
+    return ctx;
+}
+
+void VESmail_proc_ctx_apply(struct VESmail_proc_ctx *ctx, VESmail_proc *proc) {
+    if (!ctx) return;
+    VESmail_proc_ctx_free(proc->ctx);
+    proc->ctx = ctx;
+    proc->conf = ctx->conf;
+    proc->server->optns = ctx->conf->optns;
+    proc->server->tls.server = ctx->conf->tls;
+    ctx->refct++;
+}
+
+void VESmail_proc_ctx_free(struct VESmail_proc_ctx *ctx) {
+    if (ctx && --ctx->refct <= 0) {
+	VESmail_conf_free(ctx->conf);
+	jVar_free(ctx->jconf);
+	free(ctx);
+    }
 }

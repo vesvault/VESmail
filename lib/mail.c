@@ -65,6 +65,7 @@ VESmail *VESmail_init(VESmail *mail, libVES *ves, VESmail_optns *optns) {
     mail->msgid = NULL;
     mail->vaultItem = NULL;
     mail->flags = VESMAIL_F_INIT | mail->optns->flags;
+    mail->error = 0;
     return mail;
 }
 
@@ -122,7 +123,7 @@ libVES_Cipher *VESmail_get_cipher(VESmail *mail) {
     return libVES_VaultItem_getCipher(VESmail_get_vaultItem(mail), mail->ves);
 }
 
-void VESmail_logrcpt(VESmail *mail, libVES_VaultKey *vkey) {
+void VESmail_logrcpt(VESmail *mail, libVES_VaultKey *vkey, const char *mode) {
     if (!mail->logfn) return;
     char pub[128];
     const char *p = vkey->publicKey;
@@ -153,7 +154,7 @@ void VESmail_logrcpt(VESmail *mail, libVES_VaultKey *vkey) {
     }
     *d = 0;
     char *uri = libVES_VaultKey_toURI(vkey);
-    mail->logfn(mail->logref, "encrypt msgid=<%s> %s=%s[%lld] pub=%s", mail->msgid, (!vkey->ves->vaultKey || vkey->ves->vaultKey->id != vkey->id ? "rcpt" : "self"), uri, vkey->id, pub);
+    mail->logfn(mail->logref, "encrypt msgid=<%s> %s=%s[%lld] pub=%s", mail->msgid, mode, uri, vkey->id, pub);
     free(uri);
 }
 
@@ -165,7 +166,7 @@ int VESmail_save_ves(VESmail *mail) {
 	    if ((mail->optns->flags & VESMAIL_O_VES_NTFY) && libVES_VaultKey_isNew(vkey)) {
 		libVES_VaultKey_setAppUrl(vkey, VESmail_nowUrl(mail));
 	    }
-	    VESmail_logrcpt(mail, vkey);
+	    VESmail_logrcpt(mail, vkey, (!vkey->ves->vaultKey || vkey->ves->vaultKey->id != vkey->id ? "rcpt" : "self"));
 	}
     }
     char retry = 0;
@@ -174,6 +175,37 @@ int VESmail_save_ves(VESmail *mail) {
 	libVES_VaultItem *vi = VESmail_get_vaultItem(mail);
 	if (!vi) return VESMAIL_E_VES;
 	if (mail->share && !libVES_VaultItem_entries(vi, mail->share, LIBVES_SH_ADD)) return VESMAIL_E_VES;
+	char **au = mail->optns->audit;
+	if (au) {
+	    libVES_List *lst = libVES_List_new(&libVES_VaultKey_ListCtl);
+	    while (*au) {
+		const char *p = *au++;
+		libVES_Ref *ref = libVES_Ref_fromURI(&p, mail->ves);
+		if (!ref) continue;
+		libVES_VaultKey *vkey = libVES_VaultKey_get(ref, mail->ves, NULL);
+		if (!vkey || vkey->external != ref) libVES_Ref_free(ref);
+		if (!vkey) {
+		    libVES_List_free(lst);
+		    return VESMAIL_E_VES;
+		}
+		if (vkey->id && mail->share) {
+		    int i;
+		    for (i = 0; i < mail->share->len; i++) {
+			if (vkey->id == ((libVES_VaultKey *) mail->share->list[i])->id) {
+			    libVES_VaultKey_free(vkey);
+			    vkey = NULL;
+			    break;
+			}
+		    }
+		    if (!vkey) continue;
+		}
+		VESmail_logrcpt(mail, vkey, "audit");
+		libVES_List_push(lst, vkey);
+	    }
+	    void *r = libVES_VaultItem_entries(vi, lst, LIBVES_SH_ADD);
+	    libVES_List_free(lst);
+	    if (!r) return VESMAIL_E_VES;
+	}
 	bad = (mail->share || libVES_VaultItem_isNew(vi)) && !libVES_VaultItem_post(vi, mail->ves);
 	if (bad) {
 	    if (!retry && libVES_checkError(mail->ves, LIBVES_E_DENIED)) retry = 1;
