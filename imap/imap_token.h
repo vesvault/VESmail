@@ -30,27 +30,34 @@
  *
  ***************************************************************************/
 
-typedef struct VESmail_imap_token {
-    enum {
-	VESMAIL_IMAP_T_LINE,
-	VESMAIL_IMAP_T_LSET,
-	VESMAIL_IMAP_T_LIST,
-	VESMAIL_IMAP_T_INDEX,
+#ifndef VESMAIL_ENUM
+#define	VESMAIL_ENUM(_type)	unsigned char
+#endif
 
-	VESMAIL_IMAP_T_LITERAL,
-    
-	VESMAIL_IMAP_T_ATOM,
-	VESMAIL_IMAP_T_QUOTED
-    } type;
-    enum {
-	VESMAIL_IMAP_P_INIT,
-	VESMAIL_IMAP_P_DONE,
-	VESMAIL_IMAP_P_CONT,
-	VESMAIL_IMAP_P_ERROR,
-	VESMAIL_IMAP_P_ABORT,
-	VESMAIL_IMAP_P_SYNC,
-	VESMAIL_IMAP_P_RESYNC
-    } state;
+enum VESmail_imap_token_type {
+    VESMAIL_IMAP_T_LINE,
+    VESMAIL_IMAP_T_LSET,
+    VESMAIL_IMAP_T_LIST,
+    VESMAIL_IMAP_T_INDEX,
+
+    VESMAIL_IMAP_T_LITERAL,
+
+    VESMAIL_IMAP_T_ATOM,
+    VESMAIL_IMAP_T_QUOTED
+};
+enum VESmail_imap_token_state {
+    VESMAIL_IMAP_P_INIT,
+    VESMAIL_IMAP_P_DONE,
+    VESMAIL_IMAP_P_CONT,
+    VESMAIL_IMAP_P_ERROR,
+    VESMAIL_IMAP_P_ABORT,
+    VESMAIL_IMAP_P_SYNC,
+    VESMAIL_IMAP_P_RESYNC
+};
+
+typedef struct VESmail_imap_token {
+    VESMAIL_ENUM(VESmail_imap_token_type) type;
+    VESMAIL_ENUM(VESmail_imap_token_state) state;
     short int flags;
     unsigned long int len;
     union {

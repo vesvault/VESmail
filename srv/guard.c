@@ -99,6 +99,9 @@ int VESmail_guard(VESmail_daemon **daemons, int nworkers) {
 		} else {
 		    free(workers);
 		    VESmail_arch_log("worker started");
+		    for (pd = daemons; *pd; pd++) {
+			(*pd)->flags |= VESMAIL_DMF_KEEPSOCK;
+		    }
 		    return 1;
 		}
 	    }

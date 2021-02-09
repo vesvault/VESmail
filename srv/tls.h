@@ -34,15 +34,21 @@ struct VESmail_server;
 
 extern char *VESmail_tls_caBundle;
 
+#ifndef VESMAIL_ENUM
+#define	VESMAIL_ENUM(_type)	unsigned char
+#endif
+
+enum VESmail_tls_level {
+    VESMAIL_TLS_NONE,
+    VESMAIL_TLS_OPTIONAL,
+    VESMAIL_TLS_UNSECURE,
+    VESMAIL_TLS_MEDIUM,
+    VESMAIL_TLS_HIGH
+};
+
 typedef struct VESmail_tls_client {
     char *peer;
-    enum {
-	VESMAIL_TLS_NONE,
-	VESMAIL_TLS_OPTIONAL,
-	VESMAIL_TLS_UNSECURE,
-	VESMAIL_TLS_MEDIUM,
-	VESMAIL_TLS_HIGH
-    } level;
+    VESMAIL_ENUM(VESmail_tls_level) level;
     char persist;
 } VESmail_tls_client;
 
@@ -51,11 +57,13 @@ typedef struct VESmail_tls_server {
     char *cert;
     char *key;
     int (* snifn)(struct VESmail_server *srv, const char *sni);
+    VESMAIL_ENUM(VESmail_tls_level) level;
     char persist;
-    char sni_only;
 } VESmail_tls_server;
 
 struct VESmail_server;
+
+extern const char *VESmail_tls_levels[];
 
 int VESmail_tls_init();
 struct VESmail_tls_client *VESmail_tls_client_new(struct jVar *conf, char *host);
@@ -68,8 +76,9 @@ void VESmail_tls_client_done(struct VESmail_server *srv);
 struct VESmail_tls_server *VESmail_tls_server_new();
 struct VESmail_tls_server *VESmail_tls_server_clone(struct VESmail_tls_server *tls);
 int VESmail_tls_server_start(struct VESmail_server *srv, int starttls);
-#define VESmail_tls_server_allow_starttls(srv)	((srv)->tls.server && (srv)->tls.server->cert && (srv)->tls.server->key && !((srv)->flags & VESMAIL_SRVF_TLSS))
-#define VESmail_tls_server_allow_plain(srv)	(!(srv)->tls.server->sni_only)
+#define VESmail_tls_server_allow_starttls(srv)	((srv)->tls.server && (srv)->tls.server->cert && (srv)->tls.server->key && (srv)->tls.server->level > VESMAIL_TLS_NONE && !((srv)->flags & VESMAIL_SRVF_TLSS))
+#define VESmail_tls_server_allow_plain(srv)	((srv)->tls.server->level <= VESMAIL_TLS_OPTIONAL)
+#define VESmail_tls_server_started(srv)	((srv)->flags & VESMAIL_SRVF_TLSS)
 void VESmail_tls_server_ctxinit(struct VESmail_server *srv);
 void VESmail_tls_server_ctxreset(struct VESmail_tls_server *tls);
 void VESmail_tls_server_done(struct VESmail_server *srv);

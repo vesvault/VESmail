@@ -30,19 +30,39 @@
  *
  ***************************************************************************/
 
+#ifndef VESMAIL_ENUM
+#define	VESMAIL_ENUM(_type)	unsigned char
+#endif
+
+enum VESmail_header_type {
+    VESMAIL_H_UNDEF,
+    VESMAIL_H_MSGID,
+    VESMAIL_H_CTYPE,
+    VESMAIL_H_CTENC,
+    VESMAIL_H_CDISP,
+    VESMAIL_H_SUBJ,
+    VESMAIL_H_RCVD,
+    VESMAIL_H_VES,
+    VESMAIL_H_VESID,
+    VESMAIL_H_PART,
+    VESMAIL_H_XCHG,
+    VESMAIL_H_RCPT,
+    VESMAIL_H_NOENC,
+    VESMAIL_H_OTHER,
+    VESMAIL_H_BLANK
+};
+
 typedef struct VESmail_header {
     const char *key;
     const char *val;
-    int len;
-    int type;
     struct VESmail_header *chain;
+    int len;
+    VESMAIL_ENUM(VESmail_header_type) type;
     char data[0];
 } VESmail_header;
 
 struct VESmail_parse;
 
-enum {VESMAIL_H_UNDEF, VESMAIL_H_MSGID, VESMAIL_H_CTYPE, VESMAIL_H_CTENC, VESMAIL_H_CDISP, VESMAIL_H_SUBJ, VESMAIL_H_RCVD,
-    VESMAIL_H_VES, VESMAIL_H_VESID, VESMAIL_H_PART, VESMAIL_H_XCHG, VESMAIL_H_RCPT, VESMAIL_H_NOENC, VESMAIL_H_OTHER, VESMAIL_H_BLANK};
 
 #ifndef VESMAIL_HEADER_SAFEBYTES
 #define	VESMAIL_HEADER_SAFEBYTES	1048575

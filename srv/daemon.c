@@ -62,9 +62,7 @@
 #include "daemon.h"
 
 
-VESmail_daemon *VESmail_daemon_new(VESmail_conf *conf, jVar *jconf, const char *type) {
-    char *host = jVar_getString(jVar_get(jconf, "host"));
-    char *port = jVar_getString(jVar_get(jconf, "port"));
+VESmail_daemon *VESmail_daemon_new(struct VESmail_conf_daemon *cd) {
     struct addrinfo hint = {
 	.ai_family = AF_UNSPEC,
 	.ai_socktype = SOCK_STREAM,
@@ -76,24 +74,23 @@ VESmail_daemon *VESmail_daemon_new(VESmail_conf *conf, jVar *jconf, const char *
 	.ai_next = NULL
     };
     struct addrinfo *ai = NULL;
-    int r = getaddrinfo(host, port, &hint, &ai);
-    free(host);
-    free(port);
+    int r = getaddrinfo(cd->host, cd->port, &hint, &ai);
     if (r) return NULL;
     VESmail_daemon *daemon = malloc(sizeof(VESmail_daemon));
-    daemon->type = type;
-    if (!strcmp(type, "imap")) {
+    daemon->type = cd->type;
+    VESmail_conf_log(cd->conf, "start daemon=%s host=%s port=%s", cd->type, (cd->host ? cd->host : ""), (cd->port ? cd->port : ""));
+    if (!strcmp(cd->type, "imap")) {
 	daemon->srvfn = &VESmail_server_new_imap;
-    } else if (!strcmp(type, "smtp")) {
+    } else if (!strcmp(cd->type, "smtp")) {
 	daemon->srvfn = &VESmail_server_new_smtp;
-    } else if (!strcmp(type, "now")) {
+    } else if (!strcmp(cd->type, "now")) {
 	daemon->srvfn = &VESmail_server_new_now;
     } else {
 	daemon->srvfn = NULL;
     }
-    daemon->conf = conf;
-    daemon->jconf = jconf;
-    daemon->debug = jVar_getInt(jVar_get(jconf, "debug"));
+    daemon->conf = cd->conf;
+    daemon->debug = cd->debug;
+    daemon->tag = cd->tag;
     daemon->sni.mutex = NULL;
     daemon->sni.jtree = NULL;
     struct VESmail_daemon_sock **psk = &daemon->sock;
@@ -109,6 +106,7 @@ VESmail_daemon *VESmail_daemon_new(VESmail_conf *conf, jVar *jconf, const char *
 	psk = &sk->chain;
     }
     *psk = NULL;
+    daemon->flags = 0;
     return daemon;
 }
 
@@ -288,8 +286,7 @@ int VESmail_daemon_sock_watch(struct VESmail_daemon_sock *sk, void (* watchfn)(V
 
 int VESmail_daemon_watch(VESmail_daemon *daemon, void (* watchfn)(VESmail_proc *, void *), void *arg) {
     if (VESmail_daemon_SIG) {
-	if (daemon->sock >= 0) VESmail_arch_log("shutdown srv=%s sig=%d", daemon->type, VESmail_daemon_SIG);
-	VESmail_daemon_shutdown(daemon);
+	if (VESmail_daemon_shutdown(daemon) > 0) VESmail_arch_log("shutdown daemon=%s sig=%d", daemon->type, VESmail_daemon_SIG);
     }
     struct VESmail_daemon_sock *sk;
     int rs = 0;
@@ -299,15 +296,18 @@ int VESmail_daemon_watch(VESmail_daemon *daemon, void (* watchfn)(VESmail_proc *
     return rs;
 }
 
-void VESmail_daemon_shutdown(VESmail_daemon *daemon) {
+int VESmail_daemon_shutdown(VESmail_daemon *daemon) {
+    int rs = 0;
     struct VESmail_daemon_sock *sk;
     for (sk = daemon->sock; sk; sk = sk->chain) {
 	if (sk->sock >= 0) {
-	    shutdown(sk->sock, 2);
-	    VESmail_arch_thread_kill(sk->thread);
+	    if (!(daemon->flags & VESMAIL_DMF_KEEPSOCK)) shutdown(sk->sock, 2);
 	    sk->sock = -2;
+	    VESmail_arch_thread_kill(sk->thread);
+	    rs++;
 	}
     }
+    return rs;
 }
 
 void VESmail_daemon_free(VESmail_daemon *daemon) {
@@ -334,32 +334,20 @@ void VESmail_daemon_free(VESmail_daemon *daemon) {
  * VESmail_daemon_execute() is supposed to be called once per pid,
  * not bothering with memory deallocation on failure
  ****************************************************************/
-VESmail_daemon **VESmail_daemon_execute(VESmail_conf *conf, jVar *jconf) {
-    jVar *jds = jVar_get(jconf, "daemons");
-    if (!jVar_isArray(jds) || !jds->len) return NULL;
-    VESmail_conf_log(conf, "start daemons");
+VESmail_daemon **VESmail_daemon_execute(struct VESmail_conf_daemon *cds) {
+    if (!cds) return NULL;
     VESmail_arch_sigaction(VESMAIL_DAEMON_SIG_DOWN, &VESmail_daemon_sigfn);
     if (VESMAIL_DAEMON_SIG_DOWN2) VESmail_arch_sigaction(VESMAIL_DAEMON_SIG_DOWN2, &VESmail_daemon_sigfn);
     VESmail_arch_sigaction(VESMAIL_DAEMON_SIG_TERM, &VESmail_daemon_sigfn);
-    VESmail_daemon **daemons = malloc((jds->len + 1) * sizeof(VESmail_daemon *));
-    int i;
+    struct VESmail_conf_daemon *cdp;
+    int i = 1;
+    for (cdp = cds; cdp->type; cdp++) i++;
+    VESmail_daemon **daemons = malloc(i * sizeof(VESmail_daemon *));
     VESmail_daemon **dp = daemons;
-    for (i = 0; i < jds->len; i++) {
-	jVar *jd = jVar_index(jds, i);
-	VESmail_conf *cf = VESmail_conf_clone(conf);
-	if (cf->tls->snifn) cf->tls->snifn = &VESmail_daemon_snifn;
-	const char *srv = jVar_getStringP(jVar_get(jd, "server"));
-	if (!srv) return NULL;
-	if (!strncmp(srv, "ves-", 4)) srv += 4;
-	VESmail_conf_applyroot(cf, jVar_get(jconf, srv), &VESmail_daemon_snifn);
-	VESmail_conf_applyroot(cf, jd, &VESmail_daemon_snifn);
-	jVar *tlsp = jVar_get(jVar_get(jd, "tls"), "persist");
-	if (tlsp) cf->tls->persist = jVar_getBool(tlsp);
-	if ((*dp = VESmail_daemon_new(cf, jd, srv))) {
-	    dp++;
-	} else {
-	    VESmail_conf_free(cf);
-	}
+    cdp = cds;
+    for (i = 0; cdp->type; i++) {
+	if (cdp->conf->tls->snifn) cdp->conf->tls->snifn = &VESmail_daemon_snifn;
+	if ((*dp = VESmail_daemon_new(cdp++))) dp++;
     }
     *dp = NULL;
     return daemons;
@@ -388,9 +376,7 @@ int VESmail_daemon_watchall(VESmail_daemon **daemons, void (* watchfn)(VESmail_p
 void VESmail_daemon_freeall(VESmail_daemon **daemons) {
     VESmail_daemon **pd;
     if (daemons) for (pd = daemons; *pd; pd++) {
-	VESmail_conf *conf = (*pd)->conf;
 	VESmail_daemon_free(*pd);
-	VESmail_conf_free(conf);
     }
     free(daemons);
 }

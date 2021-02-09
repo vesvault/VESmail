@@ -35,15 +35,21 @@ struct VESmail_imap_xform;
 struct VESmail_server;
 struct VESmail_optns;
 
+#ifndef VESMAIL_ENUM
+#define	VESMAIL_ENUM(_type)	unsigned char
+#endif
+
+enum VESmail_imap_state {
+    VESMAIL_IMAP_S_HELLO,
+    VESMAIL_IMAP_S_START,
+    VESMAIL_IMAP_S_CONN,
+    VESMAIL_IMAP_S_LOGIN,
+    VESMAIL_IMAP_S_PROXY,
+    VESMAIL_IMAP_S_SHUTDOWN
+};
+
 typedef struct VESmail_imap {
-    enum {
-	VESMAIL_IMAP_S_HELLO,
-	VESMAIL_IMAP_S_START,
-	VESMAIL_IMAP_S_CONN,
-	VESMAIL_IMAP_S_LOGIN,
-	VESMAIL_IMAP_S_PROXY,
-	VESMAIL_IMAP_S_SHUTDOWN
-    } state;
+    VESMAIL_ENUM(VESmail_imap_state) state;
     short int flags;
     struct jVar *uconf;
     struct VESmail_imap_track *track;
@@ -67,7 +73,6 @@ typedef struct VESmail_imap {
 	struct VESmail_imap_fetch *filter;
 	struct VESmail_imap_msg *pass;
 	struct VESmail_imap_token *query;
-	long long int qbytes;
     } results;
     int ctBad;
     int ctOOR;
@@ -116,7 +121,7 @@ VESMAIL_VERB(COMPRESS) \
 VESMAIL_VERB(XVES)
 
 #define VESMAIL_VERB(verb)	VESMAIL_IMAP_V_ ## verb,
-enum { VESMAIL_IMAP_VERBS() VESMAIL_IMAP_V__END };
+enum VESmail_imap_verb { VESMAIL_IMAP_VERBS() VESMAIL_IMAP_V__END };
 #undef VESMAIL_VERB
 
 extern const char *VESmail_imap_verbs[];

@@ -45,7 +45,7 @@ struct VESmail_imap_fetch;
     VESMAIL_IMAP_HEADER(SUBJECT, "subject")
 
 #define VESMAIL_IMAP_HEADER(tag, hdr)	VESMAIL_IMAP_H_ ## tag,
-enum { VESMAIL_IMAP_HEADERS() VESMAIL_IMAP_H__END };
+enum VESmail_imap_msg_header { VESMAIL_IMAP_HEADERS() VESMAIL_IMAP_H__END };
 #undef VESMAIL_IMAP_HEADER
 
 #define VESMAIL_IMAP_H__MIME	VESMAIL_IMAP_H_CONTENT_TYPE
@@ -81,6 +81,7 @@ enum { VESMAIL_IMAP_HEADERS() VESMAIL_IMAP_H__END };
 #define VESMAIL_IMAP_MF_INIT	0
 
 #define VESMAIL_IMAP_MSG_RESULTBUF	8
+#define VESMAIL_IMAP_MSG_MAXHDR		255
 
 
 typedef struct VESmail_imap_msg {

@@ -65,15 +65,31 @@ int VESmail_smtp_start_ready(VESmail_server *srv) {
     return rs;
 }
 
-int VESmail_smtp_start_login_fail(VESmail_server *srv, const char *msg, VESmail_smtp_reply *relayed) {
+int VESmail_smtp_start_login_fail(VESmail_server *srv, const char *msg, VESmail_smtp_reply *relayed, int err) {
     VESMAIL_SMTP(srv)->state = VESMAIL_SMTP_S_START;
     int rs = 0;
+    short int code, dsn;
+    switch (err) {
+	case VESMAIL_E_SRV_STARTTLS:
+	    code = 530;
+	    dsn = 0x570b;
+	    break;
+	case VESMAIL_E_DENIED:
+	case VESMAIL_E_AUTH:
+	    code = 535;
+	    dsn = 0x5708;
+	    break;
+	default:
+	    code = 454;
+	    dsn = 0x4700;
+	    break;
+    }
     if (msg) {
-	VESMAIL_SMTP_SENDLN(srv, 454, 0x4700, (relayed ? 0 : VESMAIL_SMTP_RF_FINAL), msg, rs)
+	VESMAIL_SMTP_SENDLN(srv, code, dsn, (relayed ? 0 : VESMAIL_SMTP_RF_FINAL), msg, rs)
     }
     if (relayed) {
-	VESMAIL_SMTP_SENDLN(srv, 454, 0x4700, 0, "Response from the remote server", rs);
-	int r = VESmail_smtp_reply_sendml(srv, 454, 0x4700, VESMAIL_SMTP_RF_FINAL, relayed->head, relayed->len);
+	VESMAIL_SMTP_SENDLN(srv, code, dsn, 0, "Response from the remote server", rs);
+	int r = VESmail_smtp_reply_sendml(srv, code, dsn, VESMAIL_SMTP_RF_FINAL, relayed->head, relayed->len);
 	if (r < 0) return r;
 	rs += r;
     }
@@ -97,7 +113,7 @@ int VESmail_smtp_start_fn_r_ehlo(VESmail_smtp_track *trk, VESmail_smtp_reply *re
 	    eol = VESmail_smtp_reply_get_eol(reply, txt);
 	    switch (VESmail_smtp_cmd_match_verb(&txt, eol, VESmail_smtp_verbs)) {
 		case VESMAIL_SMTP_V_XVES:
-		    return VESmail_smtp_start_login_fail(srv, "Forbidden remote capability XVES", NULL);
+		    return VESmail_smtp_start_login_fail(srv, "Forbidden remote capability XVES", NULL, VESMAIL_E_CONF);
 		case VESMAIL_SMTP_V_STARTTLS:
 		    ftls = 1;
 		    break;
@@ -131,14 +147,14 @@ int VESmail_smtp_start_fn_r_ehlo(VESmail_smtp_track *trk, VESmail_smtp_reply *re
 	    return VESmail_smtp_fwd_login(srv);
 	}
     }
-    return VESmail_smtp_start_login_fail(srv, NULL, reply);
+    return VESmail_smtp_start_login_fail(srv, NULL, reply, 0);
 }
 
 int VESmail_smtp_start_fn_r_conn(VESmail_smtp_track *trk, VESmail_smtp_reply *reply) {
     if (reply->code == 220) {
 	return VESmail_smtp_fwd_ehlo(trk->server);
     }
-    return VESmail_smtp_start_login_fail(trk->server, NULL, reply);
+    return VESmail_smtp_start_login_fail(trk->server, NULL, reply, 0);
 }
 
 int VESmail_smtp_start_fn_r_starttls(VESmail_smtp_track *trk, VESmail_smtp_reply *reply) {
@@ -151,7 +167,7 @@ int VESmail_smtp_start_fn_r_starttls(VESmail_smtp_track *trk, VESmail_smtp_reply
 	}
 	return rs;
     }
-    return VESmail_smtp_start_login_fail(trk->server, NULL, reply);
+    return VESmail_smtp_start_login_fail(trk->server, NULL, reply, 0);
 }
 
 int VESmail_smtp_start_fn_r_auth(VESmail_smtp_track *trk, VESmail_smtp_reply *reply) {
@@ -176,7 +192,7 @@ int VESmail_smtp_start_fn_r_auth(VESmail_smtp_track *trk, VESmail_smtp_reply *re
 	    }
 	}
     }
-    return VESmail_smtp_start_login_fail(trk->server, NULL, reply);
+    return VESmail_smtp_start_login_fail(trk->server, NULL, reply, 0);
 }
 
 int VESmail_smtp_fwd_ehlo(VESmail_server *srv) {
@@ -190,7 +206,7 @@ int VESmail_smtp_fwd_starttls(VESmail_server *srv) {
 }
 
 int VESmail_smtp_fwd_login(VESmail_server *srv) {
-    if (!srv->sasl) return VESmail_smtp_start_login_fail(srv, "SASL is not available on remote SMTP host", NULL);
+    if (!srv->sasl) return VESmail_smtp_start_login_fail(srv, "SASL is not available on remote SMTP host", NULL, VESMAIL_E_CONF);
     VESmail_smtp_track_new(srv, &VESmail_smtp_start_fn_r_auth);
     char *ir = VESmail_sasl_process(srv->sasl, NULL, 0);
     int rs = VESmail_smtp_cmd_fwda(srv, "AUTH", (ir ? 2 : 1), VESmail_sasl_get_name(srv->sasl), ir);
@@ -232,7 +248,7 @@ int VESmail_smtp_start_sasl(VESmail_server *srv, const char *auth, int authl) {
     }
     if (rs < 0) {
 	char *err = VESmail_server_errorStr(srv, rs);
-	rs = VESmail_smtp_start_login_fail(srv, err, NULL);
+	rs = VESmail_smtp_start_login_fail(srv, err, NULL, rs);
 	free(err);
     }
     return rs;

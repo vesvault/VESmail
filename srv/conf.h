@@ -61,6 +61,15 @@ typedef struct VESmail_conf {
     char allocd;
 } VESmail_conf;
 
+struct VESmail_conf_daemon {
+    const char *type;
+    char *host;
+    char *port;
+    struct VESmail_conf *conf;
+    char debug;
+    char tag;
+};
+
 struct jVar *VESmail_conf_read(const char *path, void (* errfn)(const char *, ...));
 char *VESmail_conf_get_content(const char *path);
 void VESmail_conf_apply(struct VESmail_conf *conf, struct jVar *jconf);
@@ -72,3 +81,6 @@ void VESmail_conf_vlog(struct VESmail_conf *conf, const char *fmt, void *va);
 void VESmail_conf_log(struct VESmail_conf *conf, const char *fmt, ...);
 void VESmail_conf_closelog(struct VESmail_conf *conf);
 void VESmail_conf_free(struct VESmail_conf *conf);
+
+struct VESmail_conf_daemon *VESmail_conf_daemon_build(struct VESmail_conf *conf, struct jVar *jconf);
+void VESmail_conf_daemon_free(struct VESmail_conf_daemon *cfd);

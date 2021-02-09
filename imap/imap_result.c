@@ -88,9 +88,16 @@ int VESmail_imap_result_update(VESmail_imap_result *rslt) {
 	    ent->chain = NULL;
 	    ent->fetch = VESmail_imap_fetch_parse(lst->list[idx]);
 	    ent->state = VESMAIL_IMAP_RE_UNDEF;
+	    ent->qchecked = 0;
 	}
 	int cpl = rslt->token->state != VESMAIL_IMAP_P_CONT || idx + 2 < lst->len;
 	VESmail_imap_token *val = lst->list[idx + 1];
+	if (cpl && !ent->qchecked) {
+	    long long int q = VESmail_imap_token_chkbytes(val) + VESmail_imap_token_chkbytes(lst->list[idx]);
+	    rslt->qbytes += q;
+	    VESMAIL_IMAP(rslt->server)->maxQueue -= q;
+	    ent->qchecked = 1;
+	}
 	if (val->state == VESMAIL_IMAP_P_ERROR) {
 	    ent->state = VESMAIL_IMAP_RE_DROP;
 	    VESmail_imap_msg *msg;
@@ -393,7 +400,7 @@ void VESmail_imap_result_free(VESmail_imap_result *rslt) {
 	} else {
 	    VESMAIL_IMAP(rslt->server)->results.tail = rslt->sprev;
 	}
-	VESMAIL_IMAP(rslt->server)->results.qbytes -= rslt->qbytes;
+	VESMAIL_IMAP(rslt->server)->maxQueue += rslt->qbytes;
     }
     free(rslt);
 }

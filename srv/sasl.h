@@ -30,18 +30,24 @@
  *
  ***************************************************************************/
 
+#ifndef VESMAIL_ENUM
+#define	VESMAIL_ENUM(_type)	unsigned char
+#endif
+
 #define	VESMAIL_SASL_MECHS()	\
     VESMAIL_VERB(PLAIN) \
     VESMAIL_VERB(LOGIN) \
     VESMAIL_VERB(XOAUTH2)
 
+#define	VESMAIL_VERB(verb)	VESMAIL_SASL_M_ ## verb,
+enum VESmail_sasl_mech { VESMAIL_SASL_MECHS() VESMAIL_SASL__END } mech;
+#undef VESMAIL_VERB
+
 typedef struct VESmail_sasl {
     char *user;
     char *passwd;
     int pwlen;
-#define	VESMAIL_VERB(verb)	VESMAIL_SASL_M_ ## verb,
-    enum { VESMAIL_SASL_MECHS() VESMAIL_SASL__END } mech;
-#undef VESMAIL_VERB
+    VESMAIL_ENUM(VESmail_sasl_mech) mech;
     short int state;
     char *(* tokenfn)(struct VESmail_sasl *, const char *token, int len);
     void (* freefn)(struct VESmail_sasl *);

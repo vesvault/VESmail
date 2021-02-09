@@ -39,7 +39,7 @@ struct VESmail_imap_token;
     VESMAIL_VERB(NOOP)
 
 #define VESMAIL_VERB(verb)	VESMAIL_IMAP_XV_ ## verb,
-enum { VESMAIL_IMAP_XVES_VERBS() VESMAIL_IMAP_XV__END };
+enum VESmail_imap_xves_verb { VESMAIL_IMAP_XVES_VERBS() VESMAIL_IMAP_XV__END };
 #undef VESMAIL_VERB
 
 int VESmail_imap_xves(struct VESmail_server *srv, struct VESmail_imap_token *req, struct VESmail_imap_token *tag);

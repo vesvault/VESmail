@@ -88,10 +88,11 @@ int VESmail_tls_init() {
     return 0;
 }
 
+const char *VESmail_tls_levels[] = { "none", "optional", "unsecure", "medium", "high", NULL };
+
 VESmail_tls_client *VESmail_tls_client_new(jVar *conf, char *host) {
-    static const char *levels[] = { "none", "optional", "unsecure", "medium", "high", NULL };
     VESmail_tls_client *tls = malloc(sizeof(VESmail_tls_client));
-    int lvl = jVar_getEnum(jVar_get(conf, "level"), levels);
+    int lvl = jVar_getEnum(jVar_get(conf, "level"), VESmail_tls_levels);
     tls->level = lvl >= 0 ? lvl : VESMAIL_TLS_HIGH;
     tls->persist = jVar_getBool(jVar_get(conf, "persist"));
     tls->peer = host;
@@ -187,8 +188,8 @@ VESmail_tls_server *VESmail_tls_server_new() {
     tls->ctx = NULL;
     tls->cert = NULL;
     tls->key = NULL;
+    tls->level = VESMAIL_TLS_HIGH;
     tls->persist = 0;
-    tls->sni_only = 0;
     tls->snifn = NULL;
     return tls;
 }
@@ -209,16 +210,17 @@ SSL_CTX *VESmail_tls_server_ctx(VESmail_server *srv, int force) {
 #endif
     SSL_CTX *ctx = SSL_CTX_new(method);
     if (!ctx) return NULL;
-    if ((!force || !srv->tls.server->sni_only) && (
-	(srv->tls.server->cert && SSL_CTX_use_certificate_chain_file(ctx, srv->tls.server->cert) <= 0)
+    if ((srv->tls.server->cert && SSL_CTX_use_certificate_chain_file(ctx, srv->tls.server->cert) <= 0)
 	|| (srv->tls.server->key && (
 	    SSL_CTX_use_PrivateKey_file(ctx, srv->tls.server->key, SSL_FILETYPE_PEM) <= 0
 	    || SSL_CTX_check_private_key(ctx) <= 0))
-	)) {
+	) {
 	SSL_CTX_free(ctx);
 	return NULL;
     }
-    SSL_CTX_set_options(ctx, SSL_OP_NO_SSLv3 | SSL_OP_NO_TLSv1 | SSL_OP_NO_TLSv1_1);
+    if (srv->tls.server->level > VESMAIL_TLS_MEDIUM) {
+	SSL_CTX_set_options(ctx, SSL_OP_NO_SSLv3 | SSL_OP_NO_TLSv1 | SSL_OP_NO_TLSv1_1);
+    }
     if (!force) srv->tls.server->ctx = ctx;
     return ctx;
 }
@@ -239,6 +241,7 @@ int VESmail_tls_server_snifn(SSL *ssl, int *al, void *arg) {
 int VESmail_tls_server_start(VESmail_server *srv, int starttls) {
     if (!srv->tls.server) return starttls ? VESMAIL_E_PARAM : 0;
     if (!starttls && !srv->tls.server->persist) return 0;
+    if (srv->tls.server->level == VESMAIL_TLS_NONE) return VESMAIL_E_PARAM;
     SSL_CTX *ctx = VESmail_tls_server_ctx(srv, !!srv->tls.server->snifn);
     if (!ctx) return VESMAIL_E_TLS;
     if (srv->tls.server->snifn && (

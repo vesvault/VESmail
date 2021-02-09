@@ -30,6 +30,25 @@
  *
  ***************************************************************************/
 
+#ifndef VESMAIL_ENUM
+#define	VESMAIL_ENUM(_type)	unsigned char
+#endif
+
+enum VESmail_imap_result_state {
+    VESMAIL_IMAP_RE_UNDEF,
+    VESMAIL_IMAP_RE_OK,
+    VESMAIL_IMAP_RE_REQ,
+    VESMAIL_IMAP_RE_DROP,
+    VESMAIL_IMAP_RE_CDROP,
+    VESMAIL_IMAP_RE_BAD,
+    VESMAIL_IMAP_RE_SILENT,
+    VESMAIL_IMAP_RE_SYNC,
+    VESMAIL_IMAP_RE_SYNCD,
+    VESMAIL_IMAP_RE_RESYNC,
+    VESMAIL_IMAP_RE_RESYNCD,
+    VESMAIL_IMAP_RE_DROPD
+};
+
 typedef struct VESmail_imap_result {
     struct VESmail_server *server;
     struct VESmail_imap_result *schain;
@@ -40,24 +59,12 @@ typedef struct VESmail_imap_result {
     struct VESmail_imap_result_entry {
 	struct VESmail_imap_result_entry *chain;
 	struct VESmail_imap_fetch *fetch;
-	enum VESmail_imap_result_state {
-	    VESMAIL_IMAP_RE_UNDEF,
-	    VESMAIL_IMAP_RE_OK,
-	    VESMAIL_IMAP_RE_REQ,
-	    VESMAIL_IMAP_RE_DROP,
-	    VESMAIL_IMAP_RE_CDROP,
-	    VESMAIL_IMAP_RE_BAD,
-	    VESMAIL_IMAP_RE_SILENT,
-	    VESMAIL_IMAP_RE_SYNC,
-	    VESMAIL_IMAP_RE_SYNCD,
-	    VESMAIL_IMAP_RE_RESYNC,
-	    VESMAIL_IMAP_RE_RESYNCD,
-	    VESMAIL_IMAP_RE_DROPD
-	} state;
+	VESMAIL_ENUM(VESmail_imap_result_state) state;
+	char qchecked;
     } *entry;
     struct VESmail_imap_fetch *range;
     long long int qbytes;
-    enum VESmail_imap_result_state state;
+    VESMAIL_ENUM(VESmail_imap_result_state) state;
     char fdrop;
 } VESmail_imap_result;
 

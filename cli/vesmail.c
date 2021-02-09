@@ -442,7 +442,8 @@ int main(int argc, char **argv) {
 	    break;
 	}
 	case cmd_daemon: {
-	    VESmail_daemon **daemons = VESmail_daemon_execute(&conf, jconf);
+	    struct VESmail_conf_daemon *cds = VESmail_conf_daemon_build(&conf, jconf);
+	    VESmail_daemon **daemons = VESmail_daemon_execute(cds);
 	    if (!daemons) {
 		rs = E_CONF;
 		break;
@@ -465,6 +466,7 @@ int main(int argc, char **argv) {
 		rs = E_IO;
 	    }
 	    VESmail_daemon_freeall(daemons);
+	    VESmail_conf_daemon_free(cds);
 	    break;
 	}
 	default:

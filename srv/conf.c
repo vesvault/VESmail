@@ -232,6 +232,13 @@ void VESmail_conf_apply(VESmail_conf *conf, jVar *jconf) {
     VESmail_conf_setstr(&conf->tls->cert, jVar_get(jconf, "cert"));
     VESmail_conf_setstr(&conf->tls->key, jVar_get(jconf, "pkey"));
     VESmail_conf_setstr(&conf->manifest, jVar_get(jconf, "manifest"));
+    jVar *jtls = jVar_get(jconf, "tls");
+    if (jtls) {
+	VESmail_conf_setstr(&conf->tls->cert, jVar_get(jtls, "cert"));
+	VESmail_conf_setstr(&conf->tls->key, jVar_get(jtls, "pkey"));
+	int lvl = jVar_getEnum(jVar_get(jtls, "level"), VESmail_tls_levels);
+	if (lvl >= 0) conf->tls->level = lvl;
+    }
     jVar *maxbuf = jVar_get(jconf, "maxbuf");
     if (jVar_isInt(maxbuf)) conf->optns->maxbuf = jVar_getInt(maxbuf);
     jVar *jlog = jVar_get(jconf, "log");
@@ -345,3 +352,41 @@ void VESmail_conf_free(VESmail_conf *conf) {
     free(conf);
 }
 
+
+struct VESmail_conf_daemon *VESmail_conf_daemon_build(VESmail_conf *conf, jVar *jconf) {
+    jVar *jds = jVar_get(jconf, "daemons");
+    if (!jVar_isArray(jds) || !jds->len) return NULL;
+    struct VESmail_conf_daemon *cds = malloc(jds->len * sizeof(struct VESmail_conf_daemon) + offsetof(struct VESmail_conf_daemon, type) + sizeof(cds->type));
+    struct VESmail_conf_daemon *dp = cds;
+    int i;
+    for (i = 0; i < jds->len; i++) {
+	jVar *jd = jVar_index(jds, i);
+	const char *srv = jVar_getStringP(jVar_get(jd, "server"));
+	if (!srv) continue;
+	if (!strncmp(srv, "ves-", 4)) srv += 4;
+	dp->type = srv;
+	dp->conf = VESmail_conf_clone(conf);
+	VESmail_conf_applyroot(dp->conf, jVar_get(jconf, srv), conf->tls->snifn);
+	VESmail_conf_applyroot(dp->conf, jd, conf->tls->snifn);
+	jVar *tlsp = jVar_get(jVar_get(jd, "tls"), "persist");
+	if (tlsp && dp->conf->tls) dp->conf->tls->persist = jVar_getBool(tlsp);
+	dp->host = jVar_getString(jVar_get(jd, "host"));
+	dp->port = jVar_getString(jVar_get(jd, "port"));
+	dp->debug = jVar_getInt(jVar_get(jd, "debug"));
+	dp->tag = 0;
+	dp++;
+    }
+    dp->type = NULL;
+    return cds;
+}
+
+void VESmail_conf_daemon_free(struct VESmail_conf_daemon *cds) {
+    if (!cds) return;
+    struct VESmail_conf_daemon *dp;
+    for (dp = cds; dp->type; dp++) {
+	VESmail_conf_free(dp->conf);
+	free(dp->host);
+	free(dp->port);
+    }
+    free(cds);
+}

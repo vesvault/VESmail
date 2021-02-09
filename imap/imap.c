@@ -359,6 +359,7 @@ void VESmail_imap_fn_free(VESmail_server *srv) {
     VESmail_imap_msg_free(imap->results.pass);
     VESmail_imap_token_free(imap->results.query);
     VESmail_imap_fetch_free(imap->results.filter);
+    while (imap->results.queue) VESmail_imap_result_free(imap->results.queue);
 }
 
 VESmail_server *VESmail_server_new_imap(VESmail_optns *optns) {
@@ -389,7 +390,6 @@ VESmail_server *VESmail_server_new_imap(VESmail_optns *optns) {
     imap->results.filter = NULL;
     imap->results.pass = NULL;
     imap->results.query = NULL;
-    imap->results.qbytes = 0;
     
     imap->maxBufd = optns->maxbuf;
     imap->maxQueue = optns->maxbuf * 4;

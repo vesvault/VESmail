@@ -30,43 +30,54 @@
  *
  ***************************************************************************/
 
+#ifndef VESMAIL_ENUM
+#define	VESMAIL_ENUM(_type)	unsigned char
+#endif
+
+enum VESmail_parse_state {
+    VESMAIL_S_INIT,
+    VESMAIL_S_HDR,
+    VESMAIL_S_BODY
+};
+enum VESmail_parse_ctype {
+    VESMAIL_T_UNDEF,
+    VESMAIL_T_ALT,
+    VESMAIL_T_MULTI,
+    VESMAIL_T_MSG,
+    VESMAIL_T_VES,
+    VESMAIL_T_OTHER
+};
+enum VESmail_parse_ctenc {
+    VESMAIL_CTE_UNDEF,
+    VESMAIL_CTE_BIN,
+    VESMAIL_CTE_B64,
+    VESMAIL_CTE_QP
+};
+enum VESmail_parse_encap {
+    VESMAIL_EN_UNDEF,
+    VESMAIL_EN_ROOT,
+    VESMAIL_EN_ALT,
+    VESMAIL_EN_INJ,
+    VESMAIL_EN_MULTI,
+    VESMAIL_EN_DEEP,
+    VESMAIL_EN_MSG
+};
+enum VESmail_parse_vespart {
+    VESMAIL_VP_UNDEF,
+    VESMAIL_VP_ALT,
+    VESMAIL_VP_INJ,
+    VESMAIL_VP_BODY,
+    VESMAIL_VP_BANNER
+};
+
 typedef struct VESmail_parse {
     struct VESmail *mail;
-    enum {
-	VESMAIL_S_INIT,
-	VESMAIL_S_HDR,
-	VESMAIL_S_BODY
-    } state;
-    enum {
-	VESMAIL_T_UNDEF,
-	VESMAIL_T_ALT,
-	VESMAIL_T_MULTI,
-	VESMAIL_T_MSG,
-	VESMAIL_T_VES,
-	VESMAIL_T_OTHER
-    } ctype;
-    enum {
-	VESMAIL_CTE_UNDEF,
-	VESMAIL_CTE_BIN,
-	VESMAIL_CTE_B64,
-	VESMAIL_CTE_QP
-    } ctenc, dstenc;
-    enum {
-	VESMAIL_EN_UNDEF,
-	VESMAIL_EN_ROOT,
-	VESMAIL_EN_ALT,
-	VESMAIL_EN_INJ,
-	VESMAIL_EN_MULTI,
-	VESMAIL_EN_DEEP,
-	VESMAIL_EN_MSG
-    } encap;
-    enum {
-	VESMAIL_VP_UNDEF,
-	VESMAIL_VP_ALT,
-	VESMAIL_VP_INJ,
-	VESMAIL_VP_BODY,
-	VESMAIL_VP_BANNER
-    } vespart;
+    VESMAIL_ENUM(VESmail_parse_state) state;
+    VESMAIL_ENUM(VESmail_parse_ctype) ctype;
+    VESMAIL_ENUM(VESmail_parse_ctenc) ctenc;
+    VESMAIL_ENUM(VESmail_parse_ctenc) dstenc;
+    VESMAIL_ENUM(VESmail_parse_encap) encap;
+    VESMAIL_ENUM(VESmail_parse_vespart) vespart;
     short int error;
     long int dechdrs;
     struct VESmail_header *hdrbuf;

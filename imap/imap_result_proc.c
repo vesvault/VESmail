@@ -362,7 +362,7 @@ int VESmail_imap_result_process(VESmail_imap_result *rslt, VESmail_imap_fetch *f
 		    case VESMAIL_IMAP_P_RESYNC:
 			break;
 		    default:
-			if (val->len > VESMAIL_IMAP(rslt->server)->maxBufd) {
+			if (val->len > VESMAIL_IMAP(rslt->server)->maxBufd || val->len > VESMAIL_IMAP(rslt->server)->maxQueue) {
 			    if (!final && !val->xform) {
 				VESmail_xform *out = VESmail_imap_token_xform_new(val);
 				(out->chain = VESmail_imap_xform_sync(rslt->server->rsp_in))->chain = NULL;
@@ -373,6 +373,7 @@ int VESmail_imap_result_process(VESmail_imap_result *rslt, VESmail_imap_fetch *f
 				val->state = VESMAIL_IMAP_P_RESYNC;
 			    }
 			}
+			break;
 		}
 	    }
 	    if (!ffull && rs == VESMAIL_IMAP_RE_OK && rslt->range) {

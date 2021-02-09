@@ -48,25 +48,33 @@ struct VESmail_imap;
 #define VESMAIL_VERB(verb)		VESMAIL_IMAP_FV_ ## verb,
 #define VESMAIL_VERB2(verb, sub)	VESMAIL_IMAP_FV_ ## verb ## _ ## sub,
 
+#ifndef VESMAIL_ENUM
+#define	VESMAIL_ENUM(_type)	unsigned char
+#endif
+
+enum VESmail_imap_fetch_mode {
+    VESMAIL_IMAP_FM_NONE,
+    VESMAIL_IMAP_FM_SECTION,
+    VESMAIL_IMAP_FM_START,
+    VESMAIL_IMAP_FM_RANGE
+};
+enum VESmail_imap_fetch_type {
+    VESMAIL_IMAP_FETCH_VERBS()
+    VESMAIL_IMAP_FV__END
+};
+enum VESmail_imap_fetch_stype {
+    VESMAIL_IMAP_FS_TEXT,
+    VESMAIL_IMAP_FS_MIME,
+    VESMAIL_IMAP_FS_HEADER,
+    VESMAIL_IMAP_FS_HEADER_FIELDS,
+    VESMAIL_IMAP_FS_HEADER_FIELDS_NOT,
+    VESMAIL_IMAP_FS_NONE
+};
+
 typedef struct VESmail_imap_fetch {
-    enum {
-	VESMAIL_IMAP_FM_NONE,
-	VESMAIL_IMAP_FM_SECTION,
-	VESMAIL_IMAP_FM_START,
-	VESMAIL_IMAP_FM_RANGE
-    } mode;
-    enum {
-	VESMAIL_IMAP_FETCH_VERBS()
-	VESMAIL_IMAP_FV__END
-    } type;
-    enum {
-	VESMAIL_IMAP_FS_TEXT,
-	VESMAIL_IMAP_FS_MIME,
-	VESMAIL_IMAP_FS_HEADER,
-	VESMAIL_IMAP_FS_HEADER_FIELDS,
-	VESMAIL_IMAP_FS_HEADER_FIELDS_NOT,
-	VESMAIL_IMAP_FS_NONE
-    } stype;
+    VESMAIL_ENUM(VESmail_imap_fetch_mode) mode;
+    VESMAIL_ENUM(VESmail_imap_fetch_type) type;
+    VESMAIL_ENUM(VESmail_imap_fetch_stype) stype;
     union {
 	char **fields;
 	struct VESmail_imap_fetch *qchain;

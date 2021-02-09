@@ -38,7 +38,7 @@ struct VESmail_smtp_cmd;
     VESMAIL_VERB(NOOP)
 
 #define VESMAIL_VERB(verb)	VESMAIL_SMTP_XV_ ## verb,
-enum { VESMAIL_SMTP_XVES_VERBS() VESMAIL_SMTP_XV__END };
+enum VESmail_smtp_xves_verb { VESMAIL_SMTP_XVES_VERBS() VESMAIL_SMTP_XV__END };
 #undef VESMAIL_VERB
 
 int VESmail_smtp_xves(struct VESmail_server *srv, struct VESmail_smtp_cmd *cmd);

@@ -136,15 +136,11 @@ char *VESmail_imap_msg_set_msgid(VESmail_imap_msg *msg, const char *msgid, int l
 
 void VESmail_imap_msg_fn_key_val(void *arg, const char *key, const char *val) {
     char **kvp = (char **) arg;
-    if (!key) return;
+    if (!key || !val) return;
     strcpy(*kvp, key);
     *kvp += strlen(key) + 1;
-    if (val) {
-	strcpy(*kvp, val);
-	*kvp += strlen(val) + 1;
-    } else {
-	*(*kvp)++ = 0;
-    }
+    strcpy(*kvp, val);
+    *kvp += strlen(val) + 1;
 }
 
 void VESmail_imap_msg_collect(VESmail_imap_msg *msg, VESmail_parse *parse) {
@@ -194,15 +190,26 @@ int VESmail_imap_msg_fn_hdr(VESmail_parse *parse, VESmail_header *hdr) {
 	    if (*lckey) for (h = hdrs; *h; h++, hidx++, hval++) {
 		if (*hval) continue;
 		if (!strcmp(lckey, *h)) {
-		    *hval = malloc(hdr->len - (hdr->val - hdr->key));
+		    VESmail_header *hp = hdr;
+		    VESmail_header htmp;
+		    int l = hdr->len - (hdr->val - hdr->key);
+		    if (l > VESMAIL_IMAP_MSG_MAXHDR) {
+			int dl = l - VESMAIL_IMAP_MSG_MAXHDR;
+			htmp.key = hdr->key;
+			htmp.val = hdr->val;
+			htmp.len = hdr->len - dl;
+			l -= dl;
+			hp = &htmp;
+		    }
+		    *hval = malloc(l + 1);
 		    switch (hidx) {
 			case VESMAIL_IMAP_H_CONTENT_TYPE:
 			case VESMAIL_IMAP_H_CONTENT_TRANSFER_ENCODING:
 			case VESMAIL_IMAP_H_CONTENT_DISPOSITION: {
 			    const char *extra = NULL;
-			    if (VESmail_header_get_val(hdr, *hval, &extra)) {
+			    if (VESmail_header_get_val(hp, *hval, &extra)) {
 				char *kv = *hval + strlen(*hval) + 1;
-				if (extra) VESmail_header_keys_values(extra, hdr->len - (extra - hdr->key), &VESmail_imap_msg_fn_key_val, &kv);
+				if (extra) VESmail_header_keys_values(extra, hp->len - (extra - hp->key), &VESmail_imap_msg_fn_key_val, &kv);
 				*kv = 0;
 			    } else {
 				free(*hval);
@@ -212,9 +219,9 @@ int VESmail_imap_msg_fn_hdr(VESmail_parse *parse, VESmail_header *hdr) {
 			}
 			default: {
 			    char *d = *hval;
-			    const char *tail = hdr->key + hdr->len;
+			    const char *tail = hp->key + hp->len;
 			    const char *s;
-			    for (s = hdr->val; s < tail; s++) {
+			    for (s = hp->val; s < tail; s++) {
 				char c = *s;
 				switch (c) {
 				    case 10: case 13: break;
@@ -458,7 +465,7 @@ const char *VESmail_imap_msg_header(VESmail_imap_msg *msg, int hdr, int (* callb
 
 int VESmail_imap_msg_fn_hdrpar(void *arg, const char *key, const char *val) {
     if (!strcmp(key, ((char **) arg)[0])) {
-	((char **) arg)[1] = strdup(val);
+	((const char **) arg)[1] = val;
 	return -1;
     }
     return 0;

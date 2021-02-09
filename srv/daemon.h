@@ -32,11 +32,11 @@
 
 struct VESmail_server;
 struct VESmail_optns;
+struct VESmail_conf_daemon;
 
 typedef struct VESmail_daemon {
     const char *type;
     struct VESmail_conf *conf;
-    struct jVar *jconf;
     struct VESmail_server *(* srvfn)(struct VESmail_optns *);
     struct VESmail_daemon_sock {
 	struct VESmail_daemon *daemon;
@@ -52,8 +52,11 @@ typedef struct VESmail_daemon {
     } sni;
     short int flags;
     char debug;
+    char tag;
 } VESmail_daemon;
 
+
+#define	VESMAIL_DMF_KEEPSOCK		0x01
 
 // SIGHUP, SIGINT
 #define VESMAIL_DAEMON_SIG_DOWN		1
@@ -67,12 +70,12 @@ typedef struct VESmail_daemon {
 
 extern char VESmail_daemon_SIG;
 
-struct VESmail_daemon *VESmail_daemon_new(struct VESmail_conf *conf, struct jVar *jconf, const char *type);
+struct VESmail_daemon *VESmail_daemon_new(struct VESmail_conf_daemon *cd);
 int VESmail_daemon_listen(struct VESmail_daemon *daemon);
 int VESmail_daemon_watch(struct VESmail_daemon *daemon, void (* watchfn)(struct VESmail_proc *proc, void *arg), void *arg);
-void VESmail_daemon_shutdown(struct VESmail_daemon *daemon);
+int VESmail_daemon_shutdown(struct VESmail_daemon *daemon);
 
-struct VESmail_daemon **VESmail_daemon_execute(struct VESmail_conf *conf, struct jVar *jconf);
+struct VESmail_daemon **VESmail_daemon_execute(struct VESmail_conf_daemon *cds);
 int VESmail_daemon_launchall(struct VESmail_daemon **daemons);
 int VESmail_daemon_watchall(struct VESmail_daemon **daemons, void (* watchfn)(struct VESmail_proc *proc, void *arg), void *arg);
 void VESmail_daemon_freeall(struct VESmail_daemon **daemons);

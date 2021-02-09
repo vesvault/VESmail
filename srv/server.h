@@ -72,8 +72,7 @@ typedef struct VESmail_server {
     char ctl[0];
 } VESmail_server;
 
-#define	VESMAIL_E_REQ_PARSE	-81
-#define	VESMAIL_E_REQ_CMD	-82
+#define	VESMAIL_E_SRV_STARTTLS	-80
 
 #define	VESMAIL_SRVR_NOREQ	0x0001
 #define	VESMAIL_SRVR_NORSP	0x0002

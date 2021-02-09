@@ -57,20 +57,27 @@ VESMAIL_VERB(REJECT) \
 VESMAIL_VERB(XCHG) \
 VESMAIL_VERB(HIGH)
 
-typedef struct VESmail_smtp {
-    enum {
-	VESMAIL_SMTP_S_INIT,
-	VESMAIL_SMTP_S_HELLO,
-	VESMAIL_SMTP_S_START,
-	VESMAIL_SMTP_S_AUTH,
-	VESMAIL_SMTP_S_CONN,
-	VESMAIL_SMTP_S_PROXY,
-	VESMAIL_SMTP_S_HOLD,
-	VESMAIL_SMTP_S_DATA
-    } state;
+#ifndef VESMAIL_ENUM
+#define	VESMAIL_ENUM(_type)	unsigned char
+#endif
+
+enum VESmail_smtp_state {
+    VESMAIL_SMTP_S_INIT,
+    VESMAIL_SMTP_S_HELLO,
+    VESMAIL_SMTP_S_START,
+    VESMAIL_SMTP_S_AUTH,
+    VESMAIL_SMTP_S_CONN,
+    VESMAIL_SMTP_S_PROXY,
+    VESMAIL_SMTP_S_HOLD,
+    VESMAIL_SMTP_S_DATA
+};
 #define VESMAIL_VERB(verb)	VESMAIL_SMTP_M_ ## verb,
-    enum { VESMAIL_SMTP_MODES() VESMAIL_SMTP_M__END } mode;
+enum VESmail_smtp_mode { VESMAIL_SMTP_MODES() VESMAIL_SMTP_M__END };
 #undef VESMAIL_VERB
+
+typedef struct VESmail_smtp {
+    VESMAIL_ENUM(VESmail_smtp_state) state;
+    VESMAIL_ENUM(VESmail_smtp_mode) mode;
     short int flags;
     struct jVar *uconf;
     char *helo;
@@ -94,7 +101,7 @@ typedef struct VESmail_smtp {
 #define	VESMAIL_SMTP_F_INIT	0
 
 #define VESMAIL_VERB(verb)	VESMAIL_SMTP_V_ ## verb,
-enum { VESMAIL_SMTP_VERBS() VESMAIL_SMTP_V__END };
+enum VESmail_smtp_verb { VESMAIL_SMTP_VERBS() VESMAIL_SMTP_V__END };
 #undef VESMAIL_VERB
 
 extern const char *VESmail_smtp_verbs[];

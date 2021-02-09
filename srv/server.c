@@ -187,7 +187,7 @@ void *VESmail_server_fn_th_rsp(void *srv) {
 void VESmail_server_bytes(VESmail_server *srv, int done, int st) {
     long long int req = srv->reqbytes;
     long long int rsp = srv->rspbytes;
-    VESmail_server_log(srv, "bytes srv=%s exit=%d st=%d req=%llu rsp=%llu", srv->type, done, st, req, rsp);
+    VESmail_server_log(srv, "bytes proto=%s exit=%d st=%d req=%llu rsp=%llu", srv->type, done, st, req, rsp);
     srv->reqbytes -= req;
     srv->rspbytes -= rsp;
 }
@@ -231,12 +231,17 @@ int VESmail_server_run(VESmail_server *srv, int flags) {
 void VESmail_server_logauth(VESmail_server *srv, const char *user, const char *st) {
     char *host = VESmail_server_sockname(srv, 0);
     char *peer = VESmail_server_sockname(srv, 1);
-    VESmail_server_log(srv, "auth %s(%d) srv=%s peer=%s user=%s", st, srv->ves->error, host, peer, user);
+    VESmail_server_log(srv, "auth %s(%d) srv=%s peer=%s user=%s", st, (srv->ves ? srv->ves->error : 0), host, peer, user);
     free(peer);
     free(host);
 }
 
 int VESmail_server_auth(VESmail_server *srv, const char *user, const char *pwd, int pwlen) {
+    if (!VESmail_tls_server_started(srv) && !VESmail_tls_server_allow_plain(srv)) {
+	VESmail_server_logauth(srv, "(TLS required)", "DENIED");
+	VESmail_arch_usleep(2000000);
+	return VESMAIL_E_SRV_STARTTLS;
+    }
     const char *ext = strchr(user, '#');
     const char *tail = ext ? ext : user + strlen(user);
     const char *exc = memchr(user, '!', tail - user);
@@ -255,10 +260,12 @@ int VESmail_server_auth(VESmail_server *srv, const char *user, const char *pwd, 
 	if (srv->optns->acl) {
 	    const char *uri = srv->optns->acl;
 	    libVES_VaultItem *vi = libVES_VaultItem_loadFromURI(&uri, srv->ves);
+	    if (!vi && libVES_checkError(srv->ves, LIBVES_E_NOTFOUND)) return VESMAIL_E_PARAM;
 	    int ok = vi && vi->value;
 	    libVES_VaultItem_free(vi);
 	    if (!ok) {
 		VESmail_server_logauth(srv, user, (vi ? "DENIED" : "ERROR"));
+		VESmail_arch_usleep(2000000);
 		return vi ? VESMAIL_E_DENIED : VESMAIL_E_VES;
 	    }
 	}
@@ -289,7 +296,10 @@ int VESmail_server_auth(VESmail_server *srv, const char *user, const char *pwd, 
 	return srv->uconf ? 0 : VESMAIL_E_CONF;
     } else {
 	VESmail_server_logauth(srv, user, "FAIL");
-	return VESMAIL_E_AUTH;
+	VESmail_arch_usleep(2000000);
+	return ((
+	    libVES_checkError(srv->ves, LIBVES_E_NOTFOUND) || libVES_checkError(srv->ves, LIBVES_E_CRYPTO)
+	) ? VESMAIL_E_AUTH : VESMAIL_E_VES);
     }
 }
 
@@ -403,7 +413,9 @@ char *VESmail_server_errorStr(VESmail_server *srv, int err) {
 	case VESMAIL_E_DENIED:
 	    return strdup("Access denied");
 	case VESMAIL_E_PARAM:
-	    return strdup("Invalid parameters");
+	    return strdup("Invalid parameters or VESmail configuration error");
+	case VESMAIL_E_SRV_STARTTLS:
+	    return strdup("Denied, STARTTLS first");
 	default: {
 	    char *rs = malloc(80);
 	    sprintf(rs, "Internal error (%d)", err);
