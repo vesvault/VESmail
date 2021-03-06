@@ -54,5 +54,6 @@ extern struct param_st {
     char *confPath;
     char *veskeyPath;
     char *sni;
+    char *input;
     char debug;
 } params;

@@ -47,6 +47,7 @@
 #include "util.h"
 #include "header.h"
 #include "ves.h"
+#include "optns.h"
 #include "decrypt.h"
 
 
@@ -150,6 +151,7 @@ int VESmail_header_push_dec(VESmail_parse *parse, VESmail_header *hdr, int bufd)
 	case VESMAIL_H_PART:
 	case VESMAIL_H_XCHG:
 	case VESMAIL_H_VESID:
+	case VESMAIL_H_VRFY:
 	    return rs;
 	case VESMAIL_H_CTYPE: case VESMAIL_H_CTENC: {
 	    switch (parse->ctype) {
@@ -191,6 +193,14 @@ int VESmail_header_push_dec(VESmail_parse *parse, VESmail_header *hdr, int bufd)
 	    rs += r;
 	    return rs;
 	}
+	case VESMAIL_H_REFS:
+	    if (parse->mail->flags & VESMAIL_O_HDR_REFS) {
+		VESmail_header *hdr2 = VESmail_header_rebuild_references(hdr, parse->mail->optns->idSuffix, 0);
+		int r = VESmail_header_commit(parse, hdr2);
+		VESmail_header_free(hdr2);
+		if (r < 0) return r;
+		return rs + r;
+	    }
 	default:
 	    break;
     }
@@ -222,7 +232,7 @@ int VESmail_header_process_dec(struct VESmail_parse *parse, struct VESmail_heade
 	}
 	case VESMAIL_H_XCHG: {
 	    if ((parse->mail->flags & VESMAIL_F_ENCD) && !VESmail_cipher_ready(parse->mail)) {
-		jVar *xchg = jVar_parse(hdr->val, hdr->val - hdr->key + hdr->len);
+		jVar *xchg = jVar_parse(hdr->val, hdr->key + hdr->len - hdr->val);
 		jVar *xc;
 		int idx = 0;
 		long long int uid = libVES_User_getId(libVES_me(parse->mail->ves));

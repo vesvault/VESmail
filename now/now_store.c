@@ -35,24 +35,32 @@
 #include <string.h>
 #include <stdlib.h>
 #include <openssl/evp.h>
+#include <libVES.h>
+#include <libVES/User.h>
+#include <libVES/VaultItem.h>
+#include <libVES/File.h>
 #include "../VESmail.h"
 #include "../lib/mail.h"
 #include "../lib/optns.h"
 #include "../lib/xform.h"
 #include "../lib/parse.h"
+#include "../lib/header.h"
 #include "../srv/arch.h"
+#include "../srv/server.h"
+#include "../srv/conf.h"
 #include "now.h"
 #include "now_store.h"
 
 
 int VESmail_now_store_xform_fn(VESmail_xform *xform, int final, const char *src, int *srclen) {
     if (!src) return 0;
+    VESmail *mail = xform->parse->mail;
     if (xform->fd == VESMAIL_E_HOLD) {
-	VESmail *mail = xform->parse->mail;
 	if (mail->flags & VESMAIL_F_PASS) {
 	    xform->fd = VESMAIL_E_PARAM;
 	} else {
-	    char *fname = VESmail_now_filename(mail->msgid, mail->optns);
+	    libVES_User *me = libVES_me(mail->ves);
+	    char *fname = VESmail_now_filename(mail->msgid, libVES_User_getEmail(me), mail->optns);
 	    if (fname) {
 		int fd = VESmail_arch_creat(fname);
 		xform->fd = fd < 0 ? VESMAIL_E_IO : fd;
@@ -64,6 +72,10 @@ int VESmail_now_store_xform_fn(VESmail_xform *xform, int final, const char *src,
     }
     if (xform->fd >= 0) {
 	int l = *srclen;
+	VESmail_conf *conf = mail->optns->ref;
+	if (conf && conf->now.maxSize > 0 && conf->now.maxSize < xform->offset + l) {
+	    l = conf->now.maxSize - xform->offset;
+	}
 	const char *s = src;
 	while (l > 0) {
 	    int w = VESmail_arch_write(xform->fd, s, l);
@@ -74,6 +86,7 @@ int VESmail_now_store_xform_fn(VESmail_xform *xform, int final, const char *src,
 	    }
 	    s += w;
 	    l -= w;
+	    xform->offset += w;
 	}
 	if (final) {
 	    if (VESmail_arch_close(xform->fd) < 0) xform->fd = VESMAIL_E_IO;
@@ -83,12 +96,31 @@ int VESmail_now_store_xform_fn(VESmail_xform *xform, int final, const char *src,
     return VESmail_xform_process(xform->chain, final, src, *srclen);
 }
 
-char *VESmail_now_filename(const char *msgid, VESmail_optns *optns) {
-    if (!msgid || !optns->now.dir) return NULL;
+char *VESmail_now_filename(const char *msgid, const char *email, VESmail_optns *optns) {
+    if (!msgid || !email || !*email || !optns->now.dir) return NULL;
     int l = strlen(optns->now.dir);
-    char *fname = malloc(l + 40);
+    int l2 = strlen(email);
+    char *fname = malloc(l + l2 + 40);
     strcpy(fname, optns->now.dir);
     unsigned char *d = (unsigned char *) fname + l;
+    *d++ = '/';
+    const char *e = email;
+    char c;
+    while ((c = *e)) {
+	switch (c) {
+	    case '.':
+		if (e > email) break;
+	    case '/':
+	    case '\\':
+		c = '_';
+	    default:
+		break;
+	}
+	e++;
+	*d++ = c;
+    }
+    *d = 0;
+    VESmail_arch_mkdir(fname, 0771);
     *d++ = '/';
     void *mdctx = EVP_MD_CTX_create();
     unsigned int shalen = 32;
@@ -109,9 +141,115 @@ char *VESmail_now_filename(const char *msgid, VESmail_optns *optns) {
     return fname;
 }
 
+void VESmail_now_store_inject(VESmail_parse *root, int fd) {
+    root->xform = VESmail_xform_new(&VESmail_now_store_xform_fn, root->xform, root);
+    root->xform->fd = fd;
+}
+
 VESmail *VESmail_now_store_apply(VESmail *mail) {
     if (!mail || !mail->optns->now.dir) return mail;
-    mail->root->xform = VESmail_xform_new(&VESmail_now_store_xform_fn, mail->root->xform, mail->root);
-    mail->root->xform->fd = VESMAIL_E_HOLD;
+    VESmail_now_store_inject(mail->root, VESMAIL_E_HOLD);
     return mail;
 }
+
+
+#define VESmail_now_store_error(srv, code, err, mail)	(VESmail_now_log(srv, "PUT", code, ((mail) ? (mail)->msgid : NULL)), VESmail_now_error(srv, code, err))
+
+int VESmail_now_store_hdrpush(VESmail_parse *parse, VESmail_header *hdr, int bufd) {
+    VESmail *mail = parse->mail;
+    VESmail_server *srv = parse->ref;
+    if (!mail->msgid || !srv->ves) return VESMAIL_E_HOLD;
+    if (!mail->ves) {
+	mail->ves = srv->ves;
+	libVES_VaultItem *vi = VESmail_get_vaultItem(mail);
+	if (!vi || !vi->id) return VESmail_now_error(srv, 503, "Failed to retrieve Message-ID\r\n");
+	libVES_File *fi = libVES_VaultItem_getFile(vi);
+	libVES_User *u = libVES_File_getCreator(fi);
+	char *fname = VESmail_now_filename(mail->msgid, libVES_User_getEmail(u), mail->optns);
+	if (!fname) return VESmail_now_error(srv, 401, "Failed to retrieve the creator info\r\n");
+	int fd = VESmail_arch_creat(fname);
+	free(fname);
+	if (fd < 0) return VESmail_now_store_error(srv, 403, "Error opening the spool file\r\n", mail);
+	VESmail_now_store_inject(mail->root, fd);
+    }
+    return VESmail_header_output(parse, hdr);
+}
+
+int VESmail_now_store_hdrproc(VESmail_parse *parse, VESmail_header *hdr) {
+    int rs = VESmail_header_collect(parse, hdr);
+    if (rs < 0) return rs;
+    VESmail_server *srv = parse->ref;
+    switch (hdr->type) {
+	case VESMAIL_H_VRFY:
+	    if (!srv->ves) {
+		char vrfy[80];
+		const char *s = hdr->val;
+		const char *tail = hdr->key + hdr->len;
+		char *d = vrfy;
+		while (s < tail && d < vrfy + sizeof(vrfy) - 1) {
+		    char c = *s++;
+		    switch (c) {
+			case ' ': case '\t': case '\r': case '\n':
+			    if (d == vrfy) continue;
+			case ';': case ',':
+			    c = 0;
+			default:
+			    *d++ = c;
+		    }
+		    if (!c) break;
+		}
+		*d = 0;
+		srv->ves = libVES_fromRef(NULL);
+		libVES_setSessionToken(srv->ves, vrfy);
+		if (srv->debug > VESMAIL_DEBUG_LIBVES) srv->ves->debug = srv->debug - VESMAIL_DEBUG_LIBVES;
+	    }
+	    return rs;
+	case VESMAIL_H_BLANK:
+	    if (!srv->ves) {
+		int r = VESmail_now_store_error(srv, 400, "Message-ID: and X-VESmail-Verify: are required\r\n", parse->mail);
+		if (r < 0) return r;
+		return rs + r;
+	    }
+	default:
+	    break;
+    }
+    int r = VESmail_header_push(parse, hdr, &VESmail_now_store_hdrpush);
+    if (r < 0) return r;
+    rs += r;
+    return rs;
+}
+
+int VESmail_now_store_put_xform_fn(VESmail_xform *xform, int final, const char *src, int *srclen) {
+    if (!src) return 0;
+    VESmail_parse *parse = xform->parse;
+    VESmail *mail = parse->mail;
+    VESmail_server *srv = parse->ref;
+    int rs = VESmail_parse_process(parse, final, src, srclen);
+    if (rs < 0) return rs;
+    if (parse->error & VESMAIL_MERR_NOW) {
+	int r = VESmail_now_error(srv, 500, "Error writing the spool file\r\n");
+	if (r < 0) return r;
+	return rs + r;
+    }
+    if (final) {
+	VESmail_now_log(srv, "PUT", 201, mail->msgid);
+	VESmail_now_send_status(srv, 201) >= 0 && VESmail_now_send(srv, 1, "\r\n");
+    }
+    return rs;
+}
+
+void VESmail_now_store_put_free_fn(VESmail_xform *xform) {
+    VESmail_free(xform->parse->mail);
+    VESmail_xform_free(xform->chain);
+}
+
+VESmail_xform *VESmail_now_store_put(VESmail_server *srv) {
+    VESmail *mail = VESmail_new(NULL, srv->optns, &VESmail_now_store_hdrproc);
+    mail->root->ref = srv;
+    VESmail_xform *out = VESmail_xform_new_null(mail->root);
+    VESmail_set_out(mail, out);
+    VESmail_xform *in = VESmail_xform_new(&VESmail_now_store_put_xform_fn, out, mail->root);
+    in->freefn = &VESmail_now_store_put_free_fn;
+    return in;
+}
+

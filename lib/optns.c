@@ -42,7 +42,7 @@ char *VESmail_optns_default_mime[] = {"application/vnd.ves.encrypted", "applicat
 char *VESmail_optns_default_injected[] = {"--VESmail-injected-", NULL};
 
 struct VESmail_optns VESmail_optns_default = {
-    .flags = VESMAIL_O_HDR_RCPT | VESMAIL_O_XCHG | VESMAIL_O_VES_NTFY,
+    .flags = VESMAIL_O_HDR_RCPT | VESMAIL_O_XCHG | VESMAIL_O_VES_NTFY | VESMAIL_O_HDR_REFS,
     .maxbuf = 1048575,
     .vesDomain = VESMAIL_VES_DOMAIN,
     .idSuffix = ".m.ves.world",

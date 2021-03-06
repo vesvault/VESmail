@@ -60,6 +60,9 @@ struct VESmail_parse;
 #define	VESMAIL_O_HDR_RCPT	0x0002
 #define	VESMAIL_O_XCHG		0x0004
 #define	VESMAIL_O_VES_NTFY	0x0008
+#define	VESMAIL_O_VRFY_TKN	0x0010
+#define	VESMAIL_O_HDR_REFS	0x0020
+
 
 extern struct VESmail_optns VESmail_optns_default;
 struct VESmail_optns *VESmail_optns_new();

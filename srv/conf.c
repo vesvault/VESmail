@@ -47,9 +47,11 @@
 #include "arch.h"
 #include "conf.h"
 
-#define VESmail_conf_ALLOCD_bannerPath	0x01
-#define VESmail_conf_ALLOCD_audit	0x10
-#define VESmail_conf_ALLOCD_bcc		0x20
+#define VESmail_conf_ALLOCD_bannerPath		0x01
+#define VESmail_conf_ALLOCD_now_manifest	0x04
+#define VESmail_conf_ALLOCD_now_headers		0x08
+#define VESmail_conf_ALLOCD_audit		0x10
+#define VESmail_conf_ALLOCD_bcc			0x20
 
 jVar *VESmail_conf_read(const char *path, void (* errfn)(const char *fmt, ...)) {
     int fd = VESmail_arch_openr(path);
@@ -202,26 +204,28 @@ void VESmail_conf_setstr(char **val, jVar *conf) {
     if (conf) *val = jVar_getStringP(conf);
 }
 
-int VESmail_conf_setpstr(char ***d, jVar *b) {
+int VESmail_conf_setpstr(char ***d, jVar *b, int f) {
     char **p;
     if (jVar_isArray(b)) {
-	p = *d = malloc((jVar_count(b) + 1) * sizeof(*p));
+	p = malloc((jVar_count(b) + 1) * sizeof(*p));
 	int i;
+	char **pp = p;
 	for (i = 0; i < jVar_count(b); i++) {
-	    *p = jVar_getStringP(jVar_index(b, i));
-	    if (*p) p++;
+	    if ((*pp = jVar_getStringP(jVar_index(b, i)))) pp++;
 	}
-	*p = NULL;
-	return 1;
+	*pp = NULL;
     } else if (jVar_isString(b)) {
-	p = *d = malloc(2 * sizeof(*p));
+	p = malloc(2 * sizeof(*p));
 	p[0] = jVar_getStringP(b);
 	p[1] = NULL;
-	return 1;
     } else if (jVar_isNull(b)) {
-	*d = NULL;
+	p = NULL;
+    } else {
+	return 0;
     }
-    return 0;
+    if (f) free(*d);
+    *d = p;
+    return p ? 1 : 0;
 }
 
 void VESmail_conf_apply(VESmail_conf *conf, jVar *jconf) {
@@ -232,6 +236,15 @@ void VESmail_conf_apply(VESmail_conf *conf, jVar *jconf) {
     VESmail_conf_setstr(&conf->tls->cert, jVar_get(jconf, "cert"));
     VESmail_conf_setstr(&conf->tls->key, jVar_get(jconf, "pkey"));
     VESmail_conf_setstr(&conf->manifest, jVar_get(jconf, "manifest"));
+    jVar *jnow = jVar_get(jconf, "now");
+    if (jnow) {
+	VESmail_conf_setstr(&conf->optns->now.url, jVar_get(jnow, "url"));
+	VESmail_conf_setstr(&conf->optns->now.dir, jVar_get(jnow, "dir"));
+	if (VESmail_conf_setpstr(&conf->now.headers, jVar_get(jnow, "headers"), (conf->allocd & VESmail_conf_ALLOCD_now_headers))) conf->allocd |= VESmail_conf_ALLOCD_now_headers;
+	jVar *max = jVar_get(jnow, "maxsize");
+	if (jVar_isInt(max)) conf->now.maxSize = jVar_getInt(max);
+    }
+    if (conf->optns->now.url && !conf->optns->now.dir) conf->optns->flags |= VESMAIL_O_VRFY_TKN;
     jVar *jtls = jVar_get(jconf, "tls");
     if (jtls) {
 	VESmail_conf_setstr(&conf->tls->cert, jVar_get(jtls, "cert"));
@@ -246,9 +259,9 @@ void VESmail_conf_apply(VESmail_conf *conf, jVar *jconf) {
 	VESmail_conf_closelog(conf);
 	VESmail_conf_setstr(&conf->log.filename, jlog);
     }
-    if (VESmail_conf_setpstr(&conf->bannerPath, jVar_get(jconf, "banner"))) conf->allocd |= VESmail_conf_ALLOCD_bannerPath;
-    if (VESmail_conf_setpstr(&conf->optns->audit, jVar_get(jconf, "audit"))) conf->allocd |= VESmail_conf_ALLOCD_audit;
-    if (VESmail_conf_setpstr(&conf->bcc, jVar_get(jconf, "bcc"))) conf->allocd |= VESmail_conf_ALLOCD_bcc;
+    if (VESmail_conf_setpstr(&conf->bannerPath, jVar_get(jconf, "banner"), (conf->allocd & VESmail_conf_ALLOCD_bannerPath))) conf->allocd |= VESmail_conf_ALLOCD_bannerPath;
+    if (VESmail_conf_setpstr(&conf->optns->audit, jVar_get(jconf, "audit"), (conf->allocd & VESmail_conf_ALLOCD_audit))) conf->allocd |= VESmail_conf_ALLOCD_audit;
+    if (VESmail_conf_setpstr(&conf->bcc, jVar_get(jconf, "bcc"), (conf->allocd & VESmail_conf_ALLOCD_bcc))) conf->allocd |= VESmail_conf_ALLOCD_bcc;
     conf->optns->getBanners = &VESmail_conf_get_banners;
     conf->optns->getApp = &VESmail_conf_get_app;
     conf->optns->ref = conf;
@@ -265,6 +278,20 @@ void VESmail_conf_applyroot(VESmail_conf *conf, jVar *jconf, int (* snifn)(struc
 	conf->tls->snifn = snifn;
     }
     VESmail_conf_setstr(&VESmail_tls_caBundle, jVar_get(jconf, "caBundle"));
+    jVar *mft = jVar_get(jVar_get(jconf, "now"), "manifest");
+    if (!mft) mft = jVar_get(jconf, "now-manifest");
+    if (mft) {
+	if (conf->allocd & VESmail_conf_ALLOCD_now_manifest) free(conf->now.manifest);
+	if (jVar_isString(mft)) {
+	    conf->now.manifest = jVar_getStringP(mft);
+	    conf->allocd &= ~VESmail_conf_ALLOCD_now_manifest;
+	} else if (jVar_isObject(mft)) {
+	    conf->now.manifest = jVar_toJSON(mft);
+	    conf->allocd |= VESmail_conf_ALLOCD_now_manifest;
+	} else {
+	    conf->now.manifest = NULL;
+	}
+    }
 }
 
 jVar *VESmail_conf_sni_read(VESmail_conf *conf, const char *sni, void (* errfn)(const char *fmt, ...), unsigned long *mtime) {
@@ -347,6 +374,8 @@ void VESmail_conf_free(VESmail_conf *conf) {
 	    free(conf->banner);
 	}
 	if (conf->allocd & VESmail_conf_ALLOCD_bannerPath) free(conf->bannerPath);
+	if (conf->allocd & VESmail_conf_ALLOCD_now_manifest) free(conf->now.manifest);
+	if (conf->allocd & VESmail_conf_ALLOCD_now_headers) free(conf->now.headers);
 	VESmail_arch_mutex_done(conf->mutex);
     }
     free(conf);

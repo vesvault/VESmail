@@ -48,6 +48,7 @@
 #include "../lib/mail.h"
 #include "../lib/parse.h"
 #include "../lib/optns.h"
+#include "../lib/xform.h"
 #include "../srv/server.h"
 #include "../srv/arch.h"
 #include "../srv/tls.h"
@@ -75,6 +76,11 @@ struct VESmail_conf conf = {
     .log = {
 	.filename = NULL,
 	.fh = NULL
+    },
+    .now = {
+	.manifest = NULL,
+	.headers = NULL,
+	.maxSize = 1048576
     }
 };
 
@@ -85,6 +91,7 @@ struct param_st params = {
     .confPath = VESMAIL_CONF_PATH "vesmail.conf",
     .veskeyPath = VESMAIL_CONF_PATH "veskeys/",
     .sni = NULL,
+    .input = NULL,
     .debug = 0
 };
 
@@ -171,6 +178,31 @@ int run_server(VESmail_server *srv, int in, int out) {
     if (conf.hostname) srv->host = conf.hostname;
     VESmail_server_set_tls(srv, conf.tls);
     int r = VESmail_server_set_fd(srv, in, out);
+    if (params.input) {
+	const char *s = params.input;
+	while (r >= 0 && *s) {
+	    const char *e = strchr(s, '\\');
+	    if (!e) {
+		r = VESmail_xform_process(srv->req_in, 0, s, strlen(s));
+		break;
+	    }
+	    r = VESmail_xform_process(srv->req_in, 0, s, e - s);
+	    if (r < 0) break;
+	    char c;
+	    switch ((c = *++e)) {
+		case 'r':
+		    c = '\r';
+		    break;
+		case 'n':
+		    c = '\n';
+		    break;
+		default:
+		    break;
+	    }
+	    r = VESmail_xform_process(srv->req_in, 0, &c, 1);
+	    s = e + 1;
+	}
+    }
     if (r >= 0) r = VESmail_server_run(srv, VESMAIL_SRVR_NOTHR);
     if (r < 0) {
 	if (srv->debug > 0) {
@@ -196,12 +228,13 @@ int main(int argc, char **argv) {
     char **argp = argv + 1;
     char *arg = NULL;
     enum { o_null, o_error, o_data, o_ver, o_a, o_f, o_x, o_v, o_tls, o_sni, o_demo, o_cap, o_rcpt, o_noenc, o_xchg, o_token,
-	o_help, o_dumpfd, o_conf, o_guard } op = o_null;
+	o_help, o_dumpfd, o_conf, o_guard, o_input } op = o_null;
     enum { cmd_null, cmd_enc, cmd_dec, cmd_smtp, cmd_imap, cmd_now, cmd_daemon } cmd = cmd_null;
     const struct { char op; char *argw; } argwords[] = {
 	{o_a, "account"}, {o_x, "debug"}, {o_v, "veskey"}, {o_v, "VESkey"}, {o_v, "unlock"}, {o_token, "token"},
 	{o_tls, "tls"}, {o_cap, "capabilities"}, {o_ver, "version"}, {o_rcpt, "rcpt"}, {o_noenc, "headers"},
-	{o_guard, "guard"}, {o_conf, "conf"}, {o_sni, "sni"}, {o_demo, "demo"}, {o_help, "help"}, {o_dumpfd, "dumpfd"}
+	{o_guard, "guard"}, {o_conf, "conf"}, {o_sni, "sni"}, {o_demo, "demo"}, {o_input, "input"},
+	{o_help, "help"}, {o_dumpfd, "dumpfd"}
     };
     const struct { char cmd; char *cmdw; } cmdwords[] = {
 	{cmd_enc, "encrypt"}, {cmd_dec, "decrypt"}, {cmd_smtp, "smtp"}, {cmd_imap, "imap"}, {cmd_now, "now"},
@@ -220,6 +253,8 @@ int main(int argc, char **argv) {
     for (; (prg1 = strchr(conf.progname, '/')); conf.progname = prg1 + 1);
     for (; (prg1 = strchr(conf.progname, '\\')); conf.progname = prg1 + 1);
     conf.optns = VESmail_optns_new();
+    conf.optns->idBase = malloc(strlen(conf.hostname) + 12);
+    sprintf(conf.optns->idBase, ".VESmail@%s", conf.hostname);
     conf.tls = VESmail_tls_server_new();
 //    params.optns->getBanners = &init_banner;
     
@@ -257,6 +292,7 @@ int main(int argc, char **argv) {
 	if (op == o_null) switch (*arg++) {
 	    case 0: arg = NULL; break;
 	    case 'a': op = o_a; break;
+	    case 'i': op = o_input; break;
 	    case 'u': case 'v': op = o_v; break;
 	    case 'x': op = o_x; break;
 	    case 's': op = o_sni; break;
@@ -319,6 +355,9 @@ int main(int argc, char **argv) {
 			break;
 		    case o_guard:
 			conf.guard++;
+			break;
+		    case o_input:
+			in.ptr = (void *) &params.input;
 			break;
 		    case o_dumpfd:
 			in.ptr = (void *) &params.dumpfd;
@@ -472,6 +511,7 @@ int main(int argc, char **argv) {
 	default:
 	    break;
     }
+    free(conf.optns->idBase);
     VESmail_optns_free(conf.optns);
     VESmail_tls_server_free(conf.tls);
     jVar_free(jconf);

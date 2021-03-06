@@ -57,6 +57,11 @@ typedef struct VESmail_conf {
 	char *filename;
 	void *fh;
     } log;
+    struct {
+	char *manifest;
+	char **headers;
+	long long int maxSize;
+    } now;
     char guard;
     char allocd;
 } VESmail_conf;

@@ -32,7 +32,8 @@
 
 struct VESmail;
 struct VESmail_optns;
+struct VESmail_server;
 
-char *VESmail_now_filename(const char *msgid, struct VESmail_optns *optns);
+char *VESmail_now_filename(const char *msgid, const char *email, struct VESmail_optns *optns);
 struct VESmail *VESmail_now_store_apply(struct VESmail *mail);
-
+struct VESmail_xform *VESmail_now_store_put(struct VESmail_server *srv);

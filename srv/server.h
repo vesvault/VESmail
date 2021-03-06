@@ -65,7 +65,7 @@ typedef struct VESmail_server {
     };
     short int flags;
     short int debug;
-    int lastread;
+    int lastwrite;
     int dumpfd;
     long long int reqbytes;
     long long int rspbytes;

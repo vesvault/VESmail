@@ -59,6 +59,7 @@ struct VESmail_header;
 #define	VESMAIL_F_INIT		0
 
 struct VESmail *VESmail_init(struct VESmail *mail, struct libVES *ves, struct VESmail_optns *optns);
+struct VESmail *VESmail_new(struct libVES *ves, struct VESmail_optns *optns, int (* headerfn)(struct VESmail_parse *, struct VESmail_header *));
 struct libVES_VaultItem *VESmail_get_vaultItem(struct VESmail *mail);
 struct libVES_Cipher *VESmail_get_cipher(struct VESmail *mail);
 int VESmail_cipher_ready(struct VESmail *mail);

@@ -46,7 +46,10 @@ enum VESmail_header_type {
     VESMAIL_H_VESID,
     VESMAIL_H_PART,
     VESMAIL_H_XCHG,
+    VESMAIL_H_VRFY,
+    VESMAIL_H_VESACTN,
     VESMAIL_H_RCPT,
+    VESMAIL_H_REFS,
     VESMAIL_H_NOENC,
     VESMAIL_H_OTHER,
     VESMAIL_H_BLANK
@@ -79,6 +82,8 @@ char *VESmail_header_get_val(const struct VESmail_header *hdr, char *val, const 
 int VESmail_header_get_ctype(const char *ctype, struct VESmail_parse *parse);
 int VESmail_header_get_ctenc(const char *ctenc);
 int VESmail_header_keys_values(const char *str, int len, void (* cb)(void *arg, const char *key, const char *val), void *arg);
+
+struct VESmail_header *VESmail_header_rebuild_references(struct VESmail_header *hdr, const char *suff, int add);
 
 int VESmail_header_push(struct VESmail_parse *parse, struct VESmail_header *hdr, int (* pushfn)(struct VESmail_parse *, struct VESmail_header *, int));
 int VESmail_header_collect(struct VESmail_parse *parse, struct VESmail_header *hdr);

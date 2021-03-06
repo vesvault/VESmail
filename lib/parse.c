@@ -58,6 +58,8 @@ const struct {
     {.key = "x-vesmail-header", .type = VESMAIL_H_VES},
     {.key = "x-vesmail-part", .type = VESMAIL_H_PART},
     {.key = "x-vesmail-xchg", .type = VESMAIL_H_XCHG},
+    {.key = "x-vesmail-verify", .type = VESMAIL_H_VRFY},
+    {.key = "x-ves-action", .type = VESMAIL_H_VESACTN},
     {.key = "to", .type = VESMAIL_H_RCPT},
     {.key = "cc", .type = VESMAIL_H_RCPT},
     {.key = "bcc", .type = VESMAIL_H_RCPT},
@@ -68,7 +70,7 @@ const struct {
     {.key = "envelope-to", .type = VESMAIL_H_NOENC},
     {.key = "from", .type = VESMAIL_H_NOENC},
     {.key = "in-reply-to", .type = VESMAIL_H_NOENC},
-    {.key = "references", .type = VESMAIL_H_NOENC},
+    {.key = "references", .type = VESMAIL_H_REFS},
     {.type = VESMAIL_H_OTHER}
 };
 

@@ -81,7 +81,7 @@ VESmail_server *VESmail_server_init(VESmail_server *srv, VESmail_optns *optns) {
     srv->flags = 0;
     srv->debug = 0;
     srv->dumpfd = -1;
-    srv->lastread = time(NULL);
+    srv->lastwrite = time(NULL);
     srv->reqbytes = srv->rspbytes = 0;
     srv->tmout.unauthd = 30;
     srv->tmout.authd = 900;
@@ -121,6 +121,7 @@ int VESmail_server_fn_bio_out(VESmail_xform *xform, int final, const char *src, 
 		return VESMAIL_E_IO;
 	    }
 	}
+	xform->server->lastwrite = time(NULL);
 	VESmail_server_dump(xform->server->dumpfd, src, w);
 	if (!final) return *srclen = w;
 	*srclen += w;
@@ -154,7 +155,6 @@ int VESmail_server_bio_read(BIO *bio, VESmail_xform *chain, int nb) {
 	    return VESMAIL_E_IO;
 	}
     } else {
-	chain->server->lastread = time(NULL);
 	VESmail_server_dump(chain->server->dumpfd, buf, rd);
     }
     return VESmail_xform_process(chain, !rd, buf, rd);
@@ -212,7 +212,7 @@ int VESmail_server_run(VESmail_server *srv, int flags) {
 	if (rs < 0) break;
 	srv->rspbytes += rs;
 	if (srv->idlefn) {
-	    rs = srv->idlefn(srv, time(NULL) - srv->lastread);
+	    rs = srv->idlefn(srv, time(NULL) - srv->lastwrite);
 	    if (rs < 0) break;
 	    if (srv->flags & (VESMAIL_SRVF_TMOUT | VESMAIL_SRVF_KILL)) {
 		VESmail_server_log(srv, (srv->flags & VESMAIL_SRVF_TMOUT ? "timeout" : "shutdown"));
@@ -237,7 +237,7 @@ void VESmail_server_logauth(VESmail_server *srv, const char *user, const char *s
 }
 
 int VESmail_server_auth(VESmail_server *srv, const char *user, const char *pwd, int pwlen) {
-    if (!VESmail_tls_server_started(srv) && !VESmail_tls_server_allow_plain(srv)) {
+    if (!VESmail_tls_server_allow_plain(srv)) {
 	VESmail_server_logauth(srv, "(TLS required)", "DENIED");
 	VESmail_arch_usleep(2000000);
 	return VESMAIL_E_SRV_STARTTLS;
@@ -439,7 +439,7 @@ char *VESmail_server_sockname(VESmail_server *srv, int peer) {
 	}
     }
     name = malloc(32);
-    sprintf(name, "(fd=%d)", sk);
+    sprintf(name, "(fd=%d,uid=%d)", sk, VESmail_arch_getuid());
     return name;
 }
 

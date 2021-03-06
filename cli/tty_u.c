@@ -45,35 +45,6 @@ int tty_get_width(int fd) {
     return -1;
 }
 
-char *tty_getpass(const char *prompt, size_t maxlen) {
-    int fd = open("/dev/tty", O_RDWR);
-    if (fd < 0) return NULL;
-    struct termios t;
-    if (tcgetattr(fd, &t) < 0) return NULL;
-    t.c_lflag &= ~ECHO;
-    if (tcsetattr(fd, TCSANOW, &t) < 0) return NULL;
-    char *buf = malloc(maxlen + 1);
-    if (!buf) return NULL;
-    char *bufp = buf;
-    char *tail = buf + maxlen;
-    int r = -1;
-    if (write(fd, prompt, strlen(prompt)) >= 0) {
-	while ((r = read(fd, bufp, 1)) > 0 && bufp < tail) {
-	    if (*bufp == 0x0a) break;
-	    bufp++;
-	}
-    }
-    *bufp = 0;
-    if (tcgetattr(fd, &t) < 0) r = -1;
-    t.c_lflag |= ECHO;
-    if (tcsetattr(fd, TCSANOW, &t) < 0) r = -1;
-    write(fd, "\r\n", 2);
-    close(fd);
-    if (r >= 0) return buf;
-    free(buf);
-    return NULL;
-}
-
 int tty_is_ansi(int fd) {
     return tty_get_width(fd) > 0;
 }

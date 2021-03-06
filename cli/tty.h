@@ -29,5 +29,4 @@
  *
  ***************************************************************************/
 int tty_get_width(int fd);
-char *tty_getpass(const char *prompt, size_t maxlen);
 int tty_is_ansi(int fd);

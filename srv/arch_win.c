@@ -141,10 +141,12 @@ char *VESmail_arch_gethostname() {
 }
 
 int VESmail_arch_creat(const char *path) {
+    if (!path) return VESMAIL_E_PARAM;
     return open(path, O_CREAT | O_EXCL | O_WRONLY, 0666);
 }
 
 int VESmail_arch_openr(const char *path) {
+    if (!path) return VESMAIL_E_PARAM;
     return open(path, O_RDONLY);
 }
 
@@ -185,5 +187,14 @@ unsigned long VESmail_arch_mtime(const char *path) {
     struct _stat st;
     if (_stat(path, &st)) return 0;
     return st.st_mtime;
+}
+
+int VESmail_arch_getuid() {
+    return 0;
+}
+
+int VESmail_arch_mkdir(const char *path, short mod) {
+    if (!path) return VESMAIL_E_PARAM;
+    return mkdir(path);
 }
 

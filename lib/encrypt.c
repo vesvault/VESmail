@@ -35,10 +35,12 @@
 #include <string.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include <libVES.h>
 #include <libVES/Cipher.h>
 #include <libVES/VaultItem.h>
 #include <libVES/VaultKey.h>
 #include <libVES/User.h>
+#include <libVES/File.h>
 #include <jVar.h>
 #include "../VESmail.h"
 #include "mail.h"
@@ -165,6 +167,21 @@ int VESmail_header_send_xchg(VESmail_parse *parse) {
     return rs;
 }
 
+int VESmail_header_send_vrfy(VESmail_parse *parse) {
+    libVES_VaultItem *vi = VESmail_get_vaultItem(parse->mail);
+    if (!vi) return VESMAIL_E_VES;
+    libVES_File *fi = libVES_VaultItem_getFile(vi);
+    char *vrfy = libVES_File_fetchVerifyToken(fi, parse->mail->ves);
+    if (!vrfy) return VESMAIL_E_VES;
+    int l = strlen(vrfy);
+    VESmail_header *h = VESmail_header_new("X-VESmail-Verify:", VESMAIL_H_VRFY, l + 2);
+    VESmail_header_add_val(h, l, vrfy);
+    free(vrfy);
+    VESmail_header_add_val(h, 2, "\r\n");
+    int rs = VESmail_header_commit(parse, h);
+    VESmail_header_free(h);
+    return rs;
+}
 
 int VESmail_header_push_enc(VESmail_parse *parse, VESmail_header *hdr, int bufd) {
     if (parse->mail->flags & VESMAIL_F_PASS) return VESmail_header_commit(parse, hdr);
@@ -262,6 +279,14 @@ int VESmail_header_push_enc(VESmail_parse *parse, VESmail_header *hdr, int bufd)
 	    }
 	    return rs;
 	}
+	case VESMAIL_H_REFS:
+	    if (parse->encap == VESMAIL_EN_ROOT && (parse->mail->flags & VESMAIL_O_HDR_REFS)) {
+		VESmail_header *hdr2 = VESmail_header_rebuild_references(hdr, parse->mail->optns->idSuffix, 1);
+		int r = VESmail_header_commit(parse, hdr2);
+		VESmail_header_free(hdr2);
+		if (r < 0) return r;
+		return rs + r;
+	    }
 	case VESMAIL_H_RCPT:
 	case VESMAIL_H_NOENC:
 	    if (parse->encap != VESMAIL_EN_ROOT) return VESmail_header_encrypt_push(parse, hdr);
@@ -273,6 +298,11 @@ int VESmail_header_push_enc(VESmail_parse *parse, VESmail_header *hdr, int bufd)
 		rs += r;
 		if (parse->mail->flags & VESMAIL_O_XCHG) {
 		    r = VESmail_header_send_xchg(parse);
+		    if (r < 0) return r;
+		    rs += r;
+		}
+		if (parse->mail->flags & VESMAIL_O_VRFY_TKN) {
+		    r = VESmail_header_send_vrfy(parse);
 		    if (r < 0) return r;
 		    rs += r;
 		}

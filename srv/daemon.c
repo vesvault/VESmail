@@ -220,7 +220,7 @@ int VESmail_daemon_snifn(VESmail_server *srv, const char *sni) {
     void **pobj = jTree_seek(&daemon->sni.jtree, (void *) sni, NULL, &VESmail_daemon_snicmpfn, &depth);
     if (*pobj) {
 	rec = *pobj;
-	VESMAIL_DAEMON_DEBUG(daemon, 2, fprintf(stderr, "sni rec loaded for %s: %lx\n", sni, rec))
+	VESMAIL_DAEMON_DEBUG(daemon, 2, fprintf(stderr, "sni rec loaded for %s: %p\n", sni, rec))
     } else {
 	rec = malloc(sizeof(struct VESmail_daemon_snirec) + strlen(sni) + 1);
 	strcpy(rec->sni, sni);

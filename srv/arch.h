@@ -54,6 +54,8 @@ int VESmail_arch_log(const char *fmt, ...);
 int VESmail_arch_vlog(const char *fmt, void *va);
 int VESmail_arch_usleep(unsigned long int t);
 unsigned long VESmail_arch_mtime(const char *path);
+int VESmail_arch_getuid();
+int VESmail_arch_mkdir(const char *path, short mod);
 
 #ifdef _WIN32
 

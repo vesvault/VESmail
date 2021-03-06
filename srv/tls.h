@@ -77,7 +77,7 @@ struct VESmail_tls_server *VESmail_tls_server_new();
 struct VESmail_tls_server *VESmail_tls_server_clone(struct VESmail_tls_server *tls);
 int VESmail_tls_server_start(struct VESmail_server *srv, int starttls);
 #define VESmail_tls_server_allow_starttls(srv)	((srv)->tls.server && (srv)->tls.server->cert && (srv)->tls.server->key && (srv)->tls.server->level > VESMAIL_TLS_NONE && !((srv)->flags & VESMAIL_SRVF_TLSS))
-#define VESmail_tls_server_allow_plain(srv)	((srv)->tls.server->level <= VESMAIL_TLS_OPTIONAL)
+#define VESmail_tls_server_allow_plain(srv)	(VESmail_tls_server_started(srv) || (srv)->tls.server->level <= VESMAIL_TLS_OPTIONAL)
 #define VESmail_tls_server_started(srv)	((srv)->flags & VESMAIL_SRVF_TLSS)
 void VESmail_tls_server_ctxinit(struct VESmail_server *srv);
 void VESmail_tls_server_ctxreset(struct VESmail_tls_server *tls);

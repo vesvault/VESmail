@@ -50,8 +50,8 @@
 #include "optns.h"
 #include "mail.h"
 
-#if LIBVES_VERSION_NUMBER < 0x00090500
-#error libVES >= 0.95 is required - "https://github.com/vesvault/libVES.c"
+#if LIBVES_VERSION_NUMBER < 0x01000100
+#error libVES >= 1.01 is required - "https://github.com/vesvault/libVES.c"
 #endif
 
 

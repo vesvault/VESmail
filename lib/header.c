@@ -239,6 +239,44 @@ VESmail_header *VESmail_header_add_eol(VESmail_header *hdr, const VESmail_header
     } else return VESmail_header_add_val(hdr, 2, "\r\n");
 }
 
+VESmail_header *VESmail_header_rebuild_references(VESmail_header *hdr, const char *suff, int add) {
+    if (!suff) return VESmail_header_dup(hdr, NULL);
+    const char *lt = NULL;
+    const char *gt = NULL;
+    const char *tail = hdr->key + hdr->len;
+    int suffl = strlen(suff);
+    int h2l = hdr->len;
+    if (add) {
+	const char *g;
+	h2l *= 2;
+	for (g = hdr->val; (g = memchr(g, '>', tail - g)); g++, (h2l += suffl + 4));
+    }
+    VESmail_header *hdr2 = VESmail_header_new(hdr->key, hdr->type, h2l);
+    char fskip = 0;
+    while (1) {
+	const char *last = gt ? gt + 1 : hdr->val;
+	const char *lt2 = memchr(last, '<', tail - last);
+	const char *gt2 = lt2 ? memchr(lt2, '>', tail - lt2) : NULL;
+	char fdel = 0;
+	if (gt2 && gt && gt2 - lt2 == gt - lt + suffl && !memcmp(lt2 + (gt - lt), suff, suffl) && !memcmp(lt, lt2, gt - lt)) {
+	    fdel = !add;
+	    fskip = 1;
+	} else if (gt && add && !fskip) {
+	    VESmail_header_add_eol(hdr2, hdr);
+	    VESmail_header_add_val(hdr2, 1, "\t");
+	    VESmail_header_add_val(hdr2, gt - lt, lt);
+	    VESmail_header_add_val(hdr2, suffl, suff);
+	    VESmail_header_add_val(hdr2, 1, gt);
+	    fskip = 0;
+	}
+	if (fdel) last = gt2 + 1;
+	VESmail_header_add_val(hdr2, (gt2 ? gt2 + 1 : tail) - last, last);
+	lt = lt2;
+	if (!((gt = gt2))) break;
+    }
+    return hdr2;
+}
+
 int VESmail_header_chkbytes(VESmail_header *hdr) {
     int rs = 0;
     for (; hdr; hdr = hdr->chain) rs += 64 + hdr->len;

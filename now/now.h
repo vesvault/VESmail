@@ -33,5 +33,14 @@
 struct VESmail_optns;
 
 struct VESmail_server *VESmail_server_new_now(struct VESmail_optns *optns);
+int VESmail_now_error(struct VESmail_server *srv, int code, const char *msg);
+void VESmail_now_log(struct VESmail_server *srv, const char *meth, short code, const char *msgid);
+int VESmail_now_send(struct VESmail_server *srv, int final, const char *str);
+int VESmail_now_send_status(struct VESmail_server *srv, int code);
+
 
 #define	VESMAIL_MERR_NOW	0x0100
+
+#ifndef VESMAIL_NOW_REQ_SAFEBYTES
+#define	VESMAIL_NOW_REQ_SAFEBYTES	32767
+#endif

@@ -47,7 +47,7 @@ int VESmail_smtp_reply_sendl(VESmail_server *srv, int code, int dsn, int flags, 
     if (rs < 0) return rs;
     int r;
     if (code > 0 && !(flags & VESMAIL_SMTP_RF_NOCODE)) {
-	char head[16];
+	char head[24];
 	char f = (flags & VESMAIL_SMTP_RF_FINAL) ? ' ' : '-';
 	sprintf(head, "%03d%c", code, f);
 	if (dsn > 0) sprintf(head + 4, "%d.%d.%d ", dsn >> 12, (dsn >> 8) & 0x0f, dsn & 0xff);
