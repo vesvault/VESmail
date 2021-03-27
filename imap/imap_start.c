@@ -34,6 +34,7 @@
 #include <stddef.h>
 #include <string.h>
 #include <stdlib.h>
+#include <stdio.h>
 #include <jVar.h>
 #include "../VESmail.h"
 #include "../lib/util.h"
@@ -50,11 +51,20 @@
 #include "imap_start.h"
 
 int VESmail_imap_rsp_send_hello(VESmail_server *srv) {
-    VESmail_imap_token *rsp = VESmail_imap_rsp_new(NULL, "OK");
-    VESmail_imap_token_splice(rsp, -1, 0, 2,
-	VESmail_imap_token_lset(VESmail_imap_caps(srv, VESmail_imap_token_index(1, VESmail_imap_token_atom("CAPABILITY")), 1)),
-	VESmail_imap_token_atom(VESMAIL_SHORT_NAME " ready.")
-    );
+    VESmail_imap_token *rsp;
+    if (VESmail_server_abuse_peer(srv, 0) < 0) {
+	rsp = VESmail_imap_rsp_new(NULL, "NO");
+	VESmail_imap_token_splice(rsp, -1, 0, 1,
+	    VESmail_imap_token_atom(VESmail_server_ERRCODE(VESMAIL_E_ABUSE) " Too many login attempts, try again later.")
+	);
+	srv->flags |= VESMAIL_SRVF_SHUTDOWN;
+    } else {
+	rsp = VESmail_imap_rsp_new(NULL, "OK");
+	VESmail_imap_token_splice(rsp, -1, 0, 2,
+	    VESmail_imap_token_lset(VESmail_imap_caps(srv, VESmail_imap_token_index(1, VESmail_imap_token_atom("CAPABILITY")), 1)),
+	    VESmail_imap_token_atom(VESMAIL_SHORT_NAME " ready.")
+	);
+    }
     int rs = VESmail_imap_rsp_send(srv, rsp);
     VESmail_imap_token_free(rsp);
     return rs;
@@ -66,7 +76,12 @@ int VESmail_imap_start_ready(VESmail_server *srv) {
     return VESmail_imap_rsp_send_hello(srv);
 }
 
-int VESmail_imap_start_login_fail(VESmail_server *srv, const char *msg, VESmail_imap_token *relayed) {
+int VESmail_imap_start_login_fail(VESmail_server *srv, int er, const char *msg, VESmail_imap_token *relayed) {
+    VESmail_server_logauth(srv, er, 0);
+    if (srv->req_out) {
+	VESmail_server_abuse_peer(srv, 2);
+	VESmail_server_abuse_user(srv, 2);
+    }
     VESmail_imap_token *tag = VESmail_imap_track_cp_tag(VESMAIL_IMAP(srv)->track);
     VESmail_imap_track_done(&VESMAIL_IMAP(srv)->track);
     VESmail_imap_token *rsp = VESmail_imap_rsp_new(tag, "NO");
@@ -90,6 +105,7 @@ int VESmail_imap_fwd_login(VESmail_server *srv) {
     VESmail_imap_token *tag = VESmail_imap_track_cp_tag(trk);
     VESmail_imap_token *req;
     if (srv->sasl) {
+	VESMAIL_SRV_DEBUG(srv, 1, sprintf(debug, "AUTHENTICATE %s", VESmail_sasl_get_name(srv->sasl)))
 	req = VESmail_imap_req_new(tag, "AUTHENTICATE");
 	VESmail_imap_token_push(req, VESmail_imap_token_atom(VESmail_sasl_get_name(srv->sasl)));
 /*
@@ -102,6 +118,7 @@ int VESmail_imap_fwd_login(VESmail_server *srv) {
 	}
 */
     } else {
+	VESMAIL_SRV_DEBUG(srv, 1, sprintf(debug, "LOGIN"))
 	char *user = jVar_getString(jVar_get(VESMAIL_IMAP(srv)->uconf, "login"));
 	char *pwd = jVar_getString(jVar_get(VESMAIL_IMAP(srv)->uconf, "password"));
 	req = VESmail_imap_req_new(tag, "LOGIN");
@@ -127,7 +144,7 @@ int VESmail_imap_start_sasl_cont(struct VESmail_server *srv, struct VESmail_imap
 	    return r;
 	}
     }
-    return VESmail_imap_start_login_fail(srv, "Error negotiating SASL with the server", NULL);
+    return VESmail_imap_start_login_fail(srv, VESMAIL_E_SASL, VESmail_server_ERRCODE(VESMAIL_E_SASL) " Error negotiating SASL with the server", NULL);
 }
 
 int VESmail_imap_start_fn_rsp_starttls(int verb, VESmail_imap_token *rsp, VESmail_imap_track *trk) {
@@ -137,16 +154,20 @@ int VESmail_imap_start_fn_rsp_starttls(int verb, VESmail_imap_token *rsp, VESmai
     switch (verb) {
 	case VESMAIL_IMAP_V_OK:
 	    r = VESmail_tls_client_start(srv, 1);
-	    if (r < 0) return r;
-	    break;
+	    if (r >= 0) break;
+	    char *err = VESmail_server_errorStr(srv, r);
+	    r = VESmail_imap_start_login_fail(srv, r, err, rsp);
+	    free(err);
+	    return r;
 	default:
-	    if (VESmail_tls_client_require(srv)) return VESmail_imap_start_login_fail(srv, "tls_error", rsp);
+	    if (VESmail_tls_client_require(srv)) return VESmail_imap_start_login_fail(srv, VESMAIL_E_TLS, VESmail_server_ERRCODE(VESMAIL_E_TLS) " Bad response to STARTTLS", rsp);
 	    break;
     }
     return VESmail_imap_fwd_login(srv);
 }
 
 int VESmail_imap_fwd_starttls(VESmail_server *srv) {
+    VESMAIL_SRV_DEBUG(srv, 1, sprintf(debug, "STARTTLS"))
     VESmail_imap_token *req = VESmail_imap_req_new(NULL, "STARTTLS");
     VESmail_imap_track *trk = VESmail_imap_track_new_fwd(srv, req);
     trk->rspfn = &VESmail_imap_start_fn_rsp_starttls;
@@ -173,13 +194,17 @@ int VESmail_imap_start_check_cap(VESmail_imap_token *caps, int verb) {
 int VESmail_imap_start_fn_u_conn(int verb, VESmail_imap_token *token, VESmail_server *srv) {
     switch (verb) {
 	case VESMAIL_IMAP_V_OK: {
+	    VESmail_imap_token *caps = VESmail_imap_start_get_caps(token);
+	    if (VESmail_imap_start_check_cap(caps, VESMAIL_IMAP_V_XVES)) {
+		return VESmail_imap_start_login_fail(srv, VESMAIL_E_RELAY, VESmail_server_ERRCODE(VESMAIL_E_RELAY) " Forbidden remote capability XVES", token);
+	    }
 	    int ftls;
 	    if (VESmail_tls_client_started(srv)) {
 		ftls = 0;
 	    } else {
 		ftls = VESmail_tls_client_require(srv);
 		if (!ftls && !VESmail_tls_client_none(srv)) {
-		    ftls = VESmail_imap_start_check_cap(VESmail_imap_start_get_caps(token), VESMAIL_IMAP_V_STARTTLS);
+		    ftls = VESmail_imap_start_check_cap(caps, VESMAIL_IMAP_V_STARTTLS);
 		}
 	    }
 	    return ftls ? VESmail_imap_fwd_starttls(srv) : VESmail_imap_fwd_login(srv);
@@ -192,20 +217,24 @@ int VESmail_imap_start_fn_u_conn(int verb, VESmail_imap_token *token, VESmail_se
 	case VESMAIL_IMAP_V_BAD:
 	    break;
 	default:
+	    if (token->len < 1 || !VESmail_imap_token_isAtom(token->list[0]) || token->list[0]->len != 1 || token->list[0]->data[0] != '*') break;
 	    return 0;
     }
-    return VESmail_imap_start_login_fail(srv, "[greeting]", token);
+    return VESmail_imap_start_login_fail(srv, VESMAIL_E_RELAY, VESmail_server_ERRCODE(VESMAIL_E_RELAY) " greeting", token);
+}
+
+int VESmail_imap_start_connect(VESmail_server *srv) {
+    VESMAIL_IMAP(srv)->untaggedfn = &VESmail_imap_start_fn_u_conn;
+    VESMAIL_IMAP(srv)->state = VESMAIL_IMAP_S_CONN;
+    srv->flags |= VESMAIL_SRVF_OVER;
+    srv->req_in->imap->state = VESMAIL_IMAP_X_HOLD;
+    return 0;
 }
 
 int VESmail_imap_auth(VESmail_server *srv, const char *user, const char *pwd, int pwlen) {
     int r = VESmail_server_auth(srv, user, pwd, pwlen);
     if (r >= 0) r = VESmail_server_connect(srv, (VESMAIL_IMAP(srv)->uconf = jVar_get(srv->uconf, "imap")), "imap");
-    if (r >= 0) {
-	VESMAIL_IMAP(srv)->untaggedfn = &VESmail_imap_start_fn_u_conn;
-	VESMAIL_IMAP(srv)->state = VESMAIL_IMAP_S_CONN;
-	srv->flags |= VESMAIL_SRVF_OVER;
-	srv->req_in->imap->state = VESMAIL_IMAP_X_HOLD;
-    }
+    if (r >= 0) VESmail_imap_start_connect(srv);
     return r;
 }
 
@@ -217,11 +246,15 @@ int VESmail_imap_start_fn_rsp_login(int verb, VESmail_imap_token *rsp, VESmail_i
 	    VESmail_imap_token *caps = VESmail_imap_start_get_caps(rsp);
 	    if (!caps || !VESmail_imap_start_check_cap(caps, VESMAIL_IMAP_V_XVES)) {
 		if (caps) VESmail_imap_caps(trk->server, caps, 0);
+		VESmail_server_abuse_user(trk->server, 1);
 		VESmail_imap_proxy_init(trk->server);
 		break;
 	    }
 	}
 	default:
+	    VESmail_server_logauth(trk->server, VESMAIL_E_RELAY, 0);
+	    VESmail_server_abuse_peer(trk->server, 10);
+	    VESmail_server_abuse_user(trk->server, 10);
 	    VESmail_server_disconnect(trk->server);
 	    trk->server->req_in->imap->procfn = &VESmail_imap_start_req_fn;
 	    break;
@@ -232,9 +265,27 @@ int VESmail_imap_start_fn_rsp_login(int verb, VESmail_imap_token *rsp, VESmail_i
     return rs;
 }
 
+int VESmail_imap_start_probe(VESmail_server *srv, jVar *uconf) {
+    VESmail_imap_token *token = VESmail_imap_token_splice(
+	VESmail_imap_token_line(),
+	0, 0, 1,
+	VESmail_imap_token_atom("probe")
+    );
+    VESmail_imap_track *trk = VESmail_imap_track_new_fwd(srv, token);
+    trk->token = token;
+    trk->rspfn = &VESmail_imap_start_fn_rsp_login;
+    int r = VESmail_server_connect(srv, (VESMAIL_IMAP(srv)->uconf = uconf), NULL);
+    if (r < 0) {
+	r = VESmail_imap_rsp_send_error(srv, VESmail_imap_cp_tag(token), r);
+	VESmail_imap_track_done(&VESMAIL_IMAP(srv)->track);
+	return r;
+    }
+    return VESmail_imap_start_connect(srv);
+}
+
 int VESmail_imap_start_req_fn_sasl(VESmail_server *srv, VESmail_imap_token *token) {
     if (token->len != 1 || !VESmail_imap_token_isAtom(token->list[0])) {
-	return VESmail_imap_start_login_fail(srv, "Invalid SASL response from the client", NULL);
+	return VESmail_imap_start_login_fail(srv, VESMAIL_E_SASL, VESmail_server_ERRCODE(VESMAIL_E_SASL) " Invalid SASL response from the client", NULL);
     }
     return VESmail_imap_start_sasl(srv, token->list[0]);
 }
@@ -256,7 +307,7 @@ int VESmail_imap_start_sasl(VESmail_server *srv, VESmail_imap_token *req) {
     }
     if (rs < 0) {
 	char *err = VESmail_server_errorStr(srv, rs);
-	rs = VESmail_imap_start_login_fail(srv, err, NULL);
+	rs = VESmail_imap_start_login_fail(srv, rs, err, NULL);
 	free(err);
     }
     return rs;
@@ -304,7 +355,6 @@ int VESmail_imap_start_req_fn(VESmail_server *srv, VESmail_imap_token *token) {
 		if (rs < 0) {
 		    rs = VESmail_imap_rsp_send_error(srv, VESmail_imap_cp_tag(token), rs);
 		    VESmail_imap_track_done(&VESMAIL_IMAP(srv)->track);
-		} else {
 		}
 		return rs;
 	    }

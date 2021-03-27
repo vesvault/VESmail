@@ -35,6 +35,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include <openssl/rand.h>
 #include "../VESmail.h"
 #include "../lib/optns.h"
 #include "../srv/server.h"
@@ -245,10 +246,18 @@ int VESmail_imap_sect_hdr_unescape(VESmail_imap_fetch *fetch, VESmail_imap_token
 		    unsigned int rng1, rng2;
 		    int r = sscanf(h + 12, "range_%u_%u", &rng1, &rng2);
 		    if (r > 0 && rngptr) {
-			VESmail_imap_fetch *rng = VESmail_imap_fetch_new_body(VESMAIL_IMAP_FV_BODY_PEEK, (r > 1 ? VESMAIL_IMAP_FM_RANGE : VESMAIL_IMAP_FM_START), VESMAIL_IMAP_FS_NONE, 0, NULL);
+			const char *rhash = strchr(h + 18, '-');
+			VESmail_imap_fetch *rng = VESmail_imap_fetch_new_rhash((r > 1 ? VESMAIL_IMAP_FM_RANGE : VESMAIL_IMAP_FM_START), (rhash ? rhash + 1 : ""));
 			rng->range[0] = rng1;
 			if (r > 1) rng->range[1] = rng2;
-			rngptr = VESmail_imap_fetch_queue(rngptr, rng);
+			unsigned long seed;
+			RAND_bytes((void *) &seed, sizeof(seed));
+			VESmail_imap_fetch **rp;
+			int ct = 0;
+			for (rp = rngptr; *rp; rp = &((*rp)->qchain)) ct++;
+			ct = seed % (ct + 1);
+			for (rp = rngptr; ct > 0; rp = &((*rp)->qchain)) ct--;
+			VESmail_imap_fetch_queue(rp, rng);
 			break;
 		    }
 		    if (!strcmp(h + 12, "recon")) rs = 1;

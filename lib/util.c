@@ -115,6 +115,8 @@ void VESmail_randstr(int len, char *buf) {
 }
 
 char *VESmail_strndup(const char *s, int len) {
+    const char *tail = memchr(s, 0, len);
+    if (tail) len = tail - s;
     char *d = malloc(len + 1);
     memcpy(d, s, len);
     d[len] = 0;

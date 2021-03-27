@@ -283,6 +283,42 @@ VESmail_imap_token *VESmail_imap_fetch_render(VESmail_imap_fetch *fetch) {
     return lst;
 }
 
+// The following functions pertain to Range Hash operations
+// Not a cryptographic hash, used to identify range tokens in a FETCH response
+char *VESmail_imap_fetch_rhash(VESmail_imap_fetch *f, char *dst) {
+    const unsigned long seed = 0x6b3b6549;
+    unsigned long h = f->stype * seed;
+    int i;
+    for (i = 0; i < f->seclen; i++) h = (h ^ f->section[i]) * seed;
+    sprintf(dst, "%08lX", h & 0xffffffff);
+    return dst;
+}
+
+VESmail_imap_fetch *VESmail_imap_fetch_new_rhash(int mode, const char *rhash) {
+    VESmail_imap_fetch *fetch = malloc(sizeof(VESmail_imap_fetch) + strlen(rhash) + 1);
+    fetch->mode = mode;
+    fetch->type = VESMAIL_IMAP_FV_BODY;
+    fetch->stype = VESMAIL_IMAP_FS_NONE;
+    fetch->qchain = NULL;
+    fetch->seclen = 0;
+    char c;
+    char *d = fetch->rhash;
+    while ((c = *rhash++)) {
+	*d++ = (c >= 'a' && c <= 'f') ? c - 0x20 : c;
+    }
+    *d = 0;
+    return fetch;
+}
+
+int VESmail_imap_fetch_check_rhash(VESmail_imap_fetch *fetch, const char *rhash) {
+    char c;
+    const char *s = fetch->rhash;
+    while ((c = *s++)) {
+	if (c != *rhash++) return 0;
+    }
+    return 1;
+}
+
 VESmail_imap_fetch **VESmail_imap_fetch_queue(VESmail_imap_fetch **queue, VESmail_imap_fetch *fetch) {
     while (*queue) queue = &(*queue)->qchain;
     *queue = fetch;
@@ -295,6 +331,7 @@ VESmail_imap_fetch *VESmail_imap_fetch_unqueue(VESmail_imap_fetch **queue) {
     fetch->qchain = NULL;
     return fetch;
 }
+
 
 void VESmail_imap_fetch_free(VESmail_imap_fetch *fetch) {
     if (fetch) {

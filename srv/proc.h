@@ -62,3 +62,4 @@ void VESmail_proc_free(struct VESmail_proc *proc);
 struct VESmail_proc_ctx *VESmail_proc_ctx_new(struct VESmail_proc *proc, struct jVar *jconf);
 void VESmail_proc_ctx_apply(struct VESmail_proc_ctx *ctx, struct VESmail_proc *proc);
 void VESmail_proc_ctx_free(struct VESmail_proc_ctx *ctx);
+void VESmail_proc_cleanup();

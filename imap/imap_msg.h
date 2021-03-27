@@ -101,6 +101,7 @@ typedef struct VESmail_imap_msg {
     char *boundary;
     struct VESmail_header *cphdrs;
     char *headers[VESMAIL_IMAP_H__END];
+// ** The rest of fields are allocated only for the message root
     struct VESmail_imap_result *result;
     int rcount;
     char mail[0];

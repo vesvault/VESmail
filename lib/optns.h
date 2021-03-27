@@ -51,6 +51,7 @@ typedef struct VESmail_optns {
     char *acl;
     char *unspecd;
     char **audit;
+    char **bcc;
     void *ref;
 } VESmail_optns;
 

@@ -376,10 +376,30 @@ int VESmail_imap_result_process(VESmail_imap_result *rslt, VESmail_imap_fetch *f
 			break;
 		}
 	    }
+	    if (!ffull && !rslt->range) {
+		if (rslt->token->state == VESMAIL_IMAP_P_CONT) {
+		    rs = VESMAIL_IMAP_RE_UNDEF;
+		} else if (final && val->literal) {
+		    int oor = ++(VESMAIL_IMAP(rslt->server)->ctOOR);
+		    VESMAIL_SRV_DEBUG(rslt->server, 1, sprintf(debug, "Unlinked range, oor=%d", oor))
+		    if (oor > VESMAIL_IMAP_OOR_MAXBYTES) oor = VESMAIL_IMAP_OOR_MAXBYTES;
+		    if (oor > 0) {
+			char *oors = malloc(oor + 1);
+			memset(oors, ' ', oor);
+			oors[oor] = 0;
+			VESmail_imap_token_memsplice(val, val->len, 0, oors);
+			free(oors);
+		    }
+		}
+	    }
 	    if (!ffull && rs == VESMAIL_IMAP_RE_OK && rslt->range) {
 		if (!final && val->state != VESMAIL_IMAP_P_SYNC) return val->state == VESMAIL_IMAP_P_RESYNC ? VESMAIL_IMAP_RE_RESYNC : VESMAIL_IMAP_RE_UNDEF;
 		int bufd = !VESmail_imap_token_isLiteral(val) || val->literal;
-		VESmail_imap_fetch *rng = VESmail_imap_fetch_unqueue(&rslt->range);
+		char rhash[16];
+		VESmail_imap_fetch_rhash(fetch, rhash);
+		VESmail_imap_fetch **rngp;
+		for (rngp = &rslt->range; *rngp && !VESmail_imap_fetch_check_rhash(*rngp, rhash); rngp = &((*rngp)->qchain));
+		VESmail_imap_fetch *rng = VESmail_imap_fetch_unqueue(*rngp ? rngp : &rslt->range);
 		unsigned int len0 = val->len;
 		if (rng->range[0] > 0) {
 		    if (bufd) VESmail_imap_token_memsplice(val, 0, rng->range[0], NULL);
@@ -394,13 +414,14 @@ int VESmail_imap_result_process(VESmail_imap_result *rslt, VESmail_imap_fetch *f
 * if the actual body size doesn't match the number returned by BODYSRUCTURE
 ***********************************/
 		if (rng->range[0] == len0) {
+		    VESMAIL_SRV_DEBUG(rslt->server, 1, sprintf(debug, (rng->mode == VESMAIL_IMAP_FM_RANGE ? "<%lu.%lu>" : "<%lu>"), rng->range[0], rng->range[1]))
 		    if (VESmail_imap_token_isLiteral(val) && ++(VESMAIL_IMAP(rslt->server)->ctOOR) > 0) {
 			VESMAIL_IMAP(rslt->server)->flags |= VESMAIL_IMAP_F_CALC;
 			unsigned int l = rng->mode == VESMAIL_IMAP_FM_RANGE ? rng->range[1] : VESMAIL_IMAP(rslt->server)->ctOOR;
+			if (l > VESMAIL_IMAP_OOR_MAXBYTES) l = VESMAIL_IMAP_OOR_MAXBYTES;
 			free(val->literal);
 			val->literal = malloc(val->len = l);
 			memset(val->literal, ' ', l);
-			
 		    }
 		}
 		if (rng->mode == VESMAIL_IMAP_FM_RANGE) {

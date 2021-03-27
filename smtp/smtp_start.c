@@ -60,12 +60,22 @@ int VESmail_smtp_start_ready(VESmail_server *srv) {
     if (VESMAIL_SMTP(srv)->state != VESMAIL_SMTP_S_HELLO) return 0;
     VESMAIL_SMTP(srv)->state = VESMAIL_SMTP_S_INIT;
     int rs = 0;
-    VESMAIL_SMTP_SENDLN(srv, 220, 0, VESMAIL_SMTP_RF_FINAL | VESMAIL_SMTP_RF_NOEOL, srv->host, rs)
-    VESMAIL_SMTP_SENDLN(srv, 0, 0, 0, " ESMTP VESmail ready.", rs)
+    if (VESmail_server_abuse_peer(srv, 0) < 0) {
+	VESMAIL_SMTP_SENDLN(srv, 421, 0, VESMAIL_SMTP_RF_FINAL, VESmail_server_ERRCODE(VESMAIL_E_ABUSE) " Too many login attempts, try later", rs)
+	srv->flags |= VESMAIL_SRVF_SHUTDOWN;
+    } else {
+	VESMAIL_SMTP_SENDLN(srv, 220, 0, VESMAIL_SMTP_RF_FINAL | VESMAIL_SMTP_RF_NOEOL, srv->host, rs)
+	VESMAIL_SMTP_SENDLN(srv, 0, 0, 0, " ESMTP VESmail ready.", rs)
+    }
     return rs;
 }
 
 int VESmail_smtp_start_login_fail(VESmail_server *srv, const char *msg, VESmail_smtp_reply *relayed, int err) {
+    VESmail_server_logauth(srv, err, 0);
+    if (srv->req_out) {
+	VESmail_server_abuse_peer(srv, 2);
+	VESmail_server_abuse_user(srv, 2);
+    }
     VESMAIL_SMTP(srv)->state = VESMAIL_SMTP_S_START;
     int rs = 0;
     short int code, dsn;
@@ -84,12 +94,18 @@ int VESmail_smtp_start_login_fail(VESmail_server *srv, const char *msg, VESmail_
 	    dsn = 0x4700;
 	    break;
     }
-    if (msg) {
-	VESMAIL_SMTP_SENDLN(srv, code, dsn, (relayed ? 0 : VESMAIL_SMTP_RF_FINAL), msg, rs)
-    }
     if (relayed) {
 	VESMAIL_SMTP_SENDLN(srv, code, dsn, 0, "Response from the remote server", rs);
-	int r = VESmail_smtp_reply_sendml(srv, code, dsn, VESMAIL_SMTP_RF_FINAL, relayed->head, relayed->len);
+	int r = VESmail_smtp_reply_sendml(srv, code, dsn, 0, relayed->head, relayed->len);
+	if (r < 0) return r;
+	rs += r;
+    }
+    if (msg) {
+	VESMAIL_SMTP_SENDLN(srv, code, dsn, VESMAIL_SMTP_RF_FINAL, msg, rs)
+    } else {
+	char *e = VESmail_server_errorStr(srv, err);
+	int r = VESmail_smtp_reply_sendln(srv, code, dsn, VESMAIL_SMTP_RF_FINAL, e);
+	free(e);
 	if (r < 0) return r;
 	rs += r;
     }
@@ -113,7 +129,7 @@ int VESmail_smtp_start_fn_r_ehlo(VESmail_smtp_track *trk, VESmail_smtp_reply *re
 	    eol = VESmail_smtp_reply_get_eol(reply, txt);
 	    switch (VESmail_smtp_cmd_match_verb(&txt, eol, VESmail_smtp_verbs)) {
 		case VESMAIL_SMTP_V_XVES:
-		    return VESmail_smtp_start_login_fail(srv, "Forbidden remote capability XVES", NULL, VESMAIL_E_CONF);
+		    return VESmail_smtp_start_login_fail(srv, VESmail_server_ERRCODE(VESMAIL_E_RELAY) " Forbidden remote capability XVES", NULL, VESMAIL_E_CONF);
 		case VESMAIL_SMTP_V_STARTTLS:
 		    ftls = 1;
 		    break;
@@ -127,7 +143,7 @@ int VESmail_smtp_start_fn_r_ehlo(VESmail_smtp_track *trk, VESmail_smtp_reply *re
 		    break;
 	    }
 	}
-	if (VESmail_tls_client_started(srv)) {
+	if (VESmail_tls_client_started(srv) || VESmail_tls_client_none(srv)) {
 	    ftls = 0;
 	} else if (VESmail_tls_client_require(srv)) {
 	    ftls = 1;
@@ -147,14 +163,14 @@ int VESmail_smtp_start_fn_r_ehlo(VESmail_smtp_track *trk, VESmail_smtp_reply *re
 	    return VESmail_smtp_fwd_login(srv);
 	}
     }
-    return VESmail_smtp_start_login_fail(srv, NULL, reply, 0);
+    return VESmail_smtp_start_login_fail(srv, NULL, reply, VESMAIL_E_RELAY);
 }
 
 int VESmail_smtp_start_fn_r_conn(VESmail_smtp_track *trk, VESmail_smtp_reply *reply) {
     if (reply->code == 220) {
 	return VESmail_smtp_fwd_ehlo(trk->server);
     }
-    return VESmail_smtp_start_login_fail(trk->server, NULL, reply, 0);
+    return VESmail_smtp_start_login_fail(trk->server, NULL, reply, VESMAIL_E_RELAY);
 }
 
 int VESmail_smtp_start_fn_r_starttls(VESmail_smtp_track *trk, VESmail_smtp_reply *reply) {
@@ -167,7 +183,7 @@ int VESmail_smtp_start_fn_r_starttls(VESmail_smtp_track *trk, VESmail_smtp_reply
 	}
 	return rs;
     }
-    return VESmail_smtp_start_login_fail(trk->server, NULL, reply, 0);
+    return VESmail_smtp_start_login_fail(trk->server, NULL, reply, VESMAIL_E_RELAY);
 }
 
 int VESmail_smtp_start_fn_r_auth(VESmail_smtp_track *trk, VESmail_smtp_reply *reply) {
@@ -177,6 +193,8 @@ int VESmail_smtp_start_fn_r_auth(VESmail_smtp_track *trk, VESmail_smtp_reply *re
 	    VESMAIL_SMTP(srv)->state = VESMAIL_SMTP_S_PROXY;
 	    VESmail_sasl_free(srv->sasl);
 	    srv->sasl = NULL;
+	    VESmail_server_logauth(srv, 0, 0);
+	    VESmail_server_abuse_user(srv, 1);
 	    return VESmail_smtp_reply_send(srv, reply);
 	case 334: {
 	    const char *h = VESmail_smtp_reply_get_text(reply, NULL);
@@ -190,9 +208,17 @@ int VESmail_smtp_start_fn_r_auth(VESmail_smtp_track *trk, VESmail_smtp_reply *re
 		    return rs;
 		}
 	    }
+	    return VESmail_smtp_start_login_fail(trk->server, NULL, reply, VESMAIL_E_SASL);
 	}
+	default:
+	    break;
     }
-    return VESmail_smtp_start_login_fail(trk->server, NULL, reply, 0);
+    VESMAIL_SMTP(srv)->state = VESMAIL_SMTP_S_START;
+    VESmail_server_logauth(srv, VESMAIL_E_RELAY, 0);
+    VESmail_server_abuse_peer(srv, 10);
+    VESmail_server_abuse_user(srv, 10);
+    VESmail_server_disconnect(srv);
+    return VESmail_smtp_reply_send(srv, reply);
 }
 
 int VESmail_smtp_fwd_ehlo(VESmail_server *srv) {
@@ -202,16 +228,24 @@ int VESmail_smtp_fwd_ehlo(VESmail_server *srv) {
 
 int VESmail_smtp_fwd_starttls(VESmail_server *srv) {
     VESmail_smtp_track_new(srv, &VESmail_smtp_start_fn_r_starttls);
+    VESMAIL_SRV_DEBUG(srv, 1, sprintf(debug, "STARTTLS"))
     return VESmail_smtp_cmd_fwda(srv, "STARTTLS", 0);
 }
 
 int VESmail_smtp_fwd_login(VESmail_server *srv) {
-    if (!srv->sasl) return VESmail_smtp_start_login_fail(srv, "SASL is not available on remote SMTP host", NULL, VESMAIL_E_CONF);
+    if (!srv->sasl) return VESmail_smtp_start_login_fail(srv, VESmail_server_ERRCODE(VESMAIL_E_SASL) " SASL is not available on remote SMTP host", NULL, VESMAIL_E_CONF);
     VESmail_smtp_track_new(srv, &VESmail_smtp_start_fn_r_auth);
     char *ir = VESmail_sasl_process(srv->sasl, NULL, 0);
+    VESMAIL_SRV_DEBUG(srv, 1, sprintf(debug, "AUTH %s", VESmail_sasl_get_name(srv->sasl)))
     int rs = VESmail_smtp_cmd_fwda(srv, "AUTH", (ir ? 2 : 1), VESmail_sasl_get_name(srv->sasl), ir);
     free(ir);
     return rs;
+}
+
+int VESmail_smtp_start_connect(struct VESmail_server *srv) {
+    VESMAIL_SMTP(srv)->state = VESMAIL_SMTP_S_CONN;
+    VESmail_smtp_track_new(srv, &VESmail_smtp_start_fn_r_conn);
+    return 0;
 }
 
 int VESmail_smtp_auth(VESmail_server *srv, const char *user, const char *pwd, int pwlen) {
@@ -219,7 +253,7 @@ int VESmail_smtp_auth(VESmail_server *srv, const char *user, const char *pwd, in
     VESmail_smtp *smtp = VESMAIL_SMTP(srv);
     if (r >= 0) r = VESmail_server_connect(srv, (smtp->uconf = jVar_get(srv->uconf, "smtp")), "smtp");
     if (r >= 0) {
-	smtp->state = VESMAIL_SMTP_S_CONN;
+	VESmail_smtp_start_connect(srv);
 	jVar *jmode = jVar_get(smtp->uconf, "mode");
 	if (jmode) {
 	    const char *s = jmode->vString;
@@ -227,9 +261,22 @@ int VESmail_smtp_auth(VESmail_server *srv, const char *user, const char *pwd, in
 	    VESMAIL_SRV_DEBUG(srv, 1, sprintf(debug, "[conf] SMTP mode = %d", mode))
 	    if (mode >= 0) smtp->mode = mode;
 	}
-	VESmail_smtp_track_new(srv, &VESmail_smtp_start_fn_r_conn);
     }
     return r;
+}
+
+int VESmail_smtp_start_probe(VESmail_server *srv, jVar *uconf) {
+    VESmail_smtp *smtp = VESMAIL_SMTP(srv);
+    smtp->helo = strdup(srv->host);
+    smtp->flags |= VESMAIL_SMTP_F_DBG099;
+    int r = VESmail_server_connect(srv, (smtp->uconf = uconf), NULL);
+    if (r < 0) {
+	char *err = VESmail_server_errorStr(srv, r);
+	r = VESmail_smtp_start_login_fail(srv, err, NULL, r);
+	free(err);
+	return r;
+    }
+    return VESmail_smtp_start_connect(srv);
 }
 
 int VESmail_smtp_start_sasl(VESmail_server *srv, const char *auth, int authl) {

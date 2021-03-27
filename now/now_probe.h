@@ -30,40 +30,7 @@
  *
  ***************************************************************************/
 
-#ifndef VESMAIL_ENUM
-#define	VESMAIL_ENUM(_type)	unsigned char
-#endif
+struct VESmail_server;
+struct jVar;
 
-#define	VESMAIL_SASL_MECHS()	\
-    VESMAIL_VERB(PLAIN) \
-    VESMAIL_VERB(LOGIN) \
-    VESMAIL_VERB(XOAUTH2)
-
-#define	VESMAIL_VERB(verb)	VESMAIL_SASL_M_ ## verb,
-enum VESmail_sasl_mech { VESMAIL_SASL_MECHS() VESMAIL_SASL__END };
-#undef VESMAIL_VERB
-
-typedef struct VESmail_sasl {
-    char *user;
-    char *passwd;
-    int pwlen;
-    VESMAIL_ENUM(VESmail_sasl_mech) mech;
-    short int state;
-    char *(* tokenfn)(struct VESmail_sasl *, const char *token, int len);
-    void (* freefn)(struct VESmail_sasl *);
-    struct VESmail_sasl *chain;
-    char data[0];
-} VESmail_sasl;
-
-#define	VESMAIL_SASL_SRV_LAST	VESMAIL_SASL_M_LOGIN
-
-extern const char *VESmail_sasl_mechs[];
-
-struct VESmail_sasl *VESmail_sasl_new_client(int mech);
-struct VESmail_sasl *VESmail_sasl_new_server(int mech);
-void VESmail_sasl_set_user(struct VESmail_sasl *sasl, const char *user, int len);
-void VESmail_sasl_set_passwd(struct VESmail_sasl *sasl, const char *passwd, int len);
-char *VESmail_sasl_process(struct VESmail_sasl *sasl, const char *token, int len);
-#define VESmail_sasl_authd(sasl)	((sasl)->user && (sasl)->passwd)
-#define VESmail_sasl_get_name(sasl)	(VESmail_sasl_mechs[(sasl)->mech])
-void VESmail_sasl_free(struct VESmail_sasl *sasl);
+int VESmail_now_probe(struct VESmail_server *srv, struct jVar *uconf, const char *token);

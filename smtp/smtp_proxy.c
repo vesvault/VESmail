@@ -39,6 +39,7 @@
 #include <libVES/User.h>
 #include <libVES/List.h>
 #include <libVES/VaultItem.h>
+#include <libVES/Ref.h>
 #include "../VESmail.h"
 #include "../lib/mail.h"
 #include "../lib/optns.h"
@@ -182,7 +183,7 @@ int VESmail_smtp_proxy_cmd_rcpt(VESmail_server *srv, VESmail_smtp_cmd *cmd) {
 	    static const VESmail_smtp_reply re = {
 		.code = 501,
 		.dsn = 0,
-		.head = "Recipient missing."
+		.head = VESmail_server_ERRCODE(VESMAIL_E_PARAM) " Recipient missing."
 	    };
 	    return VESmail_smtp_proxy_qreply(srv, &re);
 	}
@@ -197,7 +198,7 @@ int VESmail_smtp_proxy_cmd_rcpt(VESmail_server *srv, VESmail_smtp_cmd *cmd) {
 	    static const VESmail_smtp_reply re = {
 		.code = 501,
 		.dsn = 0,
-		.head = "VESmail recipient is unparsable."
+		.head = VESmail_server_ERRCODE(VESMAIL_E_PARAM) " VESmail recipient is unparsable."
 	    };
 	    return VESmail_smtp_proxy_qreply(srv, &re);
 	}
@@ -206,15 +207,42 @@ int VESmail_smtp_proxy_cmd_rcpt(VESmail_server *srv, VESmail_smtp_cmd *cmd) {
 	    case VESMAIL_SMTP_M_FALLBACK: {
 		libVES_List *l = libVES_User_activeVaultKeys(u, NULL, srv->ves);
 		libVES_List_free(l);
-		if (l || !libVES_checkError(srv->ves, LIBVES_E_NOTFOUND)) break;
+		char p_e;
+		if (l) {
+		    char buf[192];
+		    char *d = buf;
+		    const char *s = u->email;
+		    if (s) while (d < buf + sizeof(buf) - 1) {
+			char c = *s++;
+			if (!c) break;
+			*d++ = (c >= 'A' && c <= 'Z') ? (c | 0x20) : c;
+		    }
+		    if (d > buf + sizeof(buf) - 8) break;
+		    strcpy(d, "!plain");
+		    libVES_Ref *p_r = libVES_External_new(srv->optns->vesDomain, buf);
+		    libVES_VaultItem *p_i = libVES_VaultItem_get(p_r, srv->ves);
+		    libVES_VaultItem_free(p_i);
+		    libVES_Ref_free(p_r);
+		    p_e = !p_i;
+		} else {
+		    p_e = 1;
+		}
+		if (p_e && !libVES_checkError(srv->ves, LIBVES_E_NOTFOUND)) {
+		    char *e = VESmail_server_errorStr(srv, VESMAIL_E_VES);
+		    int r = VESmail_smtp_reply_sendln(srv, 451, 0, VESMAIL_SMTP_RF_FINAL, e);
+		    free(e);
+		    return r;
+		}
 		if (smtp->mode == VESMAIL_SMTP_M_REJECT) {
+		    if (l) break;
 		    static const VESmail_smtp_reply re = {
 			.code = 450,
 			.dsn = 0x4100,
-			.head = "VESmail user is not on VESvault yet, relaying denied."
+			.head = VESmail_server_ERRCODE(VESMAIL_E_DENIED) " VESmail user is not on VESvault yet, relaying denied."
 		    };
 		    return VESmail_smtp_proxy_qreply(srv, &re);
 		} else {
+		    if (l && p_e) break;
 		    VESmail_smtp_proxy_plain(srv);
 		}
 	    }
@@ -347,7 +375,7 @@ int VESmail_smtp_proxy_cmd(VESmail_server *srv, VESmail_smtp_cmd *cmd) {
 	    static const VESmail_smtp_reply re = {
 		.code = 503,
 		.dsn = 0,
-		.head = "Not allowed in this context."
+		.head = VESmail_server_ERRCODE(VESMAIL_E_DENIED) " Not allowed in this context."
 	    };
 	    return VESmail_smtp_proxy_qreply(srv, &re);
 	}

@@ -48,6 +48,7 @@
 #include "../srv/arch.h"
 #include "../srv/server.h"
 #include "../srv/conf.h"
+#include "../srv/tls.h"
 #include "now.h"
 #include "now_store.h"
 
@@ -153,7 +154,8 @@ VESmail *VESmail_now_store_apply(VESmail *mail) {
 }
 
 
-#define VESmail_now_store_error(srv, code, err, mail)	(VESmail_now_log(srv, "PUT", code, ((mail) ? (mail)->msgid : NULL)), VESmail_now_error(srv, code, err))
+#define VESmail_now_store_error(srv, code, err)	(VESmail_now_log(srv, "PUT", code, NULL), VESmail_now_error(srv, code, err))
+#define VESmail_now_store_error_msg(srv, code, err, mail)	(VESmail_now_log(srv, "PUT", code, "msgid", (mail)->msgid, NULL), VESmail_now_error(srv, code, err))
 
 int VESmail_now_store_hdrpush(VESmail_parse *parse, VESmail_header *hdr, int bufd) {
     VESmail *mail = parse->mail;
@@ -162,14 +164,14 @@ int VESmail_now_store_hdrpush(VESmail_parse *parse, VESmail_header *hdr, int buf
     if (!mail->ves) {
 	mail->ves = srv->ves;
 	libVES_VaultItem *vi = VESmail_get_vaultItem(mail);
-	if (!vi || !vi->id) return VESmail_now_error(srv, 503, "Failed to retrieve Message-ID\r\n");
+	if (!vi || !vi->id) return VESmail_now_store_error(srv, 503, "Failed to retrieve Message-ID\r\n");
 	libVES_File *fi = libVES_VaultItem_getFile(vi);
 	libVES_User *u = libVES_File_getCreator(fi);
 	char *fname = VESmail_now_filename(mail->msgid, libVES_User_getEmail(u), mail->optns);
-	if (!fname) return VESmail_now_error(srv, 401, "Failed to retrieve the creator info\r\n");
+	if (!fname) return VESmail_now_store_error_msg(srv, 401, "Failed to retrieve the creator info\r\n", mail);
 	int fd = VESmail_arch_creat(fname);
 	free(fname);
-	if (fd < 0) return VESmail_now_store_error(srv, 403, "Error opening the spool file\r\n", mail);
+	if (fd < 0) return VESmail_now_store_error_msg(srv, 403, "Error opening the spool file\r\n", mail);
 	VESmail_now_store_inject(mail->root, fd);
     }
     return VESmail_header_output(parse, hdr);
@@ -200,13 +202,14 @@ int VESmail_now_store_hdrproc(VESmail_parse *parse, VESmail_header *hdr) {
 		}
 		*d = 0;
 		srv->ves = libVES_fromRef(NULL);
+		VESmail_tls_initVES(srv->ves);
 		libVES_setSessionToken(srv->ves, vrfy);
 		if (srv->debug > VESMAIL_DEBUG_LIBVES) srv->ves->debug = srv->debug - VESMAIL_DEBUG_LIBVES;
 	    }
 	    return rs;
 	case VESMAIL_H_BLANK:
 	    if (!srv->ves) {
-		int r = VESmail_now_store_error(srv, 400, "Message-ID: and X-VESmail-Verify: are required\r\n", parse->mail);
+		int r = VESmail_now_store_error_msg(srv, 400, "Message-ID: and X-VESmail-Verify: are required\r\n", parse->mail);
 		if (r < 0) return r;
 		return rs + r;
 	    }
@@ -227,12 +230,12 @@ int VESmail_now_store_put_xform_fn(VESmail_xform *xform, int final, const char *
     int rs = VESmail_parse_process(parse, final, src, srclen);
     if (rs < 0) return rs;
     if (parse->error & VESMAIL_MERR_NOW) {
-	int r = VESmail_now_error(srv, 500, "Error writing the spool file\r\n");
+	int r = VESmail_now_store_error(srv, 500, "Error writing the spool file\r\n");
 	if (r < 0) return r;
 	return rs + r;
     }
     if (final) {
-	VESmail_now_log(srv, "PUT", 201, mail->msgid);
+	VESmail_now_log(srv, "PUT", 201, "msgid", mail->msgid, NULL);
 	VESmail_now_send_status(srv, 201) >= 0 && VESmail_now_send(srv, 1, "\r\n");
     }
     return rs;

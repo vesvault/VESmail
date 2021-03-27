@@ -160,7 +160,7 @@ char *VESmail_sasl_fn_cln_xoauth2(VESmail_sasl *sasl, const char *token, int len
 	    char *buf = NULL;
 	    const char *er = NULL;
 	    int l = VESmail_b64decode(&buf, token, &len, &er);
-	    if (l >= 0) VESmail_arch_log("sasl mech=%s rsp=%s", VESmail_sasl_get_name(sasl), buf);
+	    if (l >= 0) VESmail_arch_log("sasl mech=%s rsp=%.*s", VESmail_sasl_get_name(sasl), l, buf);
 	    free(buf);
 	}
 	sasl->state++;

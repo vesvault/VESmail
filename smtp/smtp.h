@@ -98,6 +98,7 @@ typedef struct VESmail_smtp {
 #define	VESMAIL_SMTP_F_PIPE	0x0001
 #define	VESMAIL_SMTP_F_PLAIN	0x0002
 #define	VESMAIL_SMTP_F_NOWARN	0x0010
+#define	VESMAIL_SMTP_F_DBG099	0x0080
 #define	VESMAIL_SMTP_F_INIT	0
 
 #define VESMAIL_VERB(verb)	VESMAIL_SMTP_V_ ## verb,
@@ -109,4 +110,4 @@ extern const char *VESmail_smtp_modes[];
 
 struct VESmail_server *VESmail_server_new_smtp(struct VESmail_optns *optns);
 int VESmail_smtp_debug_flush(struct VESmail_server *srv, int code, int dsn);
-#define VESmail_smtp_get_bcc(srv)	(((VESmail_conf *)(srv->optns->ref))->bcc)
+#define VESmail_smtp_get_bcc(srv)	(srv->optns->bcc)

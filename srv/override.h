@@ -30,40 +30,40 @@
  *
  ***************************************************************************/
 
+
 #ifndef VESMAIL_ENUM
 #define	VESMAIL_ENUM(_type)	unsigned char
 #endif
 
-#define	VESMAIL_SASL_MECHS()	\
-    VESMAIL_VERB(PLAIN) \
-    VESMAIL_VERB(LOGIN) \
-    VESMAIL_VERB(XOAUTH2)
+#define	VESMAIL_OVRD_MODES()	\
+    VESMAIL_VERB(AUTO, "auto") \
+    VESMAIL_VERB(DENY, "deny") \
+    VESMAIL_VERB(ALLOW, "allow") \
+    VESMAIL_VERB(IGNORE, "ignore")
 
-#define	VESMAIL_VERB(verb)	VESMAIL_SASL_M_ ## verb,
-enum VESmail_sasl_mech { VESMAIL_SASL_MECHS() VESMAIL_SASL__END };
+#define	VESMAIL_VERB(verb, str)	VESMAIL_OVRD_ ## verb,
+enum VESmail_override_modes { VESMAIL_OVRD_MODES() VESMAIL_OVRD__END };
 #undef VESMAIL_VERB
 
-typedef struct VESmail_sasl {
-    char *user;
-    char *passwd;
-    int pwlen;
-    VESMAIL_ENUM(VESmail_sasl_mech) mech;
-    short int state;
-    char *(* tokenfn)(struct VESmail_sasl *, const char *token, int len);
-    void (* freefn)(struct VESmail_sasl *);
-    struct VESmail_sasl *chain;
-    char data[0];
-} VESmail_sasl;
+extern const char *VESmail_override_modes[];
 
-#define	VESMAIL_SASL_SRV_LAST	VESMAIL_SASL_M_LOGIN
+struct libVES;
+struct libVES_VaultItem;
+struct VESmail_optns;
+struct VESmail_conf;
 
-extern const char *VESmail_sasl_mechs[];
+typedef struct VESmail_override {
+    struct VESmail_optns *optns0;
+    struct VESmail_optns *optns1;
+    struct jVar *jvar;
+    char **banner;
+    long code;
+    VESMAIL_ENUM(VESmail_override_modes) mode;
+} VESmail_override;
 
-struct VESmail_sasl *VESmail_sasl_new_client(int mech);
-struct VESmail_sasl *VESmail_sasl_new_server(int mech);
-void VESmail_sasl_set_user(struct VESmail_sasl *sasl, const char *user, int len);
-void VESmail_sasl_set_passwd(struct VESmail_sasl *sasl, const char *passwd, int len);
-char *VESmail_sasl_process(struct VESmail_sasl *sasl, const char *token, int len);
-#define VESmail_sasl_authd(sasl)	((sasl)->user && (sasl)->passwd)
-#define VESmail_sasl_get_name(sasl)	(VESmail_sasl_mechs[(sasl)->mech])
-void VESmail_sasl_free(struct VESmail_sasl *sasl);
+struct VESmail_override *VESmail_override_new(int mode);
+int VESmail_override_load(struct VESmail_override *ovrd, const char *url, struct libVES_VaultItem *vitem, struct libVES *ves);
+int VESmail_override_apply(struct VESmail_override *ovrd, struct VESmail_optns **poptns);
+int VESmail_override_geterror(struct VESmail_override *ovrd, struct libVES *ves, char *buf);
+int VESmail_override_mode(struct VESmail_conf *conf);
+void VESmail_override_free(struct VESmail_override *ovrd);

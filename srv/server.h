@@ -52,8 +52,12 @@ typedef struct VESmail_server {
 	struct VESmail_tls_client *client;
     } tls;
     struct VESmail_sasl *sasl;
+    struct VESmail_override *override;
     const char *host;
+    char *login;
     void (* logfn)(void *logref, const char *fmt, ...);
+    int (* abusefn)(void *ref, void *key, int keylen, int val);
+    struct VESmail_override * (* ovrdfn)(void *ref);
     struct {
 	int unauthd;
 	int authd;
@@ -62,9 +66,12 @@ typedef struct VESmail_server {
     union {
 	struct VESmail_proc *proc;
 	void *logref;
+	void *abuseref;
+	void *ovrdref;
     };
     short int flags;
-    short int debug;
+    char debug;
+    unsigned char subcode;
     int lastwrite;
     int dumpfd;
     long long int reqbytes;
@@ -74,9 +81,13 @@ typedef struct VESmail_server {
 
 #define	VESMAIL_E_SRV_STARTTLS	-80
 
+#define	VESMAIL_SRV_MAXLOGIN	79
+
 #define	VESMAIL_SRVR_NOREQ	0x0001
 #define	VESMAIL_SRVR_NORSP	0x0002
 #define	VESMAIL_SRVR_NOTHR	0x0004
+#define	VESMAIL_SRVR_NOLOOP	0x0008
+#define	VESMAIL_SRVR_NOLOG	0x1000
 
 #define	VESMAIL_SRVF_OVER	0x0010
 #define	VESMAIL_SRVF_SHUTDOWN	0x0020
@@ -106,5 +117,10 @@ char *VESmail_server_errorStr(struct VESmail_server *srv, int err);
 char *VESmail_server_sockname(struct VESmail_server *srv, int peer);
 void VESmail_server_bytes(struct VESmail_server *srv, int done, int st);
 char *VESmail_server_timestamp();
-#define VESmail_server_log(srv, ...)	if ((srv)->logfn) (srv)->logfn((srv)->logref, __VA_ARGS__)
+#define VESmail_server_log(srv, ...)	((srv)->logfn && ((srv)->logfn((srv)->logref, __VA_ARGS__), 0))
+int VESmail_server_logauth(struct VESmail_server *srv, int er, long usec);
+#define VESmail_server_ERRCODE2(er)	"XVES" #er
+#define VESmail_server_ERRCODE(er)	VESmail_server_ERRCODE2(er)
+int VESmail_server_abuse_peer(struct VESmail_server *srv, int val);
+int VESmail_server_abuse_user(struct VESmail_server *srv, int val);
 void VESmail_server_free(struct VESmail_server *srv);

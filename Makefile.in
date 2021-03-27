@@ -107,7 +107,8 @@ am__objects_1 = lib/mail.$(OBJEXT) lib/optns.$(OBJEXT) \
 	lib/banner.$(OBJEXT) lib/util.$(OBJEXT)
 am__objects_2 = srv/server.$(OBJEXT) srv/arch.$(OBJEXT) \
 	srv/tls.$(OBJEXT) srv/sasl.$(OBJEXT) srv/conf.$(OBJEXT) \
-	srv/daemon.$(OBJEXT) srv/proc.$(OBJEXT) srv/guard.$(OBJEXT)
+	srv/daemon.$(OBJEXT) srv/proc.$(OBJEXT) srv/override.$(OBJEXT) \
+	srv/guard.$(OBJEXT)
 am__objects_3 = imap/imap.$(OBJEXT) imap/imap_xform.$(OBJEXT) \
 	imap/imap_token.$(OBJEXT) imap/imap_track.$(OBJEXT) \
 	imap/imap_start.$(OBJEXT) imap/imap_proxy.$(OBJEXT) \
@@ -119,7 +120,8 @@ am__objects_4 = smtp/smtp.$(OBJEXT) smtp/smtp_cmd.$(OBJEXT) \
 	smtp/smtp_reply.$(OBJEXT) smtp/smtp_track.$(OBJEXT) \
 	smtp/smtp_start.$(OBJEXT) smtp/smtp_proxy.$(OBJEXT) \
 	smtp/smtp_xves.$(OBJEXT)
-am__objects_5 = now/now.$(OBJEXT) now/now_store.$(OBJEXT)
+am__objects_5 = now/now.$(OBJEXT) now/now_store.$(OBJEXT) \
+	now/now_probe.$(OBJEXT)
 am__objects_6 = cli/vesmail.$(OBJEXT) cli/help.$(OBJEXT) \
 	cli/tty.$(OBJEXT)
 am__objects_7 =
@@ -328,6 +330,7 @@ srv/sasl.c \
 srv/conf.c \
 srv/daemon.c \
 srv/proc.c \
+srv/override.c \
 srv/guard.c
 
 SRV_HFILES = srv/server.h \
@@ -337,6 +340,7 @@ srv/sasl.h \
 srv/conf.h \
 srv/daemon.h \
 srv/proc.h \
+srv/override.h \
 srv/guard.h
 
 IMAP_CFILES = imap/imap.c \
@@ -383,10 +387,12 @@ smtp/smtp_proxy.h \
 smtp/smtp_xves.h
 
 NOW_CFILES = now/now.c \
-now/now_store.c
+now/now_store.c \
+now/now_probe.c
 
 NOW_HFILES = now/now.h \
-now/now_store.h
+now/now_store.h \
+now/now_probe.h
 
 CLI_CFILES = cli/vesmail.c \
 cli/help.c \
@@ -537,6 +543,8 @@ srv/conf.$(OBJEXT): srv/$(am__dirstamp) srv/$(DEPDIR)/$(am__dirstamp)
 srv/daemon.$(OBJEXT): srv/$(am__dirstamp) \
 	srv/$(DEPDIR)/$(am__dirstamp)
 srv/proc.$(OBJEXT): srv/$(am__dirstamp) srv/$(DEPDIR)/$(am__dirstamp)
+srv/override.$(OBJEXT): srv/$(am__dirstamp) \
+	srv/$(DEPDIR)/$(am__dirstamp)
 srv/guard.$(OBJEXT): srv/$(am__dirstamp) srv/$(DEPDIR)/$(am__dirstamp)
 imap/$(am__dirstamp):
 	@$(MKDIR_P) imap
@@ -598,6 +606,8 @@ now/$(DEPDIR)/$(am__dirstamp):
 	@: > now/$(DEPDIR)/$(am__dirstamp)
 now/now.$(OBJEXT): now/$(am__dirstamp) now/$(DEPDIR)/$(am__dirstamp)
 now/now_store.$(OBJEXT): now/$(am__dirstamp) \
+	now/$(DEPDIR)/$(am__dirstamp)
+now/now_probe.$(OBJEXT): now/$(am__dirstamp) \
 	now/$(DEPDIR)/$(am__dirstamp)
 cli/$(am__dirstamp):
 	@$(MKDIR_P) cli
@@ -664,6 +674,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@lib/$(DEPDIR)/ves.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@lib/$(DEPDIR)/xform.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@now/$(DEPDIR)/now.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@now/$(DEPDIR)/now_probe.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@now/$(DEPDIR)/now_store.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@smtp/$(DEPDIR)/smtp.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@smtp/$(DEPDIR)/smtp_cmd.Po@am__quote@
@@ -676,6 +687,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@srv/$(DEPDIR)/conf.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@srv/$(DEPDIR)/daemon.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@srv/$(DEPDIR)/guard.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@srv/$(DEPDIR)/override.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@srv/$(DEPDIR)/proc.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@srv/$(DEPDIR)/sasl.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@srv/$(DEPDIR)/server.Po@am__quote@

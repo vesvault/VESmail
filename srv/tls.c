@@ -88,7 +88,9 @@ int VESmail_tls_init() {
     return 0;
 }
 
-const char *VESmail_tls_levels[] = { "none", "optional", "unsecure", "medium", "high", NULL };
+#define VESMAIL_VERB(verb, str)	str,
+const char *VESmail_tls_levels[] = { VESMAIL_TLS_LEVELS() NULL };
+#undef VESMAIL_VERB
 
 VESmail_tls_client *VESmail_tls_client_new(jVar *conf, char *host) {
     VESmail_tls_client *tls = malloc(sizeof(VESmail_tls_client));

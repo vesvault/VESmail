@@ -79,3 +79,4 @@ struct VESmail_daemon **VESmail_daemon_execute(struct VESmail_conf_daemon *cds);
 int VESmail_daemon_launchall(struct VESmail_daemon **daemons);
 int VESmail_daemon_watchall(struct VESmail_daemon **daemons, void (* watchfn)(struct VESmail_proc *proc, void *arg), void *arg);
 void VESmail_daemon_freeall(struct VESmail_daemon **daemons);
+#define	VESmail_daemon_cleanup()	VESmail_proc_cleanup()

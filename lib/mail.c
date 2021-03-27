@@ -50,8 +50,8 @@
 #include "optns.h"
 #include "mail.h"
 
-#if LIBVES_VERSION_NUMBER < 0x01000100
-#error libVES >= 1.01 is required - "https://github.com/vesvault/libVES.c"
+#if LIBVES_VERSION_NUMBER < 0x01000200
+#error libVES >= 1.02 is required - "https://github.com/vesvault/libVES.c"
 #endif
 
 
@@ -202,6 +202,7 @@ int VESmail_save_ves(VESmail *mail) {
 		VESmail_logrcpt(mail, vkey, "audit");
 		libVES_List_push(lst, vkey);
 	    }
+	    if (!mail->share) libVES_List_push(lst, mail->ves->vaultKey);
 	    void *r = libVES_VaultItem_entries(vi, lst, LIBVES_SH_ADD);
 	    libVES_List_free(lst);
 	    if (!r) return VESMAIL_E_VES;

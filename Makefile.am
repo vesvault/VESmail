@@ -31,6 +31,7 @@ srv/sasl.c \
 srv/conf.c \
 srv/daemon.c \
 srv/proc.c \
+srv/override.c \
 srv/guard.c
 
 SRV_HFILES = srv/server.h \
@@ -40,6 +41,7 @@ srv/sasl.h \
 srv/conf.h \
 srv/daemon.h \
 srv/proc.h \
+srv/override.h \
 srv/guard.h
 
 IMAP_CFILES = imap/imap.c \
@@ -86,10 +88,12 @@ smtp/smtp_proxy.h \
 smtp/smtp_xves.h
 
 NOW_CFILES = now/now.c \
-now/now_store.c
+now/now_store.c \
+now/now_probe.c
 
 NOW_HFILES = now/now.h \
-now/now_store.h
+now/now_store.h \
+now/now_probe.h
 
 CLI_CFILES = cli/vesmail.c \
 cli/help.c \

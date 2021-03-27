@@ -185,7 +185,7 @@ void VESmail_imap_proxy_fetch_prep(VESmail_imap_fetch *fetch, VESmail_imap_token
 	    }
 	    return;
 	case VESMAIL_IMAP_FM_START:
-	    sprintf(rhdr, "X-VESMAIL_M_RANGE_%lu", fetch->range[0]);
+	    sprintf(rhdr, "X-VESMAIL_M_RANGE_%lu-%s", fetch->range[0], VESmail_imap_fetch_rhash(fetch, rstr));
 	    if (fetch->range[0]) {
 		strcpy(rstr, "<0>");
 	    } else {
@@ -193,7 +193,7 @@ void VESmail_imap_proxy_fetch_prep(VESmail_imap_fetch *fetch, VESmail_imap_token
 	    }
 	    break;
 	case VESMAIL_IMAP_FM_RANGE: {
-	    sprintf(rhdr, "X-VESMAIL_M_RANGE_%lu_%lu", fetch->range[0], fetch->range[1]);
+	    sprintf(rhdr, "X-VESMAIL_M_RANGE_%lu_%lu-%s", fetch->range[0], fetch->range[1], VESmail_imap_fetch_rhash(fetch, rstr));
 	    unsigned long long int rlen = fetch->range[0];
 	    switch (fetch->stype) {
 		case VESMAIL_IMAP_FS_MIME:
@@ -423,5 +423,5 @@ int VESmail_imap_proxy_init(VESmail_server *srv) {
     VESMAIL_IMAP(srv)->untaggedfn = &VESmail_imap_proxy_fn_rsp_u;
     srv->req_in->imap->state = VESMAIL_IMAP_X_INIT;
     VESMAIL_IMAP(srv)->state = VESMAIL_IMAP_S_PROXY;
-    return 0;
+    return VESmail_server_logauth(srv, 0, 0);
 }

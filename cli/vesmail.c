@@ -59,6 +59,7 @@
 #include "../srv/conf.h"
 #include "../srv/daemon.h"
 #include "../srv/proc.h"
+#include "../srv/override.h"
 #include "../srv/guard.h"
 #include "help.h"
 #include "vesmail.h"
@@ -69,7 +70,6 @@ struct VESmail_conf conf = {
     .manifest = NULL,
     .app = NULL,
     .guard = 0,
-    .bcc = NULL,
     .sni = {
 	.prefix = NULL
     },
@@ -81,13 +81,16 @@ struct VESmail_conf conf = {
 	.manifest = NULL,
 	.headers = NULL,
 	.maxSize = 1048576
-    }
+    },
+    .abuseSense = 0,
+    .overrides = VESMAIL_OVRD_AUTO
 };
 
 struct param_st params = {
     .user = NULL,
     .veskey = NULL,
     .token = NULL,
+    .dumpfd = NULL,
     .confPath = VESMAIL_CONF_PATH "vesmail.conf",
     .veskeyPath = VESMAIL_CONF_PATH "veskeys/",
     .sni = NULL,
@@ -137,6 +140,10 @@ int cli_snifn(VESmail_server *srv, const char *sni) {
 	VESmail_tls_server_ctxreset(srv->tls.server);
     }
     return 0;
+}
+
+VESmail_override *cli_ovrdfn(void *ovrdref) {
+    return VESmail_override_new(VESmail_override_mode(&conf));
 }
 
 int do_convert(VESmail *mail, int in, int out) {
@@ -481,6 +488,8 @@ int main(int argc, char **argv) {
 	    break;
 	}
 	case cmd_daemon: {
+	    if (params.dumpfd) sscanf(params.dumpfd, "%d", &conf.dumpfd);
+	    else conf.dumpfd = -1;
 	    struct VESmail_conf_daemon *cds = VESmail_conf_daemon_build(&conf, jconf);
 	    VESmail_daemon **daemons = VESmail_daemon_execute(cds);
 	    if (!daemons) {
@@ -506,6 +515,7 @@ int main(int argc, char **argv) {
 	    }
 	    VESmail_daemon_freeall(daemons);
 	    VESmail_conf_daemon_free(cds);
+	    VESmail_daemon_cleanup();
 	    break;
 	}
 	default:

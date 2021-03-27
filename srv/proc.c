@@ -40,14 +40,29 @@
 #include <stdarg.h>
 #include <stdio.h>
 #include <jVar.h>
+#include <time.h>
 #include "../VESmail.h"
+#include "../util/jTree.h"
 #include "arch.h"
 #include "conf.h"
 #include "server.h"
 #include "tls.h"
 #include "daemon.h"
+#include "override.h"
 #include "proc.h"
 
+#define	VESMAIL_PROC_ABUSE_GRACE	3600
+
+jTree *VESmail_proc_abuse_jtree = NULL;
+void *VESmail_proc_abuse_mutex = NULL;
+
+struct VESmail_proc_abuse {
+    unsigned long int tstamp;
+    struct VESmail_proc_abuse_key {
+	int len;
+	char data[0];
+    } key;
+};
 
 void VESmail_proc_logfn(void *logref, const char *fmt, ...) {
     VESmail_proc *proc = logref;
@@ -57,6 +72,48 @@ void VESmail_proc_logfn(void *logref, const char *fmt, ...) {
     va_start(va, fmt);
     VESmail_conf_vlog(proc->conf, fbuf, va);
     va_end(va);
+}
+
+int VESmail_proc_abuse_cmpfn(void *a, void *b, void *arg) {
+    struct VESmail_proc_abuse *aa = a;
+    struct VESmail_proc_abuse *ab = b;
+    if (aa->key.len > ab->key.len) {
+	return 1;
+    }
+    if (aa->key.len < ab->key.len) {
+	return -1;
+    }
+    return memcmp(aa->key.data, ab->key.data, aa->key.len);
+}
+
+int VESmail_proc_abusefn(void *ref, void *key, int keylen, int val) {
+    struct VESmail_proc_abuse *ab = malloc(sizeof(struct VESmail_proc_abuse) + keylen);
+    ab->key.len = keylen;
+    memcpy(ab->key.data, key, keylen);
+    time_t t = time(NULL);
+    unsigned char depth = 0;
+    VESmail_arch_mutex_lock(&VESmail_proc_abuse_mutex);
+    void **ap = jTree_seek(&VESmail_proc_abuse_jtree, ab, NULL, &VESmail_proc_abuse_cmpfn, &depth);
+    if (*ap) {
+	free(ab);
+	ab = *ap;
+    } else {
+	ab->tstamp = t - VESMAIL_PROC_ABUSE_GRACE;
+	*ap = ab;
+    }
+    int dt = t - ab->tstamp;
+    if (dt > VESMAIL_PROC_ABUSE_GRACE) {
+	ab->tstamp = t - VESMAIL_PROC_ABUSE_GRACE;
+    }
+    if (val > 0) {
+	ab->tstamp += val * ((VESmail_proc *) ref)->conf->abuseSense;
+    }
+    VESmail_arch_mutex_unlock(&VESmail_proc_abuse_mutex);
+    return t - ab->tstamp;
+}
+
+VESmail_override *VESmail_proc_ovrdfn(void *ovrdref) {
+    return VESmail_override_new(VESmail_override_mode(((VESmail_proc *) ovrdref)->conf));
 }
 
 VESmail_proc *VESmail_proc_new(VESmail_daemon *daemon, int fd) {
@@ -80,7 +137,10 @@ VESmail_proc *VESmail_proc_new(VESmail_daemon *daemon, int fd) {
 	srv->debug = daemon->debug;
 	srv->logfn = &VESmail_proc_logfn;
 	srv->host = daemon->conf->hostname;
+	srv->ovrdfn = &VESmail_proc_ovrdfn;
+	srv->dumpfd = daemon->conf->dumpfd;
 	VESmail_server_set_tls(srv, daemon->conf->tls);
+	if (daemon->conf->abuseSense > 0) srv->abusefn = &VESmail_proc_abusefn;
 	int r = VESmail_server_set_sock(srv, fd);
 	if (r < 0) VESmail_proc_shutdown(proc, r);
     } else {
@@ -166,4 +226,14 @@ void VESmail_proc_ctx_free(struct VESmail_proc_ctx *ctx) {
 	jVar_free(ctx->jconf);
 	free(ctx);
     }
+}
+
+void VESmail_proc_cleanup() {
+    void **pobj;
+    for (pobj = jTree_first(VESmail_proc_abuse_jtree); pobj; pobj = jTree_next(pobj)) {
+	free(*pobj);
+	*pobj = NULL;
+    }
+    jTree_collapse(&VESmail_proc_abuse_jtree);
+    VESmail_arch_mutex_done(VESmail_proc_abuse_mutex);
 }

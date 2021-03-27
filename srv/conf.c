@@ -44,6 +44,7 @@
 #include "../VESmail.h"
 #include "../lib/optns.h"
 #include "tls.h"
+#include "override.h"
 #include "arch.h"
 #include "conf.h"
 
@@ -261,7 +262,9 @@ void VESmail_conf_apply(VESmail_conf *conf, jVar *jconf) {
     }
     if (VESmail_conf_setpstr(&conf->bannerPath, jVar_get(jconf, "banner"), (conf->allocd & VESmail_conf_ALLOCD_bannerPath))) conf->allocd |= VESmail_conf_ALLOCD_bannerPath;
     if (VESmail_conf_setpstr(&conf->optns->audit, jVar_get(jconf, "audit"), (conf->allocd & VESmail_conf_ALLOCD_audit))) conf->allocd |= VESmail_conf_ALLOCD_audit;
-    if (VESmail_conf_setpstr(&conf->bcc, jVar_get(jconf, "bcc"), (conf->allocd & VESmail_conf_ALLOCD_bcc))) conf->allocd |= VESmail_conf_ALLOCD_bcc;
+    if (VESmail_conf_setpstr(&conf->optns->bcc, jVar_get(jconf, "bcc"), (conf->allocd & VESmail_conf_ALLOCD_bcc))) conf->allocd |= VESmail_conf_ALLOCD_bcc;
+    jVar *jovrs = jVar_get(jconf, "overrides");
+    if (jovrs) conf->overrides = jVar_getEnum(jovrs, VESmail_override_modes);
     conf->optns->getBanners = &VESmail_conf_get_banners;
     conf->optns->getApp = &VESmail_conf_get_app;
     conf->optns->ref = conf;
@@ -292,6 +295,8 @@ void VESmail_conf_applyroot(VESmail_conf *conf, jVar *jconf, int (* snifn)(struc
 	    conf->now.manifest = NULL;
 	}
     }
+    jVar *abuse = jVar_get(jconf, "abuse-sense");
+    if (abuse) conf->abuseSense = jVar_getInt(abuse);
 }
 
 jVar *VESmail_conf_sni_read(VESmail_conf *conf, const char *sni, void (* errfn)(const char *fmt, ...), unsigned long *mtime) {
@@ -364,7 +369,7 @@ void VESmail_conf_closelog(VESmail_conf *conf) {
 void VESmail_conf_free(VESmail_conf *conf) {
     if (conf) {
 	if (conf->allocd & VESmail_conf_ALLOCD_audit) free(conf->optns->audit);
-	if (conf->allocd & VESmail_conf_ALLOCD_bcc) free(conf->bcc);
+	if (conf->allocd & VESmail_conf_ALLOCD_bcc) free(conf->optns->bcc);
 	VESmail_optns_free(conf->optns);
 	VESmail_tls_server_free(conf->tls);
 	jVar_free(conf->app);

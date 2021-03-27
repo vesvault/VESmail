@@ -85,7 +85,7 @@ typedef struct VESmail_imap {
 #define	VESMAIL_IMAP_F_BYE	0x0001
 #define	VESMAIL_IMAP_F_CDATA	0x0002
 #define	VESMAIL_IMAP_F_RSP	0x0004
-#define	VESMAIL_IMAP_F_DETACHD	0x0004
+#define	VESMAIL_IMAP_F_DETACHD	0x0008
 
 #define	VESMAIL_IMAP_F_MIMEBUG	0x0010
 #define	VESMAIL_IMAP_F_MIMEOK	0x0020
@@ -95,7 +95,8 @@ typedef struct VESmail_imap {
 
 #define	VESMAIL_IMAP_F_INIT	0
 
-#define VESMAIL_IMAP_OOR_SENSE	16
+#define	VESMAIL_IMAP_OOR_SENSE		16
+#define	VESMAIL_IMAP_OOR_MAXBYTES	65536
 
 struct VESmail_parse;
 

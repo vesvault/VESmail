@@ -60,6 +60,7 @@ void VESmail_smtp_debug(VESmail_server *srv, const char *msg) {
     struct VESmail_smtp_debug **ptr = &VESMAIL_SMTP(srv)->debug;
     while (*ptr) ptr = &(*ptr)->chain;
     *ptr = dbg;
+    if (VESMAIL_SMTP(srv)->flags & VESMAIL_SMTP_F_DBG099) VESmail_smtp_debug_flush(srv, 99, 0);
 }
 
 int VESmail_smtp_debug_flush(VESmail_server *srv, int code, int dsn) {

@@ -38,13 +38,16 @@ extern char *VESmail_tls_caBundle;
 #define	VESMAIL_ENUM(_type)	unsigned char
 #endif
 
-enum VESmail_tls_level {
-    VESMAIL_TLS_NONE,
-    VESMAIL_TLS_OPTIONAL,
-    VESMAIL_TLS_UNSECURE,
-    VESMAIL_TLS_MEDIUM,
-    VESMAIL_TLS_HIGH
-};
+#define VESMAIL_TLS_LEVELS() \
+    VESMAIL_VERB(NONE, "none") \
+    VESMAIL_VERB(OPTIONAL, "optional") \
+    VESMAIL_VERB(UNSECURE, "unsecure") \
+    VESMAIL_VERB(MEDIUM, "medium") \
+    VESMAIL_VERB(HIGH, "high")
+
+#define VESMAIL_VERB(verb, str)	VESMAIL_TLS_ ## verb,
+enum VESmail_tls_level { VESMAIL_TLS_LEVELS() VESMAIL_TLS__END };
+#undef VESMAIL_VERB
 
 typedef struct VESmail_tls_client {
     char *peer;

@@ -38,3 +38,4 @@ int VESmail_imap_start_ready(struct VESmail_server *srv);
 int VESmail_imap_start_sasl(struct VESmail_server *srv, struct VESmail_imap_token *req);
 int VESmail_imap_start_req_fn(struct VESmail_server *srv, struct VESmail_imap_token *token);
 int VESmail_imap_start_sasl_cont(struct VESmail_server *srv, struct VESmail_imap_token *chlg);
+int VESmail_imap_start_probe(struct VESmail_server *srv, struct jVar *uconf);

@@ -46,7 +46,6 @@ typedef struct VESmail_conf {
     char **bannerPath;
     char *manifest;
     struct jVar *app;
-    char **bcc;
     void *mutex;
     struct {
 	char *prefix;
@@ -62,6 +61,9 @@ typedef struct VESmail_conf {
 	char **headers;
 	long long int maxSize;
     } now;
+    int abuseSense;
+    int dumpfd;
+    char overrides;
     char guard;
     char allocd;
 } VESmail_conf;
@@ -86,6 +88,9 @@ void VESmail_conf_vlog(struct VESmail_conf *conf, const char *fmt, void *va);
 void VESmail_conf_log(struct VESmail_conf *conf, const char *fmt, ...);
 void VESmail_conf_closelog(struct VESmail_conf *conf);
 void VESmail_conf_free(struct VESmail_conf *conf);
+
+void VESmail_conf_setstr(char **val, struct jVar *conf);
+int VESmail_conf_setpstr(char ***d, struct jVar *b, int f);
 
 struct VESmail_conf_daemon *VESmail_conf_daemon_build(struct VESmail_conf *conf, struct jVar *jconf);
 void VESmail_conf_daemon_free(struct VESmail_conf_daemon *cfd);

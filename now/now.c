@@ -41,6 +41,7 @@
 #include <libVES/VaultItem.h>
 #include <libVES/File.h>
 #include <libVES/User.h>
+#include <stdarg.h>
 #include "../VESmail.h"
 #include "../srv/server.h"
 #include "../lib/mail.h"
@@ -50,16 +51,30 @@
 #include "../srv/conf.h"
 #include "../srv/tls.h"
 #include "now_store.h"
+#include "now_probe.h"
 #include "now.h"
 
 int VESmail_now_send(VESmail_server *srv, int final, const char *str) {
     return VESmail_xform_process(srv->rsp_out, final, str, strlen(str));
 }
 
-void VESmail_now_log(VESmail_server *srv, const char *meth, short code, const char *msgid) {
+void VESmail_now_log(VESmail_server *srv, const char *meth, int code, ...) {
     char *host = VESmail_server_sockname(srv, 0);
     char *peer = VESmail_server_sockname(srv, 1);
-    VESmail_server_log(srv, (msgid ? "now %s %d srv=%s peer=%s msgid=%.80s" : "now %s %d srv=%s peer=%s"), meth, code, host, peer, msgid);
+    char buf[256];
+    char *d = buf;
+    va_list va;
+    va_start(va, code);
+    while (1) {
+	const char *k = va_arg(va, const char *);
+	if (!k) break;
+	const char *v = va_arg(va, const char *);
+	sprintf(d, " %s=%.80s", k, v);
+	d += strlen(d);
+    }
+    va_end(va);
+    *d = 0;
+    VESmail_server_log(srv, "now %s %d srv=%s peer=%s%s", meth, code, host, peer, buf);
     free(peer);
     free(host);
 }
@@ -100,8 +115,11 @@ int VESmail_now_send_status(VESmail_server *srv, int code) {
 	case 500:
 	    m = "Internal Error";
 	    break;
+	case 502:
+	    m = "Bad Gateway";
+	    break;
 	case 503:
-	    m = "Service Not Available";
+	    m = "Service Unavailable";
 	    break;
 	default:
 	    return VESMAIL_E_PARAM;
@@ -179,6 +197,12 @@ int VESmail_now_xform_fn_post(VESmail_xform *xform, int final, const char *src, 
     int e = 400;
     const char *er = "";
     int rs = 0;
+    jVar *conn = jVar_get(req, "probe");
+    if (conn) {
+	int r = VESmail_now_probe(xform->server, conn, jVar_getStringP(jVar_get(req, "token")));
+	jVar_free(req);
+	return r;
+    }
     char *msgid = jVar_getStringP(jVar_get(req, "messageId"));
     char *token = jVar_getStringP(jVar_get(req, "token"));
     char *extid = jVar_getStringP(jVar_get(req, "externalId"));
@@ -252,10 +276,10 @@ int VESmail_now_xform_fn_post(VESmail_xform *xform, int final, const char *src, 
 	free(fname);
 	libVES_VaultItem_free(vi);
     } else {
-	er = "Required: messageId\r\n";
+	er = "Required: messageId | probe\r\n";
     }
     libVES_free(ves);
-    VESmail_now_log(srv, "POST", e, msgid);
+    VESmail_now_log(srv, "POST", e, "msgid", msgid);
     jVar_free(req);
     return e == 200 ? rs : VESmail_now_error(srv, e, er);
 }

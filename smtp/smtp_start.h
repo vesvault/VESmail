@@ -36,3 +36,4 @@ struct VESmail_smtp_cmd;
 int VESmail_smtp_start_ready(struct VESmail_server *srv);
 int VESmail_smtp_start_cmd(struct VESmail_server *srv, struct VESmail_smtp_cmd *cmd);
 int VESmail_smtp_start_sasl(struct VESmail_server *srv, const char *auth, int authl);
+int VESmail_smtp_start_probe(struct VESmail_server *srv, struct jVar *uconf);

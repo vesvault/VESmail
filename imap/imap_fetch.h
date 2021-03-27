@@ -81,7 +81,10 @@ typedef struct VESmail_imap_fetch {
     };
     unsigned long int range[2];
     int seclen;
-    unsigned long int section[0];
+    union {
+	unsigned long int section[0];
+	char rhash[0];
+    };
 } VESmail_imap_fetch;
 
 #undef VESMAIL_VERB
@@ -98,6 +101,11 @@ struct VESmail_imap_fetch *VESmail_imap_fetch_new(char type);
 struct VESmail_imap_fetch *VESmail_imap_fetch_new_body(char type, char mode, char stype, int seclen, unsigned long int *sec);
 struct VESmail_imap_fetch *VESmail_imap_fetch_parse(struct VESmail_imap_token *key);
 struct VESmail_imap_token *VESmail_imap_fetch_render(struct VESmail_imap_fetch *fetch);
+
+char *VESmail_imap_fetch_rhash(struct VESmail_imap_fetch *f, char *dst);
+struct VESmail_imap_fetch *VESmail_imap_fetch_new_rhash(int mode, const char *rhash);
+int VESmail_imap_fetch_check_rhash(struct VESmail_imap_fetch *fetch, const char *rhash);
 struct VESmail_imap_fetch **VESmail_imap_fetch_queue(struct VESmail_imap_fetch **queue, struct VESmail_imap_fetch *fetch);
 struct VESmail_imap_fetch *VESmail_imap_fetch_unqueue(struct VESmail_imap_fetch **queue);
+
 void VESmail_imap_fetch_free(struct VESmail_imap_fetch *fetch);
