@@ -32,7 +32,9 @@
 
 struct VESmail_server;
 
+#ifndef VESMAIL_X509STORE
 extern char *VESmail_tls_caBundle;
+#endif
 
 #ifndef VESMAIL_ENUM
 #define	VESMAIL_ENUM(_type)	unsigned char
@@ -69,6 +71,7 @@ struct VESmail_server;
 extern const char *VESmail_tls_levels[];
 
 int VESmail_tls_init();
+void VESmail_tls_applyCA(void *ctx);
 struct VESmail_tls_client *VESmail_tls_client_new(struct jVar *conf, char *host);
 int VESmail_tls_client_start(struct VESmail_server *srv, int starttls);
 #define VESmail_tls_client_require(srv)	((srv)->tls.client->level > VESMAIL_TLS_OPTIONAL)

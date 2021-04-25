@@ -30,27 +30,10 @@
  *
  ***************************************************************************/
 
-#ifdef HAVE_CONFIG_H
-#include "config.h"
+#ifndef VESMAIL_CURLSH
+#error VESMAIL_CURLSH is expected to be defined
 #endif
 
-#include <sys/types.h>
-#include <stddef.h>
-#include <string.h>
-#include <stdlib.h>
-#include <errno.h>
-
-#include "../VESmail.h"
-#include "server.h"
-#include "arch.h"
-
-
-#ifndef VESMAIL_POLL_TMOUT
-#define VESMAIL_POLL_TMOUT 5
-#endif
-
-#ifdef _WIN32
-#include "arch_win.c"
-#else
-#include "arch_unix.c"
-#endif
+void VESmail_curlsh_init();
+void VESmail_curlsh_apply(void *curl);
+void VESmail_curlsh_done();

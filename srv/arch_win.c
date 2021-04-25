@@ -126,7 +126,7 @@ int VESmail_arch_poll(int len, ...) {
 	pl[i].events = POLLIN;
     }
     va_end(va);
-    r = WSAPoll(pl, len, 5000);
+    r = WSAPoll(pl, len, VESMAIL_POLL_TMOUT * 1000);
     return r < 0 ? VESMAIL_E_IO : 0;
 }
 
@@ -166,7 +166,7 @@ int VESmail_arch_close(int fd) {
     return close(fd);
 }
 
-int VESmail_arch_vlog(const char *fmt, void *va) {
+int VESmail_arch_vlog(const char *fmt, va_list va) {
     return 0;
 }
 

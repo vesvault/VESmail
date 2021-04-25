@@ -32,7 +32,7 @@
 
 
 #define VESMAIL_VERSION_STR	"VESmail " VESMAIL_VERSION " (c) 2020 VESvault Corp"
-#define VESMAIL_VERSION_SHORT	"vesmail/" VESMAIL_VERSION
+#define VESMAIL_VERSION_SHORT	"vesmail-cli/" VESMAIL_VERSION
 #define	E_PARAM		64
 #define E_IO		65
 #define E_VES		66

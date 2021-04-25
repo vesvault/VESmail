@@ -133,11 +133,11 @@ int VESmail_arch_poll(int len, ...) {
 	pl[i].events = POLLIN;
     }
     va_end(va);
-    r = poll(pl, len, 5000);
+    r = poll(pl, len, VESMAIL_POLL_TMOUT * 1000);
 #else
     fd_set rd;
     struct timeval tmout = {
-	.tv_sec = 5,
+	.tv_sec = VESMAIL_POLL_TMOUT,
 	.tv_usec = 0
     };
     FD_ZERO(&rd);
@@ -203,26 +203,29 @@ int VESmail_arch_close(int fd) {
     return close(fd);
 }
 
-int VESmail_arch_valog(const char *fmt, va_list va) {
+#ifndef VESMAIL_LOG_FACILITY
+#define VESMAIL_LOG_FACILITY LOG_MAIL
+#endif
+#ifndef VESMAIL_LOG_LEVEL
+#define VESMAIL_LOG_LEVEL LOG_NOTICE
+#endif
+
+int VESmail_arch_vlog(const char *fmt, va_list va) {
     static char started = 0;
     if (!started) {
-	openlog("vesmail", LOG_PID, LOG_MAIL);
+	openlog("vesmail", LOG_PID, VESMAIL_LOG_FACILITY);
 	started = 1;
     }
-    vsyslog(LOG_NOTICE, fmt, va);
+    vsyslog(VESMAIL_LOG_LEVEL, fmt, va);
     return 0;
 }
 
 int VESmail_arch_log(const char *fmt, ...) {
     va_list va;
     va_start(va, fmt);
-    VESmail_arch_valog(fmt, va);
+    VESmail_arch_vlog(fmt, va);
     va_end(va);
     return 0;
-}
-
-int VESmail_arch_vlog(const char *fmt, void *va) {
-    return VESmail_arch_valog(fmt, *((va_list *) va));
 }
 
 int VESmail_arch_usleep(unsigned long int t) {

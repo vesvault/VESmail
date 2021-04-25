@@ -243,7 +243,7 @@ int VESmail_now_store_put_xform_fn(VESmail_xform *xform, int final, const char *
 
 void VESmail_now_store_put_free_fn(VESmail_xform *xform) {
     VESmail_free(xform->parse->mail);
-    VESmail_xform_free(xform->chain);
+//    VESmail_xform_free(xform->chain);
 }
 
 VESmail_xform *VESmail_now_store_put(VESmail_server *srv) {

@@ -263,7 +263,6 @@ int main(int argc, char **argv) {
     conf.optns->idBase = malloc(strlen(conf.hostname) + 12);
     sprintf(conf.optns->idBase, ".VESmail@%s", conf.hostname);
     conf.tls = VESmail_tls_server_new();
-//    params.optns->getBanners = &init_banner;
     
     /**************************************
      * Collect the command line arguments
@@ -430,6 +429,7 @@ int main(int argc, char **argv) {
     int rs = 0;
     switch (cmd) {
 	case cmd_enc:
+	    conf.optns->flags |= VESMAIL_O_VRFY_TKN;
 	case cmd_dec: {
 	    if (params.user && !params.veskey && params.veskeyPath) {
 		char *f = malloc(strlen(params.user) + strlen(params.veskeyPath) + 2);

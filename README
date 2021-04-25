@@ -52,6 +52,7 @@ imap/: IMAP4rev1 proxy components
 smtp/: ESMTP proxy components
 now/: HTTP mini server for instant access to spooled encrypted emails
 cli/: Command line utility components
+app/: Components for local app builds
 
 etc/vesmail/: Sample config and template files
 etc/xinetd.d/: A sample external daemonizer conf for IMAP & SMTP proxies
@@ -72,6 +73,11 @@ REQUIRED LIBRARIES:
   cURL (https://curl.haxx.se/download.html)
     libcurl
     curl/*.h
+
+
+GUI LOCAL PROXY APP SOURCES:
+
+See app/README
 
 
 EMAIL ENCRYPTION & DECRYPTION:

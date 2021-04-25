@@ -56,6 +56,11 @@
 #include "server.h"
 #include "../lib/xform.h"
 #include "arch.h"
+
+#ifdef VESMAIL_CURLSH
+#include "curlsh.h"
+#endif
+
 #include "tls.h"
 
 #if	(OPENSSL_VERSION_NUMBER < 0x10100000L)
@@ -71,7 +76,13 @@ void VESmail_tls_extLockFn(int mode, int n, const char *file, int line) {
 }
 #endif
 
+#ifndef VESMAIL_X509STORE
 char *VESmail_tls_caBundle = NULL;
+
+void VESmail_tls_applyCA(void *ctx) {
+    if (VESmail_tls_caBundle) SSL_CTX_load_verify_locations(ctx, VESmail_tls_caBundle, NULL);
+}
+#endif
 
 int VESmail_tls_init() {
     OpenSSL_add_all_algorithms();
@@ -84,6 +95,12 @@ int VESmail_tls_init() {
     VESmail_tls_extLocks = malloc(n * sizeof(*VESmail_tls_extLocks));
     while (n > 0) VESmail_tls_extLocks[--n] = NULL;
     CRYPTO_set_locking_callback(&VESmail_tls_extLockFn);
+#endif
+#ifdef HAVE_CURL_CURL_H
+    curl_global_init(CURL_GLOBAL_ALL);
+#endif
+#ifdef VESMAIL_CURLSH
+    VESmail_curlsh_init();
 #endif
     return 0;
 }
@@ -101,7 +118,7 @@ VESmail_tls_client *VESmail_tls_client_new(jVar *conf, char *host) {
     return tls;
 }
 
-int VESmail_tls_cert_ok(VESmail_server *srv, X509 *crt) {
+int VESmail_tls_client_cert_ok(VESmail_server *srv, X509 *crt) {
 #if	(OPENSSL_VERSION_NUMBER >= 0x10002000L)
     return srv->tls.client->level <= VESMAIL_TLS_UNSECURE
 	|| X509_check_host(crt, srv->tls.client->peer, 0, 0, NULL) > 0;
@@ -125,7 +142,7 @@ int VESmail_tls_client_start(VESmail_server *srv, int starttls) {
     SSL_CTX *ctx = SSL_CTX_new(method);
     if (!ctx) return VESMAIL_E_TLS;
     SSL_CTX_set_default_verify_paths(ctx);
-    if (VESmail_tls_caBundle) SSL_CTX_load_verify_locations(ctx, VESmail_tls_caBundle, NULL);
+    VESmail_tls_applyCA(ctx);
     SSL_CTX_set_verify(ctx, SSL_VERIFY_NONE, NULL);
     SSL_CTX_set_verify_depth(ctx, 8);
     if (srv->tls.client->level > VESMAIL_TLS_MEDIUM) {
@@ -160,7 +177,7 @@ int VESmail_tls_client_start(VESmail_server *srv, int starttls) {
 	})
 	long vrfy = SSL_get_verify_result(ssl);
 	VESMAIL_SRV_DEBUG(srv, 1, sprintf(debug, "[crt verify] %ld %s", vrfy, X509_verify_cert_error_string(vrfy)))
-	crt_ok = (vrfy == X509_V_OK && VESmail_tls_cert_ok(srv, crt));
+	crt_ok = (vrfy == X509_V_OK && VESmail_tls_client_cert_ok(srv, crt));
 	X509_free(crt);
     } else {
 	VESMAIL_SRV_DEBUG(srv, 1, sprintf(debug, "[crt] NULL"))
@@ -227,6 +244,8 @@ SSL_CTX *VESmail_tls_server_ctx(VESmail_server *srv, int force) {
     return ctx;
 }
 
+#ifndef VESMAIL_LOCAL
+
 int VESmail_tls_server_snifn(SSL *ssl, int *al, void *arg) {
     VESmail_server *srv = arg;
     const char *sni = SSL_get_servername(ssl, TLSEXT_NAMETYPE_host_name);
@@ -240,12 +259,15 @@ int VESmail_tls_server_snifn(SSL *ssl, int *al, void *arg) {
     return SSL_TLSEXT_ERR_OK;
 }
 
+#endif
+
 int VESmail_tls_server_start(VESmail_server *srv, int starttls) {
     if (!srv->tls.server) return starttls ? VESMAIL_E_PARAM : 0;
     if (!starttls && !srv->tls.server->persist) return 0;
     if (srv->tls.server->level == VESMAIL_TLS_NONE) return VESMAIL_E_PARAM;
     SSL_CTX *ctx = VESmail_tls_server_ctx(srv, !!srv->tls.server->snifn);
     if (!ctx) return VESMAIL_E_TLS;
+#ifndef VESMAIL_LOCAL
     if (srv->tls.server->snifn && (
 	SSL_CTX_set_tlsext_servername_callback(ctx, &VESmail_tls_server_snifn) <= 0
 	|| SSL_CTX_set_tlsext_servername_arg(ctx, srv) <= 0
@@ -253,6 +275,7 @@ int VESmail_tls_server_start(VESmail_server *srv, int starttls) {
 	SSL_CTX_free(ctx);
 	return VESMAIL_E_TLS;
     }
+#endif
     VESmail_arch_set_nb(BIO_get_fd(srv->req_bio, NULL), 0);
     SSL *ssl = SSL_new(ctx);
     SSL_set_bio(ssl, srv->req_bio, srv->rsp_out->bio);
@@ -294,12 +317,15 @@ void VESmail_tls_server_free(VESmail_tls_server *tls) {
     free(tls);
 }
 
-
+#ifndef VESMAIL_X509STORE
 void VESmail_tls_fn_veshttp(libVES *ves) {
 #ifdef HAVE_CURL_CURL_H
     if (VESmail_tls_caBundle) curl_easy_setopt(ves->curl, CURLOPT_CAINFO, VESmail_tls_caBundle);
 #else
 #pragma message ("Cannot set CA bundle for libVES - need curl/curl.h")
+#endif
+#ifdef VESMAIL_CURLSH
+    VESmail_curlsh_apply(ves->curl);
 #endif
 }
 
@@ -307,3 +333,4 @@ libVES *VESmail_tls_initVES(libVES *ves) {
     ves->httpInitFn = &VESmail_tls_fn_veshttp;
     return ves;
 }
+#endif

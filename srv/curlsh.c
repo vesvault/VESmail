@@ -33,24 +33,43 @@
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
-
 #include <sys/types.h>
 #include <stddef.h>
 #include <string.h>
 #include <stdlib.h>
-#include <errno.h>
-
+#include <curl/curl.h>
 #include "../VESmail.h"
-#include "server.h"
 #include "arch.h"
+#include "curlsh.h"
 
 
-#ifndef VESMAIL_POLL_TMOUT
-#define VESMAIL_POLL_TMOUT 5
-#endif
+void *VESmail_curlsh = NULL;
+void *VESmail_curlsh_mutex = NULL;
 
-#ifdef _WIN32
-#include "arch_win.c"
-#else
-#include "arch_unix.c"
-#endif
+
+void VESmail_curlsh_lockfn(CURL *handle, curl_lock_data data, curl_lock_access access, void *userptr) {
+    VESmail_arch_mutex_lock(&VESmail_curlsh_mutex);
+}
+
+void VESmail_curlsh_unlockfn(CURL *handle, curl_lock_data data, void *userptr) {
+    VESmail_arch_mutex_unlock(&VESmail_curlsh_mutex);
+}
+
+void VESmail_curlsh_init() {
+    if (VESmail_curlsh) return;
+    VESmail_curlsh = curl_share_init();
+    curl_share_setopt(VESmail_curlsh, CURLSHOPT_LOCKFUNC, &VESmail_curlsh_lockfn);
+    curl_share_setopt(VESmail_curlsh, CURLSHOPT_UNLOCKFUNC, &VESmail_curlsh_unlockfn);
+    curl_share_setopt(VESmail_curlsh, CURLSHOPT_SHARE, CURL_LOCK_DATA_DNS);
+}
+
+void VESmail_curlsh_apply(void *curl) {
+    if (VESmail_curlsh) curl_easy_setopt(curl, CURLOPT_SHARE, VESmail_curlsh);
+}
+
+void VESmail_curlsh_done() {
+    if (VESmail_curlsh) curl_share_cleanup(VESmail_curlsh);
+    VESmail_curlsh = NULL;
+    VESmail_arch_mutex_done(VESmail_curlsh_mutex);
+    VESmail_curlsh_mutex = NULL;
+}

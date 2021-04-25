@@ -1,0 +1,12 @@
+LOCAL GUI VESMAIL APPS:
+
+(to be downloaded and built in this directory)
+
+Android App:
+  VESmail-android (https://github.com/vesvault/VESmail-android)
+
+Windows App:
+  coming soon, CLI in the daemon mode can be used for now
+
+Apple App:
+  coming soon

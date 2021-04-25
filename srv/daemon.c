@@ -67,7 +67,7 @@ VESmail_daemon *VESmail_daemon_new(struct VESmail_conf_daemon *cd) {
 	.ai_family = AF_UNSPEC,
 	.ai_socktype = SOCK_STREAM,
 	.ai_protocol = 0,
-	.ai_flags = AI_V4MAPPED | AI_ADDRCONFIG | AI_PASSIVE,
+	.ai_flags = AI_ADDRCONFIG | AI_PASSIVE,
 	.ai_addrlen = 0,
 	.ai_addr = NULL,
 	.ai_canonname = NULL,
@@ -107,7 +107,16 @@ VESmail_daemon *VESmail_daemon_new(struct VESmail_conf_daemon *cd) {
     }
     *psk = NULL;
     daemon->flags = 0;
+    daemon->ref = NULL;
     return daemon;
+}
+
+int VESmail_daemon_sock_error(struct VESmail_daemon_sock *sk) {
+    if (sk->sock >= 0) {
+	shutdown(sk->sock, 2);
+	sk->sock = -2;
+    }
+    return VESMAIL_E_CONN;
 }
 
 int VESmail_daemon_sock_listen(struct VESmail_daemon_sock *sk) {
@@ -130,11 +139,11 @@ int VESmail_daemon_sock_listen(struct VESmail_daemon_sock *sk) {
     int connr;
     if ((connr = bind(sk->sock, sk->ainfo->ai_addr, sk->ainfo->ai_addrlen)) < 0) {
 	VESMAIL_DAEMON_DEBUG(sk->daemon, 1, fprintf(stderr, "... bind failed (%d)\n", connr));
-	return VESMAIL_E_CONN;
+	return VESmail_daemon_sock_error(sk);
     }
     if ((connr = listen(sk->sock, 16)) < 0) {
 	VESMAIL_DAEMON_DEBUG(sk->daemon, 1, fprintf(stderr, "... listen failed (%d)\n", connr));
-	return VESMAIL_E_CONN;
+	return VESmail_daemon_sock_error(sk);
     }
     VESMAIL_DAEMON_DEBUG(sk->daemon, 1, fprintf(stderr, "... success\n"));
     return 0;
@@ -157,10 +166,10 @@ int VESmail_daemon_sock_run(struct VESmail_daemon_sock *sk) {
     while (sk->sock >= 0) {
 	fd = accept(sk->sock, NULL, NULL);
 	if (fd >= 0) {
-	    VESmail_proc *pp = sk->procs;
-	    VESmail_proc *p = sk->procs = VESmail_proc_new(sk->daemon, fd);
+	    VESmail_proc *p = VESmail_proc_new(sk->daemon, fd);
 	    if (p) {
-		p->chain = pp;
+		p->chain = sk->procs;
+		sk->procs = p;
 		if (p->flags & VESMAIL_PRF_SHUTDOWN) {
 		    shutdown(fd, 2);
 		} else {
@@ -189,7 +198,7 @@ int VESmail_daemon_launch(VESmail_daemon *daemon) {
     return 0;
 }
 
-
+#ifndef VESMAIL_LOCAL
 
 struct VESmail_daemon_snirec {
     struct VESmail_proc_ctx *ctx;
@@ -255,6 +264,7 @@ void VESmail_daemon_snifree(VESmail_daemon *daemon) {
     VESmail_arch_mutex_done(daemon->sni.mutex);
 }
 
+#endif
 
 char VESmail_daemon_SIG = 0;
 
@@ -324,7 +334,9 @@ void VESmail_daemon_free(VESmail_daemon *daemon) {
 	    }
 	    free(sk);
 	}
+#ifndef VESMAIL_LOCAL
 	VESmail_daemon_snifree(daemon);
+#endif
     }
     free(daemon);
 }
@@ -346,7 +358,9 @@ VESmail_daemon **VESmail_daemon_execute(struct VESmail_conf_daemon *cds) {
     VESmail_daemon **dp = daemons;
     cdp = cds;
     for (i = 0; cdp->type; i++) {
+#ifndef VESMAIL_LOCAL
 	if (cdp->conf->tls->snifn) cdp->conf->tls->snifn = &VESmail_daemon_snifn;
+#endif
 	if ((*dp = VESmail_daemon_new(cdp++))) dp++;
     }
     *dp = NULL;

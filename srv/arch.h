@@ -51,7 +51,9 @@ int VESmail_arch_write(int fd, const char *src, int len);
 int VESmail_arch_setlinebuf(void *file);
 int VESmail_arch_close(int fd);
 int VESmail_arch_log(const char *fmt, ...);
-int VESmail_arch_vlog(const char *fmt, void *va);
+#ifdef va_arg
+int VESmail_arch_vlog(const char *fmt, va_list va);
+#endif
 int VESmail_arch_usleep(unsigned long int t);
 unsigned long VESmail_arch_mtime(const char *path);
 int VESmail_arch_getuid();

@@ -76,8 +76,11 @@ POST_INSTALL = :
 NORMAL_UNINSTALL = :
 PRE_UNINSTALL = :
 POST_UNINSTALL = :
+@VESMAIL_CURLSH_TRUE@am__append_1 = srv/curlsh.c
+@VESMAIL_CURLSH_TRUE@am__append_2 = srv/curlsh.h
 bin_PROGRAMS = vesmail$(EXEEXT)
-@HAVE_PTHREAD_H_TRUE@am__append_1 = -lpthread
+@HAVE_PTHREAD_H_TRUE@am__append_3 = -lpthread
+@VESMAIL_CURLSH_TRUE@am__append_4 = -DVESMAIL_CURLSH
 subdir = .
 DIST_COMMON = INSTALL NEWS README AUTHORS ChangeLog \
 	$(srcdir)/Makefile.in $(srcdir)/Makefile.am \
@@ -99,42 +102,85 @@ CONFIG_CLEAN_FILES =
 CONFIG_CLEAN_VPATH_FILES =
 am__installdirs = "$(DESTDIR)$(bindir)"
 PROGRAMS = $(bin_PROGRAMS)
+am__vesmail_SOURCES_DIST = lib/mail.c lib/optns.c lib/parse.c \
+	lib/header.c lib/xform.c lib/multi.c lib/cte.c lib/ves.c \
+	lib/encrypt.c lib/decrypt.c lib/banner.c lib/util.c \
+	srv/server.c srv/arch.c srv/tls.c srv/sasl.c srv/conf.c \
+	srv/daemon.c srv/proc.c srv/override.c srv/guard.c \
+	srv/curlsh.c imap/imap.c imap/imap_xform.c imap/imap_token.c \
+	imap/imap_track.c imap/imap_start.c imap/imap_proxy.c \
+	imap/imap_msg.c imap/imap_fetch.c imap/imap_result.c \
+	imap/imap_result_proc.c imap/imap_sect.c imap/imap_append.c \
+	imap/imap_xves.c smtp/smtp.c smtp/smtp_cmd.c smtp/smtp_reply.c \
+	smtp/smtp_track.c smtp/smtp_start.c smtp/smtp_proxy.c \
+	smtp/smtp_xves.c now/now.c now/now_store.c now/now_probe.c \
+	cli/vesmail.c cli/help.c cli/tty.c lib/mail.h lib/optns.h \
+	lib/parse.h lib/header.h lib/xform.h lib/multi.h lib/cte.h \
+	lib/ves.h lib/encrypt.h lib/decrypt.h lib/banner.h lib/util.h \
+	srv/server.h srv/arch.h srv/tls.h srv/sasl.h srv/conf.h \
+	srv/daemon.h srv/proc.h srv/override.h srv/guard.h \
+	srv/curlsh.h imap/imap.h imap/imap_xform.h imap/imap_token.h \
+	imap/imap_track.h imap/imap_start.h imap/imap_proxy.h \
+	imap/imap_msg.h imap/imap_fetch.h imap/imap_result.h \
+	imap/imap_sect.h imap/imap_append.h imap/imap_xves.h \
+	smtp/smtp.h smtp/smtp_cmd.h smtp/smtp_reply.h \
+	smtp/smtp_track.h smtp/smtp_start.h smtp/smtp_proxy.h \
+	smtp/smtp_xves.h now/now.h now/now_store.h now/now_probe.h \
+	cli/vesmail.h cli/help.h cli/tty.h util/jTree.c util/jTree.h \
+	VESmail.h
 am__dirstamp = $(am__leading_dot)dirstamp
-am__objects_1 = lib/mail.$(OBJEXT) lib/optns.$(OBJEXT) \
-	lib/parse.$(OBJEXT) lib/header.$(OBJEXT) lib/xform.$(OBJEXT) \
-	lib/multi.$(OBJEXT) lib/cte.$(OBJEXT) lib/ves.$(OBJEXT) \
-	lib/encrypt.$(OBJEXT) lib/decrypt.$(OBJEXT) \
-	lib/banner.$(OBJEXT) lib/util.$(OBJEXT)
-am__objects_2 = srv/server.$(OBJEXT) srv/arch.$(OBJEXT) \
-	srv/tls.$(OBJEXT) srv/sasl.$(OBJEXT) srv/conf.$(OBJEXT) \
-	srv/daemon.$(OBJEXT) srv/proc.$(OBJEXT) srv/override.$(OBJEXT) \
-	srv/guard.$(OBJEXT)
-am__objects_3 = imap/imap.$(OBJEXT) imap/imap_xform.$(OBJEXT) \
-	imap/imap_token.$(OBJEXT) imap/imap_track.$(OBJEXT) \
-	imap/imap_start.$(OBJEXT) imap/imap_proxy.$(OBJEXT) \
-	imap/imap_msg.$(OBJEXT) imap/imap_fetch.$(OBJEXT) \
-	imap/imap_result.$(OBJEXT) imap/imap_result_proc.$(OBJEXT) \
-	imap/imap_sect.$(OBJEXT) imap/imap_append.$(OBJEXT) \
-	imap/imap_xves.$(OBJEXT)
-am__objects_4 = smtp/smtp.$(OBJEXT) smtp/smtp_cmd.$(OBJEXT) \
-	smtp/smtp_reply.$(OBJEXT) smtp/smtp_track.$(OBJEXT) \
-	smtp/smtp_start.$(OBJEXT) smtp/smtp_proxy.$(OBJEXT) \
-	smtp/smtp_xves.$(OBJEXT)
-am__objects_5 = now/now.$(OBJEXT) now/now_store.$(OBJEXT) \
-	now/now_probe.$(OBJEXT)
-am__objects_6 = cli/vesmail.$(OBJEXT) cli/help.$(OBJEXT) \
-	cli/tty.$(OBJEXT)
-am__objects_7 =
-am__objects_8 = util/jTree.$(OBJEXT)
-am_vesmail_OBJECTS = $(am__objects_1) $(am__objects_2) \
-	$(am__objects_3) $(am__objects_4) $(am__objects_5) \
-	$(am__objects_6) $(am__objects_7) $(am__objects_7) \
-	$(am__objects_7) $(am__objects_7) $(am__objects_7) \
-	$(am__objects_7) $(am__objects_8) $(am__objects_7) \
-	$(am__objects_7)
+am__objects_1 = lib/vesmail-mail.$(OBJEXT) lib/vesmail-optns.$(OBJEXT) \
+	lib/vesmail-parse.$(OBJEXT) lib/vesmail-header.$(OBJEXT) \
+	lib/vesmail-xform.$(OBJEXT) lib/vesmail-multi.$(OBJEXT) \
+	lib/vesmail-cte.$(OBJEXT) lib/vesmail-ves.$(OBJEXT) \
+	lib/vesmail-encrypt.$(OBJEXT) lib/vesmail-decrypt.$(OBJEXT) \
+	lib/vesmail-banner.$(OBJEXT) lib/vesmail-util.$(OBJEXT)
+@VESMAIL_CURLSH_TRUE@am__objects_2 = srv/vesmail-curlsh.$(OBJEXT)
+am__objects_3 = srv/vesmail-server.$(OBJEXT) \
+	srv/vesmail-arch.$(OBJEXT) srv/vesmail-tls.$(OBJEXT) \
+	srv/vesmail-sasl.$(OBJEXT) srv/vesmail-conf.$(OBJEXT) \
+	srv/vesmail-daemon.$(OBJEXT) srv/vesmail-proc.$(OBJEXT) \
+	srv/vesmail-override.$(OBJEXT) srv/vesmail-guard.$(OBJEXT) \
+	$(am__objects_2)
+am__objects_4 = imap/vesmail-imap.$(OBJEXT) \
+	imap/vesmail-imap_xform.$(OBJEXT) \
+	imap/vesmail-imap_token.$(OBJEXT) \
+	imap/vesmail-imap_track.$(OBJEXT) \
+	imap/vesmail-imap_start.$(OBJEXT) \
+	imap/vesmail-imap_proxy.$(OBJEXT) \
+	imap/vesmail-imap_msg.$(OBJEXT) \
+	imap/vesmail-imap_fetch.$(OBJEXT) \
+	imap/vesmail-imap_result.$(OBJEXT) \
+	imap/vesmail-imap_result_proc.$(OBJEXT) \
+	imap/vesmail-imap_sect.$(OBJEXT) \
+	imap/vesmail-imap_append.$(OBJEXT) \
+	imap/vesmail-imap_xves.$(OBJEXT)
+am__objects_5 = smtp/vesmail-smtp.$(OBJEXT) \
+	smtp/vesmail-smtp_cmd.$(OBJEXT) \
+	smtp/vesmail-smtp_reply.$(OBJEXT) \
+	smtp/vesmail-smtp_track.$(OBJEXT) \
+	smtp/vesmail-smtp_start.$(OBJEXT) \
+	smtp/vesmail-smtp_proxy.$(OBJEXT) \
+	smtp/vesmail-smtp_xves.$(OBJEXT)
+am__objects_6 = now/vesmail-now.$(OBJEXT) \
+	now/vesmail-now_store.$(OBJEXT) \
+	now/vesmail-now_probe.$(OBJEXT)
+am__objects_7 = cli/vesmail-vesmail.$(OBJEXT) \
+	cli/vesmail-help.$(OBJEXT) cli/vesmail-tty.$(OBJEXT)
+am__objects_8 =
+am__objects_9 = $(am__objects_8)
+am__objects_10 = util/vesmail-jTree.$(OBJEXT)
+am_vesmail_OBJECTS = $(am__objects_1) $(am__objects_3) \
+	$(am__objects_4) $(am__objects_5) $(am__objects_6) \
+	$(am__objects_7) $(am__objects_8) $(am__objects_9) \
+	$(am__objects_8) $(am__objects_8) $(am__objects_8) \
+	$(am__objects_8) $(am__objects_10) $(am__objects_8) \
+	$(am__objects_8)
 vesmail_OBJECTS = $(am_vesmail_OBJECTS)
 am__DEPENDENCIES_1 =
 vesmail_DEPENDENCIES = $(am__DEPENDENCIES_1)
+vesmail_LINK = $(CCLD) $(vesmail_CFLAGS) $(CFLAGS) $(AM_LDFLAGS) \
+	$(LDFLAGS) -o $@
 AM_V_P = $(am__v_P_@AM_V@)
 am__v_P_ = $(am__v_P_@AM_DEFAULT_V@)
 am__v_P_0 = false
@@ -151,6 +197,10 @@ DEFAULT_INCLUDES = -I.@am__isrc@
 depcomp = $(SHELL) $(top_srcdir)/build-aux/depcomp
 am__depfiles_maybe = depfiles
 am__mv = mv -f
+AM_V_lt = $(am__v_lt_@AM_V@)
+am__v_lt_ = $(am__v_lt_@AM_DEFAULT_V@)
+am__v_lt_0 = --silent
+am__v_lt_1 = 
 COMPILE = $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) \
 	$(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS)
 AM_V_CC = $(am__v_CC_@AM_V@)
@@ -164,7 +214,7 @@ am__v_CCLD_ = $(am__v_CCLD_@AM_DEFAULT_V@)
 am__v_CCLD_0 = @echo "  CCLD    " $@;
 am__v_CCLD_1 = 
 SOURCES = $(vesmail_SOURCES)
-DIST_SOURCES = $(vesmail_SOURCES)
+DIST_SOURCES = $(am__vesmail_SOURCES_DIST)
 am__can_run_installinfo = \
   case $$AM_UPDATE_INFO_DIR in \
     n|no|NO) false;; \
@@ -209,12 +259,12 @@ distuninstallcheck_listfiles = find . -type f -print
 am__distuninstallcheck_listfiles = $(distuninstallcheck_listfiles) \
   | sed 's|^\./|$(prefix)/|' | grep -v '$(infodir)/dir$$'
 distcleancheck_listfiles = find . -type f -print
-ACLOCAL = true
+ACLOCAL = @ACLOCAL@
 AMTAR = @AMTAR@
 AM_DEFAULT_VERBOSITY = @AM_DEFAULT_VERBOSITY@
-AUTOCONF = true
-AUTOHEADER = true
-AUTOMAKE = true
+AUTOCONF = @AUTOCONF@
+AUTOHEADER = @AUTOHEADER@
+AUTOMAKE = @AUTOMAKE@
 AWK = @AWK@
 CC = @CC@
 CCDEPMODE = @CCDEPMODE@
@@ -323,26 +373,12 @@ lib/decrypt.h \
 lib/banner.h \
 lib/util.h
 
-SRV_CFILES = srv/server.c \
-srv/arch.c \
-srv/tls.c \
-srv/sasl.c \
-srv/conf.c \
-srv/daemon.c \
-srv/proc.c \
-srv/override.c \
-srv/guard.c
-
-SRV_HFILES = srv/server.h \
-srv/arch.h \
-srv/tls.h \
-srv/sasl.h \
-srv/conf.h \
-srv/daemon.h \
-srv/proc.h \
-srv/override.h \
-srv/guard.h
-
+SRV_CFILES = srv/server.c srv/arch.c srv/tls.c srv/sasl.c srv/conf.c \
+	srv/daemon.c srv/proc.c srv/override.c srv/guard.c \
+	$(am__append_1)
+SRV_HFILES = srv/server.h srv/arch.h srv/tls.h srv/sasl.h srv/conf.h \
+	srv/daemon.h srv/proc.h srv/override.h srv/guard.h \
+	$(am__append_2)
 IMAP_CFILES = imap/imap.c \
 imap/imap_xform.c \
 imap/imap_token.c \
@@ -405,7 +441,8 @@ cli/tty.h
 UTIL_CFILES = util/jTree.c
 UTIL_HFILES = util/jTree.h
 VESMAIL_HFILES = VESmail.h
-vesmail_LDADD = -lVES -lcrypto -lcurl -lssl $(am__append_1)
+vesmail_LDADD = -lVES -lcrypto -lcurl -lssl $(am__append_3)
+vesmail_CFLAGS = $(am__append_4)
 vesmail_SOURCES = $(LIB_CFILES) $(SRV_CFILES) $(IMAP_CFILES) $(SMTP_CFILES) $(NOW_CFILES) $(CLI_CFILES) \
 $(LIB_HFILES) $(SRV_HFILES) $(IMAP_HFILES) $(SMTP_HFILES) $(NOW_HFILES) $(CLI_HFILES) $(UTIL_CFILES) $(UTIL_HFILES) \
 $(VESMAIL_HFILES)
@@ -512,71 +549,87 @@ lib/$(am__dirstamp):
 lib/$(DEPDIR)/$(am__dirstamp):
 	@$(MKDIR_P) lib/$(DEPDIR)
 	@: > lib/$(DEPDIR)/$(am__dirstamp)
-lib/mail.$(OBJEXT): lib/$(am__dirstamp) lib/$(DEPDIR)/$(am__dirstamp)
-lib/optns.$(OBJEXT): lib/$(am__dirstamp) lib/$(DEPDIR)/$(am__dirstamp)
-lib/parse.$(OBJEXT): lib/$(am__dirstamp) lib/$(DEPDIR)/$(am__dirstamp)
-lib/header.$(OBJEXT): lib/$(am__dirstamp) \
+lib/vesmail-mail.$(OBJEXT): lib/$(am__dirstamp) \
 	lib/$(DEPDIR)/$(am__dirstamp)
-lib/xform.$(OBJEXT): lib/$(am__dirstamp) lib/$(DEPDIR)/$(am__dirstamp)
-lib/multi.$(OBJEXT): lib/$(am__dirstamp) lib/$(DEPDIR)/$(am__dirstamp)
-lib/cte.$(OBJEXT): lib/$(am__dirstamp) lib/$(DEPDIR)/$(am__dirstamp)
-lib/ves.$(OBJEXT): lib/$(am__dirstamp) lib/$(DEPDIR)/$(am__dirstamp)
-lib/encrypt.$(OBJEXT): lib/$(am__dirstamp) \
+lib/vesmail-optns.$(OBJEXT): lib/$(am__dirstamp) \
 	lib/$(DEPDIR)/$(am__dirstamp)
-lib/decrypt.$(OBJEXT): lib/$(am__dirstamp) \
+lib/vesmail-parse.$(OBJEXT): lib/$(am__dirstamp) \
 	lib/$(DEPDIR)/$(am__dirstamp)
-lib/banner.$(OBJEXT): lib/$(am__dirstamp) \
+lib/vesmail-header.$(OBJEXT): lib/$(am__dirstamp) \
 	lib/$(DEPDIR)/$(am__dirstamp)
-lib/util.$(OBJEXT): lib/$(am__dirstamp) lib/$(DEPDIR)/$(am__dirstamp)
+lib/vesmail-xform.$(OBJEXT): lib/$(am__dirstamp) \
+	lib/$(DEPDIR)/$(am__dirstamp)
+lib/vesmail-multi.$(OBJEXT): lib/$(am__dirstamp) \
+	lib/$(DEPDIR)/$(am__dirstamp)
+lib/vesmail-cte.$(OBJEXT): lib/$(am__dirstamp) \
+	lib/$(DEPDIR)/$(am__dirstamp)
+lib/vesmail-ves.$(OBJEXT): lib/$(am__dirstamp) \
+	lib/$(DEPDIR)/$(am__dirstamp)
+lib/vesmail-encrypt.$(OBJEXT): lib/$(am__dirstamp) \
+	lib/$(DEPDIR)/$(am__dirstamp)
+lib/vesmail-decrypt.$(OBJEXT): lib/$(am__dirstamp) \
+	lib/$(DEPDIR)/$(am__dirstamp)
+lib/vesmail-banner.$(OBJEXT): lib/$(am__dirstamp) \
+	lib/$(DEPDIR)/$(am__dirstamp)
+lib/vesmail-util.$(OBJEXT): lib/$(am__dirstamp) \
+	lib/$(DEPDIR)/$(am__dirstamp)
 srv/$(am__dirstamp):
 	@$(MKDIR_P) srv
 	@: > srv/$(am__dirstamp)
 srv/$(DEPDIR)/$(am__dirstamp):
 	@$(MKDIR_P) srv/$(DEPDIR)
 	@: > srv/$(DEPDIR)/$(am__dirstamp)
-srv/server.$(OBJEXT): srv/$(am__dirstamp) \
+srv/vesmail-server.$(OBJEXT): srv/$(am__dirstamp) \
 	srv/$(DEPDIR)/$(am__dirstamp)
-srv/arch.$(OBJEXT): srv/$(am__dirstamp) srv/$(DEPDIR)/$(am__dirstamp)
-srv/tls.$(OBJEXT): srv/$(am__dirstamp) srv/$(DEPDIR)/$(am__dirstamp)
-srv/sasl.$(OBJEXT): srv/$(am__dirstamp) srv/$(DEPDIR)/$(am__dirstamp)
-srv/conf.$(OBJEXT): srv/$(am__dirstamp) srv/$(DEPDIR)/$(am__dirstamp)
-srv/daemon.$(OBJEXT): srv/$(am__dirstamp) \
+srv/vesmail-arch.$(OBJEXT): srv/$(am__dirstamp) \
 	srv/$(DEPDIR)/$(am__dirstamp)
-srv/proc.$(OBJEXT): srv/$(am__dirstamp) srv/$(DEPDIR)/$(am__dirstamp)
-srv/override.$(OBJEXT): srv/$(am__dirstamp) \
+srv/vesmail-tls.$(OBJEXT): srv/$(am__dirstamp) \
 	srv/$(DEPDIR)/$(am__dirstamp)
-srv/guard.$(OBJEXT): srv/$(am__dirstamp) srv/$(DEPDIR)/$(am__dirstamp)
+srv/vesmail-sasl.$(OBJEXT): srv/$(am__dirstamp) \
+	srv/$(DEPDIR)/$(am__dirstamp)
+srv/vesmail-conf.$(OBJEXT): srv/$(am__dirstamp) \
+	srv/$(DEPDIR)/$(am__dirstamp)
+srv/vesmail-daemon.$(OBJEXT): srv/$(am__dirstamp) \
+	srv/$(DEPDIR)/$(am__dirstamp)
+srv/vesmail-proc.$(OBJEXT): srv/$(am__dirstamp) \
+	srv/$(DEPDIR)/$(am__dirstamp)
+srv/vesmail-override.$(OBJEXT): srv/$(am__dirstamp) \
+	srv/$(DEPDIR)/$(am__dirstamp)
+srv/vesmail-guard.$(OBJEXT): srv/$(am__dirstamp) \
+	srv/$(DEPDIR)/$(am__dirstamp)
+srv/vesmail-curlsh.$(OBJEXT): srv/$(am__dirstamp) \
+	srv/$(DEPDIR)/$(am__dirstamp)
 imap/$(am__dirstamp):
 	@$(MKDIR_P) imap
 	@: > imap/$(am__dirstamp)
 imap/$(DEPDIR)/$(am__dirstamp):
 	@$(MKDIR_P) imap/$(DEPDIR)
 	@: > imap/$(DEPDIR)/$(am__dirstamp)
-imap/imap.$(OBJEXT): imap/$(am__dirstamp) \
+imap/vesmail-imap.$(OBJEXT): imap/$(am__dirstamp) \
 	imap/$(DEPDIR)/$(am__dirstamp)
-imap/imap_xform.$(OBJEXT): imap/$(am__dirstamp) \
+imap/vesmail-imap_xform.$(OBJEXT): imap/$(am__dirstamp) \
 	imap/$(DEPDIR)/$(am__dirstamp)
-imap/imap_token.$(OBJEXT): imap/$(am__dirstamp) \
+imap/vesmail-imap_token.$(OBJEXT): imap/$(am__dirstamp) \
 	imap/$(DEPDIR)/$(am__dirstamp)
-imap/imap_track.$(OBJEXT): imap/$(am__dirstamp) \
+imap/vesmail-imap_track.$(OBJEXT): imap/$(am__dirstamp) \
 	imap/$(DEPDIR)/$(am__dirstamp)
-imap/imap_start.$(OBJEXT): imap/$(am__dirstamp) \
+imap/vesmail-imap_start.$(OBJEXT): imap/$(am__dirstamp) \
 	imap/$(DEPDIR)/$(am__dirstamp)
-imap/imap_proxy.$(OBJEXT): imap/$(am__dirstamp) \
+imap/vesmail-imap_proxy.$(OBJEXT): imap/$(am__dirstamp) \
 	imap/$(DEPDIR)/$(am__dirstamp)
-imap/imap_msg.$(OBJEXT): imap/$(am__dirstamp) \
+imap/vesmail-imap_msg.$(OBJEXT): imap/$(am__dirstamp) \
 	imap/$(DEPDIR)/$(am__dirstamp)
-imap/imap_fetch.$(OBJEXT): imap/$(am__dirstamp) \
+imap/vesmail-imap_fetch.$(OBJEXT): imap/$(am__dirstamp) \
 	imap/$(DEPDIR)/$(am__dirstamp)
-imap/imap_result.$(OBJEXT): imap/$(am__dirstamp) \
+imap/vesmail-imap_result.$(OBJEXT): imap/$(am__dirstamp) \
 	imap/$(DEPDIR)/$(am__dirstamp)
-imap/imap_result_proc.$(OBJEXT): imap/$(am__dirstamp) \
+imap/vesmail-imap_result_proc.$(OBJEXT): imap/$(am__dirstamp) \
 	imap/$(DEPDIR)/$(am__dirstamp)
-imap/imap_sect.$(OBJEXT): imap/$(am__dirstamp) \
+imap/vesmail-imap_sect.$(OBJEXT): imap/$(am__dirstamp) \
 	imap/$(DEPDIR)/$(am__dirstamp)
-imap/imap_append.$(OBJEXT): imap/$(am__dirstamp) \
+imap/vesmail-imap_append.$(OBJEXT): imap/$(am__dirstamp) \
 	imap/$(DEPDIR)/$(am__dirstamp)
-imap/imap_xves.$(OBJEXT): imap/$(am__dirstamp) \
+imap/vesmail-imap_xves.$(OBJEXT): imap/$(am__dirstamp) \
 	imap/$(DEPDIR)/$(am__dirstamp)
 smtp/$(am__dirstamp):
 	@$(MKDIR_P) smtp
@@ -584,19 +637,19 @@ smtp/$(am__dirstamp):
 smtp/$(DEPDIR)/$(am__dirstamp):
 	@$(MKDIR_P) smtp/$(DEPDIR)
 	@: > smtp/$(DEPDIR)/$(am__dirstamp)
-smtp/smtp.$(OBJEXT): smtp/$(am__dirstamp) \
+smtp/vesmail-smtp.$(OBJEXT): smtp/$(am__dirstamp) \
 	smtp/$(DEPDIR)/$(am__dirstamp)
-smtp/smtp_cmd.$(OBJEXT): smtp/$(am__dirstamp) \
+smtp/vesmail-smtp_cmd.$(OBJEXT): smtp/$(am__dirstamp) \
 	smtp/$(DEPDIR)/$(am__dirstamp)
-smtp/smtp_reply.$(OBJEXT): smtp/$(am__dirstamp) \
+smtp/vesmail-smtp_reply.$(OBJEXT): smtp/$(am__dirstamp) \
 	smtp/$(DEPDIR)/$(am__dirstamp)
-smtp/smtp_track.$(OBJEXT): smtp/$(am__dirstamp) \
+smtp/vesmail-smtp_track.$(OBJEXT): smtp/$(am__dirstamp) \
 	smtp/$(DEPDIR)/$(am__dirstamp)
-smtp/smtp_start.$(OBJEXT): smtp/$(am__dirstamp) \
+smtp/vesmail-smtp_start.$(OBJEXT): smtp/$(am__dirstamp) \
 	smtp/$(DEPDIR)/$(am__dirstamp)
-smtp/smtp_proxy.$(OBJEXT): smtp/$(am__dirstamp) \
+smtp/vesmail-smtp_proxy.$(OBJEXT): smtp/$(am__dirstamp) \
 	smtp/$(DEPDIR)/$(am__dirstamp)
-smtp/smtp_xves.$(OBJEXT): smtp/$(am__dirstamp) \
+smtp/vesmail-smtp_xves.$(OBJEXT): smtp/$(am__dirstamp) \
 	smtp/$(DEPDIR)/$(am__dirstamp)
 now/$(am__dirstamp):
 	@$(MKDIR_P) now
@@ -604,10 +657,11 @@ now/$(am__dirstamp):
 now/$(DEPDIR)/$(am__dirstamp):
 	@$(MKDIR_P) now/$(DEPDIR)
 	@: > now/$(DEPDIR)/$(am__dirstamp)
-now/now.$(OBJEXT): now/$(am__dirstamp) now/$(DEPDIR)/$(am__dirstamp)
-now/now_store.$(OBJEXT): now/$(am__dirstamp) \
+now/vesmail-now.$(OBJEXT): now/$(am__dirstamp) \
 	now/$(DEPDIR)/$(am__dirstamp)
-now/now_probe.$(OBJEXT): now/$(am__dirstamp) \
+now/vesmail-now_store.$(OBJEXT): now/$(am__dirstamp) \
+	now/$(DEPDIR)/$(am__dirstamp)
+now/vesmail-now_probe.$(OBJEXT): now/$(am__dirstamp) \
 	now/$(DEPDIR)/$(am__dirstamp)
 cli/$(am__dirstamp):
 	@$(MKDIR_P) cli
@@ -615,22 +669,24 @@ cli/$(am__dirstamp):
 cli/$(DEPDIR)/$(am__dirstamp):
 	@$(MKDIR_P) cli/$(DEPDIR)
 	@: > cli/$(DEPDIR)/$(am__dirstamp)
-cli/vesmail.$(OBJEXT): cli/$(am__dirstamp) \
+cli/vesmail-vesmail.$(OBJEXT): cli/$(am__dirstamp) \
 	cli/$(DEPDIR)/$(am__dirstamp)
-cli/help.$(OBJEXT): cli/$(am__dirstamp) cli/$(DEPDIR)/$(am__dirstamp)
-cli/tty.$(OBJEXT): cli/$(am__dirstamp) cli/$(DEPDIR)/$(am__dirstamp)
+cli/vesmail-help.$(OBJEXT): cli/$(am__dirstamp) \
+	cli/$(DEPDIR)/$(am__dirstamp)
+cli/vesmail-tty.$(OBJEXT): cli/$(am__dirstamp) \
+	cli/$(DEPDIR)/$(am__dirstamp)
 util/$(am__dirstamp):
 	@$(MKDIR_P) util
 	@: > util/$(am__dirstamp)
 util/$(DEPDIR)/$(am__dirstamp):
 	@$(MKDIR_P) util/$(DEPDIR)
 	@: > util/$(DEPDIR)/$(am__dirstamp)
-util/jTree.$(OBJEXT): util/$(am__dirstamp) \
+util/vesmail-jTree.$(OBJEXT): util/$(am__dirstamp) \
 	util/$(DEPDIR)/$(am__dirstamp)
 
 vesmail$(EXEEXT): $(vesmail_OBJECTS) $(vesmail_DEPENDENCIES) $(EXTRA_vesmail_DEPENDENCIES) 
 	@rm -f vesmail$(EXEEXT)
-	$(AM_V_CCLD)$(LINK) $(vesmail_OBJECTS) $(vesmail_LDADD) $(LIBS)
+	$(AM_V_CCLD)$(vesmail_LINK) $(vesmail_OBJECTS) $(vesmail_LDADD) $(LIBS)
 
 mostlyclean-compile:
 	-rm -f *.$(OBJEXT)
@@ -645,54 +701,55 @@ mostlyclean-compile:
 distclean-compile:
 	-rm -f *.tab.c
 
-@AMDEP_TRUE@@am__include@ @am__quote@cli/$(DEPDIR)/help.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@cli/$(DEPDIR)/tty.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@cli/$(DEPDIR)/vesmail.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@imap/$(DEPDIR)/imap.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@imap/$(DEPDIR)/imap_append.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@imap/$(DEPDIR)/imap_fetch.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@imap/$(DEPDIR)/imap_msg.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@imap/$(DEPDIR)/imap_proxy.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@imap/$(DEPDIR)/imap_result.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@imap/$(DEPDIR)/imap_result_proc.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@imap/$(DEPDIR)/imap_sect.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@imap/$(DEPDIR)/imap_start.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@imap/$(DEPDIR)/imap_token.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@imap/$(DEPDIR)/imap_track.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@imap/$(DEPDIR)/imap_xform.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@imap/$(DEPDIR)/imap_xves.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@lib/$(DEPDIR)/banner.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@lib/$(DEPDIR)/cte.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@lib/$(DEPDIR)/decrypt.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@lib/$(DEPDIR)/encrypt.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@lib/$(DEPDIR)/header.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@lib/$(DEPDIR)/mail.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@lib/$(DEPDIR)/multi.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@lib/$(DEPDIR)/optns.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@lib/$(DEPDIR)/parse.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@lib/$(DEPDIR)/util.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@lib/$(DEPDIR)/ves.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@lib/$(DEPDIR)/xform.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@now/$(DEPDIR)/now.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@now/$(DEPDIR)/now_probe.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@now/$(DEPDIR)/now_store.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@smtp/$(DEPDIR)/smtp.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@smtp/$(DEPDIR)/smtp_cmd.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@smtp/$(DEPDIR)/smtp_proxy.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@smtp/$(DEPDIR)/smtp_reply.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@smtp/$(DEPDIR)/smtp_start.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@smtp/$(DEPDIR)/smtp_track.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@smtp/$(DEPDIR)/smtp_xves.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@srv/$(DEPDIR)/arch.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@srv/$(DEPDIR)/conf.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@srv/$(DEPDIR)/daemon.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@srv/$(DEPDIR)/guard.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@srv/$(DEPDIR)/override.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@srv/$(DEPDIR)/proc.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@srv/$(DEPDIR)/sasl.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@srv/$(DEPDIR)/server.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@srv/$(DEPDIR)/tls.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@util/$(DEPDIR)/jTree.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@cli/$(DEPDIR)/vesmail-help.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@cli/$(DEPDIR)/vesmail-tty.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@cli/$(DEPDIR)/vesmail-vesmail.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@imap/$(DEPDIR)/vesmail-imap.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@imap/$(DEPDIR)/vesmail-imap_append.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@imap/$(DEPDIR)/vesmail-imap_fetch.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@imap/$(DEPDIR)/vesmail-imap_msg.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@imap/$(DEPDIR)/vesmail-imap_proxy.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@imap/$(DEPDIR)/vesmail-imap_result.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@imap/$(DEPDIR)/vesmail-imap_result_proc.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@imap/$(DEPDIR)/vesmail-imap_sect.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@imap/$(DEPDIR)/vesmail-imap_start.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@imap/$(DEPDIR)/vesmail-imap_token.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@imap/$(DEPDIR)/vesmail-imap_track.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@imap/$(DEPDIR)/vesmail-imap_xform.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@imap/$(DEPDIR)/vesmail-imap_xves.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@lib/$(DEPDIR)/vesmail-banner.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@lib/$(DEPDIR)/vesmail-cte.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@lib/$(DEPDIR)/vesmail-decrypt.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@lib/$(DEPDIR)/vesmail-encrypt.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@lib/$(DEPDIR)/vesmail-header.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@lib/$(DEPDIR)/vesmail-mail.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@lib/$(DEPDIR)/vesmail-multi.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@lib/$(DEPDIR)/vesmail-optns.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@lib/$(DEPDIR)/vesmail-parse.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@lib/$(DEPDIR)/vesmail-util.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@lib/$(DEPDIR)/vesmail-ves.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@lib/$(DEPDIR)/vesmail-xform.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@now/$(DEPDIR)/vesmail-now.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@now/$(DEPDIR)/vesmail-now_probe.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@now/$(DEPDIR)/vesmail-now_store.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@smtp/$(DEPDIR)/vesmail-smtp.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@smtp/$(DEPDIR)/vesmail-smtp_cmd.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@smtp/$(DEPDIR)/vesmail-smtp_proxy.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@smtp/$(DEPDIR)/vesmail-smtp_reply.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@smtp/$(DEPDIR)/vesmail-smtp_start.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@smtp/$(DEPDIR)/vesmail-smtp_track.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@smtp/$(DEPDIR)/vesmail-smtp_xves.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@srv/$(DEPDIR)/vesmail-arch.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@srv/$(DEPDIR)/vesmail-conf.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@srv/$(DEPDIR)/vesmail-curlsh.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@srv/$(DEPDIR)/vesmail-daemon.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@srv/$(DEPDIR)/vesmail-guard.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@srv/$(DEPDIR)/vesmail-override.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@srv/$(DEPDIR)/vesmail-proc.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@srv/$(DEPDIR)/vesmail-sasl.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@srv/$(DEPDIR)/vesmail-server.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@srv/$(DEPDIR)/vesmail-tls.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@util/$(DEPDIR)/vesmail-jTree.Po@am__quote@
 
 .c.o:
 @am__fastdepCC_TRUE@	$(AM_V_CC)depbase=`echo $@ | sed 's|[^/]*$$|$(DEPDIR)/&|;s|\.o$$||'`;\
@@ -709,6 +766,692 @@ distclean-compile:
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='$<' object='$@' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(COMPILE) -c -o $@ `$(CYGPATH_W) '$<'`
+
+lib/vesmail-mail.o: lib/mail.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(vesmail_CFLAGS) $(CFLAGS) -MT lib/vesmail-mail.o -MD -MP -MF lib/$(DEPDIR)/vesmail-mail.Tpo -c -o lib/vesmail-mail.o `test -f 'lib/mail.c' || echo '$(srcdir)/'`lib/mail.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) lib/$(DEPDIR)/vesmail-mail.Tpo lib/$(DEPDIR)/vesmail-mail.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='lib/mail.c' object='lib/vesmail-mail.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(vesmail_CFLAGS) $(CFLAGS) -c -o lib/vesmail-mail.o `test -f 'lib/mail.c' || echo '$(srcdir)/'`lib/mail.c
+
+lib/vesmail-mail.obj: lib/mail.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(vesmail_CFLAGS) $(CFLAGS) -MT lib/vesmail-mail.obj -MD -MP -MF lib/$(DEPDIR)/vesmail-mail.Tpo -c -o lib/vesmail-mail.obj `if test -f 'lib/mail.c'; then $(CYGPATH_W) 'lib/mail.c'; else $(CYGPATH_W) '$(srcdir)/lib/mail.c'; fi`
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) lib/$(DEPDIR)/vesmail-mail.Tpo lib/$(DEPDIR)/vesmail-mail.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='lib/mail.c' object='lib/vesmail-mail.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(vesmail_CFLAGS) $(CFLAGS) -c -o lib/vesmail-mail.obj `if test -f 'lib/mail.c'; then $(CYGPATH_W) 'lib/mail.c'; else $(CYGPATH_W) '$(srcdir)/lib/mail.c'; fi`
+
+lib/vesmail-optns.o: lib/optns.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(vesmail_CFLAGS) $(CFLAGS) -MT lib/vesmail-optns.o -MD -MP -MF lib/$(DEPDIR)/vesmail-optns.Tpo -c -o lib/vesmail-optns.o `test -f 'lib/optns.c' || echo '$(srcdir)/'`lib/optns.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) lib/$(DEPDIR)/vesmail-optns.Tpo lib/$(DEPDIR)/vesmail-optns.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='lib/optns.c' object='lib/vesmail-optns.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(vesmail_CFLAGS) $(CFLAGS) -c -o lib/vesmail-optns.o `test -f 'lib/optns.c' || echo '$(srcdir)/'`lib/optns.c
+
+lib/vesmail-optns.obj: lib/optns.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(vesmail_CFLAGS) $(CFLAGS) -MT lib/vesmail-optns.obj -MD -MP -MF lib/$(DEPDIR)/vesmail-optns.Tpo -c -o lib/vesmail-optns.obj `if test -f 'lib/optns.c'; then $(CYGPATH_W) 'lib/optns.c'; else $(CYGPATH_W) '$(srcdir)/lib/optns.c'; fi`
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) lib/$(DEPDIR)/vesmail-optns.Tpo lib/$(DEPDIR)/vesmail-optns.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='lib/optns.c' object='lib/vesmail-optns.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(vesmail_CFLAGS) $(CFLAGS) -c -o lib/vesmail-optns.obj `if test -f 'lib/optns.c'; then $(CYGPATH_W) 'lib/optns.c'; else $(CYGPATH_W) '$(srcdir)/lib/optns.c'; fi`
+
+lib/vesmail-parse.o: lib/parse.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(vesmail_CFLAGS) $(CFLAGS) -MT lib/vesmail-parse.o -MD -MP -MF lib/$(DEPDIR)/vesmail-parse.Tpo -c -o lib/vesmail-parse.o `test -f 'lib/parse.c' || echo '$(srcdir)/'`lib/parse.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) lib/$(DEPDIR)/vesmail-parse.Tpo lib/$(DEPDIR)/vesmail-parse.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='lib/parse.c' object='lib/vesmail-parse.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(vesmail_CFLAGS) $(CFLAGS) -c -o lib/vesmail-parse.o `test -f 'lib/parse.c' || echo '$(srcdir)/'`lib/parse.c
+
+lib/vesmail-parse.obj: lib/parse.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(vesmail_CFLAGS) $(CFLAGS) -MT lib/vesmail-parse.obj -MD -MP -MF lib/$(DEPDIR)/vesmail-parse.Tpo -c -o lib/vesmail-parse.obj `if test -f 'lib/parse.c'; then $(CYGPATH_W) 'lib/parse.c'; else $(CYGPATH_W) '$(srcdir)/lib/parse.c'; fi`
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) lib/$(DEPDIR)/vesmail-parse.Tpo lib/$(DEPDIR)/vesmail-parse.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='lib/parse.c' object='lib/vesmail-parse.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(vesmail_CFLAGS) $(CFLAGS) -c -o lib/vesmail-parse.obj `if test -f 'lib/parse.c'; then $(CYGPATH_W) 'lib/parse.c'; else $(CYGPATH_W) '$(srcdir)/lib/parse.c'; fi`
+
+lib/vesmail-header.o: lib/header.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(vesmail_CFLAGS) $(CFLAGS) -MT lib/vesmail-header.o -MD -MP -MF lib/$(DEPDIR)/vesmail-header.Tpo -c -o lib/vesmail-header.o `test -f 'lib/header.c' || echo '$(srcdir)/'`lib/header.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) lib/$(DEPDIR)/vesmail-header.Tpo lib/$(DEPDIR)/vesmail-header.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='lib/header.c' object='lib/vesmail-header.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(vesmail_CFLAGS) $(CFLAGS) -c -o lib/vesmail-header.o `test -f 'lib/header.c' || echo '$(srcdir)/'`lib/header.c
+
+lib/vesmail-header.obj: lib/header.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(vesmail_CFLAGS) $(CFLAGS) -MT lib/vesmail-header.obj -MD -MP -MF lib/$(DEPDIR)/vesmail-header.Tpo -c -o lib/vesmail-header.obj `if test -f 'lib/header.c'; then $(CYGPATH_W) 'lib/header.c'; else $(CYGPATH_W) '$(srcdir)/lib/header.c'; fi`
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) lib/$(DEPDIR)/vesmail-header.Tpo lib/$(DEPDIR)/vesmail-header.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='lib/header.c' object='lib/vesmail-header.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(vesmail_CFLAGS) $(CFLAGS) -c -o lib/vesmail-header.obj `if test -f 'lib/header.c'; then $(CYGPATH_W) 'lib/header.c'; else $(CYGPATH_W) '$(srcdir)/lib/header.c'; fi`
+
+lib/vesmail-xform.o: lib/xform.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(vesmail_CFLAGS) $(CFLAGS) -MT lib/vesmail-xform.o -MD -MP -MF lib/$(DEPDIR)/vesmail-xform.Tpo -c -o lib/vesmail-xform.o `test -f 'lib/xform.c' || echo '$(srcdir)/'`lib/xform.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) lib/$(DEPDIR)/vesmail-xform.Tpo lib/$(DEPDIR)/vesmail-xform.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='lib/xform.c' object='lib/vesmail-xform.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(vesmail_CFLAGS) $(CFLAGS) -c -o lib/vesmail-xform.o `test -f 'lib/xform.c' || echo '$(srcdir)/'`lib/xform.c
+
+lib/vesmail-xform.obj: lib/xform.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(vesmail_CFLAGS) $(CFLAGS) -MT lib/vesmail-xform.obj -MD -MP -MF lib/$(DEPDIR)/vesmail-xform.Tpo -c -o lib/vesmail-xform.obj `if test -f 'lib/xform.c'; then $(CYGPATH_W) 'lib/xform.c'; else $(CYGPATH_W) '$(srcdir)/lib/xform.c'; fi`
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) lib/$(DEPDIR)/vesmail-xform.Tpo lib/$(DEPDIR)/vesmail-xform.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='lib/xform.c' object='lib/vesmail-xform.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(vesmail_CFLAGS) $(CFLAGS) -c -o lib/vesmail-xform.obj `if test -f 'lib/xform.c'; then $(CYGPATH_W) 'lib/xform.c'; else $(CYGPATH_W) '$(srcdir)/lib/xform.c'; fi`
+
+lib/vesmail-multi.o: lib/multi.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(vesmail_CFLAGS) $(CFLAGS) -MT lib/vesmail-multi.o -MD -MP -MF lib/$(DEPDIR)/vesmail-multi.Tpo -c -o lib/vesmail-multi.o `test -f 'lib/multi.c' || echo '$(srcdir)/'`lib/multi.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) lib/$(DEPDIR)/vesmail-multi.Tpo lib/$(DEPDIR)/vesmail-multi.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='lib/multi.c' object='lib/vesmail-multi.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(vesmail_CFLAGS) $(CFLAGS) -c -o lib/vesmail-multi.o `test -f 'lib/multi.c' || echo '$(srcdir)/'`lib/multi.c
+
+lib/vesmail-multi.obj: lib/multi.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(vesmail_CFLAGS) $(CFLAGS) -MT lib/vesmail-multi.obj -MD -MP -MF lib/$(DEPDIR)/vesmail-multi.Tpo -c -o lib/vesmail-multi.obj `if test -f 'lib/multi.c'; then $(CYGPATH_W) 'lib/multi.c'; else $(CYGPATH_W) '$(srcdir)/lib/multi.c'; fi`
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) lib/$(DEPDIR)/vesmail-multi.Tpo lib/$(DEPDIR)/vesmail-multi.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='lib/multi.c' object='lib/vesmail-multi.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(vesmail_CFLAGS) $(CFLAGS) -c -o lib/vesmail-multi.obj `if test -f 'lib/multi.c'; then $(CYGPATH_W) 'lib/multi.c'; else $(CYGPATH_W) '$(srcdir)/lib/multi.c'; fi`
+
+lib/vesmail-cte.o: lib/cte.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(vesmail_CFLAGS) $(CFLAGS) -MT lib/vesmail-cte.o -MD -MP -MF lib/$(DEPDIR)/vesmail-cte.Tpo -c -o lib/vesmail-cte.o `test -f 'lib/cte.c' || echo '$(srcdir)/'`lib/cte.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) lib/$(DEPDIR)/vesmail-cte.Tpo lib/$(DEPDIR)/vesmail-cte.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='lib/cte.c' object='lib/vesmail-cte.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(vesmail_CFLAGS) $(CFLAGS) -c -o lib/vesmail-cte.o `test -f 'lib/cte.c' || echo '$(srcdir)/'`lib/cte.c
+
+lib/vesmail-cte.obj: lib/cte.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(vesmail_CFLAGS) $(CFLAGS) -MT lib/vesmail-cte.obj -MD -MP -MF lib/$(DEPDIR)/vesmail-cte.Tpo -c -o lib/vesmail-cte.obj `if test -f 'lib/cte.c'; then $(CYGPATH_W) 'lib/cte.c'; else $(CYGPATH_W) '$(srcdir)/lib/cte.c'; fi`
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) lib/$(DEPDIR)/vesmail-cte.Tpo lib/$(DEPDIR)/vesmail-cte.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='lib/cte.c' object='lib/vesmail-cte.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(vesmail_CFLAGS) $(CFLAGS) -c -o lib/vesmail-cte.obj `if test -f 'lib/cte.c'; then $(CYGPATH_W) 'lib/cte.c'; else $(CYGPATH_W) '$(srcdir)/lib/cte.c'; fi`
+
+lib/vesmail-ves.o: lib/ves.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(vesmail_CFLAGS) $(CFLAGS) -MT lib/vesmail-ves.o -MD -MP -MF lib/$(DEPDIR)/vesmail-ves.Tpo -c -o lib/vesmail-ves.o `test -f 'lib/ves.c' || echo '$(srcdir)/'`lib/ves.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) lib/$(DEPDIR)/vesmail-ves.Tpo lib/$(DEPDIR)/vesmail-ves.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='lib/ves.c' object='lib/vesmail-ves.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(vesmail_CFLAGS) $(CFLAGS) -c -o lib/vesmail-ves.o `test -f 'lib/ves.c' || echo '$(srcdir)/'`lib/ves.c
+
+lib/vesmail-ves.obj: lib/ves.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(vesmail_CFLAGS) $(CFLAGS) -MT lib/vesmail-ves.obj -MD -MP -MF lib/$(DEPDIR)/vesmail-ves.Tpo -c -o lib/vesmail-ves.obj `if test -f 'lib/ves.c'; then $(CYGPATH_W) 'lib/ves.c'; else $(CYGPATH_W) '$(srcdir)/lib/ves.c'; fi`
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) lib/$(DEPDIR)/vesmail-ves.Tpo lib/$(DEPDIR)/vesmail-ves.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='lib/ves.c' object='lib/vesmail-ves.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(vesmail_CFLAGS) $(CFLAGS) -c -o lib/vesmail-ves.obj `if test -f 'lib/ves.c'; then $(CYGPATH_W) 'lib/ves.c'; else $(CYGPATH_W) '$(srcdir)/lib/ves.c'; fi`
+
+lib/vesmail-encrypt.o: lib/encrypt.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(vesmail_CFLAGS) $(CFLAGS) -MT lib/vesmail-encrypt.o -MD -MP -MF lib/$(DEPDIR)/vesmail-encrypt.Tpo -c -o lib/vesmail-encrypt.o `test -f 'lib/encrypt.c' || echo '$(srcdir)/'`lib/encrypt.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) lib/$(DEPDIR)/vesmail-encrypt.Tpo lib/$(DEPDIR)/vesmail-encrypt.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='lib/encrypt.c' object='lib/vesmail-encrypt.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(vesmail_CFLAGS) $(CFLAGS) -c -o lib/vesmail-encrypt.o `test -f 'lib/encrypt.c' || echo '$(srcdir)/'`lib/encrypt.c
+
+lib/vesmail-encrypt.obj: lib/encrypt.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(vesmail_CFLAGS) $(CFLAGS) -MT lib/vesmail-encrypt.obj -MD -MP -MF lib/$(DEPDIR)/vesmail-encrypt.Tpo -c -o lib/vesmail-encrypt.obj `if test -f 'lib/encrypt.c'; then $(CYGPATH_W) 'lib/encrypt.c'; else $(CYGPATH_W) '$(srcdir)/lib/encrypt.c'; fi`
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) lib/$(DEPDIR)/vesmail-encrypt.Tpo lib/$(DEPDIR)/vesmail-encrypt.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='lib/encrypt.c' object='lib/vesmail-encrypt.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(vesmail_CFLAGS) $(CFLAGS) -c -o lib/vesmail-encrypt.obj `if test -f 'lib/encrypt.c'; then $(CYGPATH_W) 'lib/encrypt.c'; else $(CYGPATH_W) '$(srcdir)/lib/encrypt.c'; fi`
+
+lib/vesmail-decrypt.o: lib/decrypt.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(vesmail_CFLAGS) $(CFLAGS) -MT lib/vesmail-decrypt.o -MD -MP -MF lib/$(DEPDIR)/vesmail-decrypt.Tpo -c -o lib/vesmail-decrypt.o `test -f 'lib/decrypt.c' || echo '$(srcdir)/'`lib/decrypt.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) lib/$(DEPDIR)/vesmail-decrypt.Tpo lib/$(DEPDIR)/vesmail-decrypt.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='lib/decrypt.c' object='lib/vesmail-decrypt.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(vesmail_CFLAGS) $(CFLAGS) -c -o lib/vesmail-decrypt.o `test -f 'lib/decrypt.c' || echo '$(srcdir)/'`lib/decrypt.c
+
+lib/vesmail-decrypt.obj: lib/decrypt.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(vesmail_CFLAGS) $(CFLAGS) -MT lib/vesmail-decrypt.obj -MD -MP -MF lib/$(DEPDIR)/vesmail-decrypt.Tpo -c -o lib/vesmail-decrypt.obj `if test -f 'lib/decrypt.c'; then $(CYGPATH_W) 'lib/decrypt.c'; else $(CYGPATH_W) '$(srcdir)/lib/decrypt.c'; fi`
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) lib/$(DEPDIR)/vesmail-decrypt.Tpo lib/$(DEPDIR)/vesmail-decrypt.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='lib/decrypt.c' object='lib/vesmail-decrypt.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(vesmail_CFLAGS) $(CFLAGS) -c -o lib/vesmail-decrypt.obj `if test -f 'lib/decrypt.c'; then $(CYGPATH_W) 'lib/decrypt.c'; else $(CYGPATH_W) '$(srcdir)/lib/decrypt.c'; fi`
+
+lib/vesmail-banner.o: lib/banner.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(vesmail_CFLAGS) $(CFLAGS) -MT lib/vesmail-banner.o -MD -MP -MF lib/$(DEPDIR)/vesmail-banner.Tpo -c -o lib/vesmail-banner.o `test -f 'lib/banner.c' || echo '$(srcdir)/'`lib/banner.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) lib/$(DEPDIR)/vesmail-banner.Tpo lib/$(DEPDIR)/vesmail-banner.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='lib/banner.c' object='lib/vesmail-banner.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(vesmail_CFLAGS) $(CFLAGS) -c -o lib/vesmail-banner.o `test -f 'lib/banner.c' || echo '$(srcdir)/'`lib/banner.c
+
+lib/vesmail-banner.obj: lib/banner.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(vesmail_CFLAGS) $(CFLAGS) -MT lib/vesmail-banner.obj -MD -MP -MF lib/$(DEPDIR)/vesmail-banner.Tpo -c -o lib/vesmail-banner.obj `if test -f 'lib/banner.c'; then $(CYGPATH_W) 'lib/banner.c'; else $(CYGPATH_W) '$(srcdir)/lib/banner.c'; fi`
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) lib/$(DEPDIR)/vesmail-banner.Tpo lib/$(DEPDIR)/vesmail-banner.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='lib/banner.c' object='lib/vesmail-banner.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(vesmail_CFLAGS) $(CFLAGS) -c -o lib/vesmail-banner.obj `if test -f 'lib/banner.c'; then $(CYGPATH_W) 'lib/banner.c'; else $(CYGPATH_W) '$(srcdir)/lib/banner.c'; fi`
+
+lib/vesmail-util.o: lib/util.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(vesmail_CFLAGS) $(CFLAGS) -MT lib/vesmail-util.o -MD -MP -MF lib/$(DEPDIR)/vesmail-util.Tpo -c -o lib/vesmail-util.o `test -f 'lib/util.c' || echo '$(srcdir)/'`lib/util.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) lib/$(DEPDIR)/vesmail-util.Tpo lib/$(DEPDIR)/vesmail-util.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='lib/util.c' object='lib/vesmail-util.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(vesmail_CFLAGS) $(CFLAGS) -c -o lib/vesmail-util.o `test -f 'lib/util.c' || echo '$(srcdir)/'`lib/util.c
+
+lib/vesmail-util.obj: lib/util.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(vesmail_CFLAGS) $(CFLAGS) -MT lib/vesmail-util.obj -MD -MP -MF lib/$(DEPDIR)/vesmail-util.Tpo -c -o lib/vesmail-util.obj `if test -f 'lib/util.c'; then $(CYGPATH_W) 'lib/util.c'; else $(CYGPATH_W) '$(srcdir)/lib/util.c'; fi`
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) lib/$(DEPDIR)/vesmail-util.Tpo lib/$(DEPDIR)/vesmail-util.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='lib/util.c' object='lib/vesmail-util.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(vesmail_CFLAGS) $(CFLAGS) -c -o lib/vesmail-util.obj `if test -f 'lib/util.c'; then $(CYGPATH_W) 'lib/util.c'; else $(CYGPATH_W) '$(srcdir)/lib/util.c'; fi`
+
+srv/vesmail-server.o: srv/server.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(vesmail_CFLAGS) $(CFLAGS) -MT srv/vesmail-server.o -MD -MP -MF srv/$(DEPDIR)/vesmail-server.Tpo -c -o srv/vesmail-server.o `test -f 'srv/server.c' || echo '$(srcdir)/'`srv/server.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) srv/$(DEPDIR)/vesmail-server.Tpo srv/$(DEPDIR)/vesmail-server.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='srv/server.c' object='srv/vesmail-server.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(vesmail_CFLAGS) $(CFLAGS) -c -o srv/vesmail-server.o `test -f 'srv/server.c' || echo '$(srcdir)/'`srv/server.c
+
+srv/vesmail-server.obj: srv/server.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(vesmail_CFLAGS) $(CFLAGS) -MT srv/vesmail-server.obj -MD -MP -MF srv/$(DEPDIR)/vesmail-server.Tpo -c -o srv/vesmail-server.obj `if test -f 'srv/server.c'; then $(CYGPATH_W) 'srv/server.c'; else $(CYGPATH_W) '$(srcdir)/srv/server.c'; fi`
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) srv/$(DEPDIR)/vesmail-server.Tpo srv/$(DEPDIR)/vesmail-server.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='srv/server.c' object='srv/vesmail-server.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(vesmail_CFLAGS) $(CFLAGS) -c -o srv/vesmail-server.obj `if test -f 'srv/server.c'; then $(CYGPATH_W) 'srv/server.c'; else $(CYGPATH_W) '$(srcdir)/srv/server.c'; fi`
+
+srv/vesmail-arch.o: srv/arch.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(vesmail_CFLAGS) $(CFLAGS) -MT srv/vesmail-arch.o -MD -MP -MF srv/$(DEPDIR)/vesmail-arch.Tpo -c -o srv/vesmail-arch.o `test -f 'srv/arch.c' || echo '$(srcdir)/'`srv/arch.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) srv/$(DEPDIR)/vesmail-arch.Tpo srv/$(DEPDIR)/vesmail-arch.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='srv/arch.c' object='srv/vesmail-arch.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(vesmail_CFLAGS) $(CFLAGS) -c -o srv/vesmail-arch.o `test -f 'srv/arch.c' || echo '$(srcdir)/'`srv/arch.c
+
+srv/vesmail-arch.obj: srv/arch.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(vesmail_CFLAGS) $(CFLAGS) -MT srv/vesmail-arch.obj -MD -MP -MF srv/$(DEPDIR)/vesmail-arch.Tpo -c -o srv/vesmail-arch.obj `if test -f 'srv/arch.c'; then $(CYGPATH_W) 'srv/arch.c'; else $(CYGPATH_W) '$(srcdir)/srv/arch.c'; fi`
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) srv/$(DEPDIR)/vesmail-arch.Tpo srv/$(DEPDIR)/vesmail-arch.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='srv/arch.c' object='srv/vesmail-arch.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(vesmail_CFLAGS) $(CFLAGS) -c -o srv/vesmail-arch.obj `if test -f 'srv/arch.c'; then $(CYGPATH_W) 'srv/arch.c'; else $(CYGPATH_W) '$(srcdir)/srv/arch.c'; fi`
+
+srv/vesmail-tls.o: srv/tls.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(vesmail_CFLAGS) $(CFLAGS) -MT srv/vesmail-tls.o -MD -MP -MF srv/$(DEPDIR)/vesmail-tls.Tpo -c -o srv/vesmail-tls.o `test -f 'srv/tls.c' || echo '$(srcdir)/'`srv/tls.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) srv/$(DEPDIR)/vesmail-tls.Tpo srv/$(DEPDIR)/vesmail-tls.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='srv/tls.c' object='srv/vesmail-tls.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(vesmail_CFLAGS) $(CFLAGS) -c -o srv/vesmail-tls.o `test -f 'srv/tls.c' || echo '$(srcdir)/'`srv/tls.c
+
+srv/vesmail-tls.obj: srv/tls.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(vesmail_CFLAGS) $(CFLAGS) -MT srv/vesmail-tls.obj -MD -MP -MF srv/$(DEPDIR)/vesmail-tls.Tpo -c -o srv/vesmail-tls.obj `if test -f 'srv/tls.c'; then $(CYGPATH_W) 'srv/tls.c'; else $(CYGPATH_W) '$(srcdir)/srv/tls.c'; fi`
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) srv/$(DEPDIR)/vesmail-tls.Tpo srv/$(DEPDIR)/vesmail-tls.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='srv/tls.c' object='srv/vesmail-tls.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(vesmail_CFLAGS) $(CFLAGS) -c -o srv/vesmail-tls.obj `if test -f 'srv/tls.c'; then $(CYGPATH_W) 'srv/tls.c'; else $(CYGPATH_W) '$(srcdir)/srv/tls.c'; fi`
+
+srv/vesmail-sasl.o: srv/sasl.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(vesmail_CFLAGS) $(CFLAGS) -MT srv/vesmail-sasl.o -MD -MP -MF srv/$(DEPDIR)/vesmail-sasl.Tpo -c -o srv/vesmail-sasl.o `test -f 'srv/sasl.c' || echo '$(srcdir)/'`srv/sasl.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) srv/$(DEPDIR)/vesmail-sasl.Tpo srv/$(DEPDIR)/vesmail-sasl.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='srv/sasl.c' object='srv/vesmail-sasl.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(vesmail_CFLAGS) $(CFLAGS) -c -o srv/vesmail-sasl.o `test -f 'srv/sasl.c' || echo '$(srcdir)/'`srv/sasl.c
+
+srv/vesmail-sasl.obj: srv/sasl.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(vesmail_CFLAGS) $(CFLAGS) -MT srv/vesmail-sasl.obj -MD -MP -MF srv/$(DEPDIR)/vesmail-sasl.Tpo -c -o srv/vesmail-sasl.obj `if test -f 'srv/sasl.c'; then $(CYGPATH_W) 'srv/sasl.c'; else $(CYGPATH_W) '$(srcdir)/srv/sasl.c'; fi`
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) srv/$(DEPDIR)/vesmail-sasl.Tpo srv/$(DEPDIR)/vesmail-sasl.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='srv/sasl.c' object='srv/vesmail-sasl.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(vesmail_CFLAGS) $(CFLAGS) -c -o srv/vesmail-sasl.obj `if test -f 'srv/sasl.c'; then $(CYGPATH_W) 'srv/sasl.c'; else $(CYGPATH_W) '$(srcdir)/srv/sasl.c'; fi`
+
+srv/vesmail-conf.o: srv/conf.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(vesmail_CFLAGS) $(CFLAGS) -MT srv/vesmail-conf.o -MD -MP -MF srv/$(DEPDIR)/vesmail-conf.Tpo -c -o srv/vesmail-conf.o `test -f 'srv/conf.c' || echo '$(srcdir)/'`srv/conf.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) srv/$(DEPDIR)/vesmail-conf.Tpo srv/$(DEPDIR)/vesmail-conf.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='srv/conf.c' object='srv/vesmail-conf.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(vesmail_CFLAGS) $(CFLAGS) -c -o srv/vesmail-conf.o `test -f 'srv/conf.c' || echo '$(srcdir)/'`srv/conf.c
+
+srv/vesmail-conf.obj: srv/conf.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(vesmail_CFLAGS) $(CFLAGS) -MT srv/vesmail-conf.obj -MD -MP -MF srv/$(DEPDIR)/vesmail-conf.Tpo -c -o srv/vesmail-conf.obj `if test -f 'srv/conf.c'; then $(CYGPATH_W) 'srv/conf.c'; else $(CYGPATH_W) '$(srcdir)/srv/conf.c'; fi`
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) srv/$(DEPDIR)/vesmail-conf.Tpo srv/$(DEPDIR)/vesmail-conf.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='srv/conf.c' object='srv/vesmail-conf.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(vesmail_CFLAGS) $(CFLAGS) -c -o srv/vesmail-conf.obj `if test -f 'srv/conf.c'; then $(CYGPATH_W) 'srv/conf.c'; else $(CYGPATH_W) '$(srcdir)/srv/conf.c'; fi`
+
+srv/vesmail-daemon.o: srv/daemon.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(vesmail_CFLAGS) $(CFLAGS) -MT srv/vesmail-daemon.o -MD -MP -MF srv/$(DEPDIR)/vesmail-daemon.Tpo -c -o srv/vesmail-daemon.o `test -f 'srv/daemon.c' || echo '$(srcdir)/'`srv/daemon.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) srv/$(DEPDIR)/vesmail-daemon.Tpo srv/$(DEPDIR)/vesmail-daemon.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='srv/daemon.c' object='srv/vesmail-daemon.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(vesmail_CFLAGS) $(CFLAGS) -c -o srv/vesmail-daemon.o `test -f 'srv/daemon.c' || echo '$(srcdir)/'`srv/daemon.c
+
+srv/vesmail-daemon.obj: srv/daemon.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(vesmail_CFLAGS) $(CFLAGS) -MT srv/vesmail-daemon.obj -MD -MP -MF srv/$(DEPDIR)/vesmail-daemon.Tpo -c -o srv/vesmail-daemon.obj `if test -f 'srv/daemon.c'; then $(CYGPATH_W) 'srv/daemon.c'; else $(CYGPATH_W) '$(srcdir)/srv/daemon.c'; fi`
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) srv/$(DEPDIR)/vesmail-daemon.Tpo srv/$(DEPDIR)/vesmail-daemon.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='srv/daemon.c' object='srv/vesmail-daemon.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(vesmail_CFLAGS) $(CFLAGS) -c -o srv/vesmail-daemon.obj `if test -f 'srv/daemon.c'; then $(CYGPATH_W) 'srv/daemon.c'; else $(CYGPATH_W) '$(srcdir)/srv/daemon.c'; fi`
+
+srv/vesmail-proc.o: srv/proc.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(vesmail_CFLAGS) $(CFLAGS) -MT srv/vesmail-proc.o -MD -MP -MF srv/$(DEPDIR)/vesmail-proc.Tpo -c -o srv/vesmail-proc.o `test -f 'srv/proc.c' || echo '$(srcdir)/'`srv/proc.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) srv/$(DEPDIR)/vesmail-proc.Tpo srv/$(DEPDIR)/vesmail-proc.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='srv/proc.c' object='srv/vesmail-proc.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(vesmail_CFLAGS) $(CFLAGS) -c -o srv/vesmail-proc.o `test -f 'srv/proc.c' || echo '$(srcdir)/'`srv/proc.c
+
+srv/vesmail-proc.obj: srv/proc.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(vesmail_CFLAGS) $(CFLAGS) -MT srv/vesmail-proc.obj -MD -MP -MF srv/$(DEPDIR)/vesmail-proc.Tpo -c -o srv/vesmail-proc.obj `if test -f 'srv/proc.c'; then $(CYGPATH_W) 'srv/proc.c'; else $(CYGPATH_W) '$(srcdir)/srv/proc.c'; fi`
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) srv/$(DEPDIR)/vesmail-proc.Tpo srv/$(DEPDIR)/vesmail-proc.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='srv/proc.c' object='srv/vesmail-proc.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(vesmail_CFLAGS) $(CFLAGS) -c -o srv/vesmail-proc.obj `if test -f 'srv/proc.c'; then $(CYGPATH_W) 'srv/proc.c'; else $(CYGPATH_W) '$(srcdir)/srv/proc.c'; fi`
+
+srv/vesmail-override.o: srv/override.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(vesmail_CFLAGS) $(CFLAGS) -MT srv/vesmail-override.o -MD -MP -MF srv/$(DEPDIR)/vesmail-override.Tpo -c -o srv/vesmail-override.o `test -f 'srv/override.c' || echo '$(srcdir)/'`srv/override.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) srv/$(DEPDIR)/vesmail-override.Tpo srv/$(DEPDIR)/vesmail-override.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='srv/override.c' object='srv/vesmail-override.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(vesmail_CFLAGS) $(CFLAGS) -c -o srv/vesmail-override.o `test -f 'srv/override.c' || echo '$(srcdir)/'`srv/override.c
+
+srv/vesmail-override.obj: srv/override.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(vesmail_CFLAGS) $(CFLAGS) -MT srv/vesmail-override.obj -MD -MP -MF srv/$(DEPDIR)/vesmail-override.Tpo -c -o srv/vesmail-override.obj `if test -f 'srv/override.c'; then $(CYGPATH_W) 'srv/override.c'; else $(CYGPATH_W) '$(srcdir)/srv/override.c'; fi`
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) srv/$(DEPDIR)/vesmail-override.Tpo srv/$(DEPDIR)/vesmail-override.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='srv/override.c' object='srv/vesmail-override.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(vesmail_CFLAGS) $(CFLAGS) -c -o srv/vesmail-override.obj `if test -f 'srv/override.c'; then $(CYGPATH_W) 'srv/override.c'; else $(CYGPATH_W) '$(srcdir)/srv/override.c'; fi`
+
+srv/vesmail-guard.o: srv/guard.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(vesmail_CFLAGS) $(CFLAGS) -MT srv/vesmail-guard.o -MD -MP -MF srv/$(DEPDIR)/vesmail-guard.Tpo -c -o srv/vesmail-guard.o `test -f 'srv/guard.c' || echo '$(srcdir)/'`srv/guard.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) srv/$(DEPDIR)/vesmail-guard.Tpo srv/$(DEPDIR)/vesmail-guard.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='srv/guard.c' object='srv/vesmail-guard.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(vesmail_CFLAGS) $(CFLAGS) -c -o srv/vesmail-guard.o `test -f 'srv/guard.c' || echo '$(srcdir)/'`srv/guard.c
+
+srv/vesmail-guard.obj: srv/guard.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(vesmail_CFLAGS) $(CFLAGS) -MT srv/vesmail-guard.obj -MD -MP -MF srv/$(DEPDIR)/vesmail-guard.Tpo -c -o srv/vesmail-guard.obj `if test -f 'srv/guard.c'; then $(CYGPATH_W) 'srv/guard.c'; else $(CYGPATH_W) '$(srcdir)/srv/guard.c'; fi`
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) srv/$(DEPDIR)/vesmail-guard.Tpo srv/$(DEPDIR)/vesmail-guard.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='srv/guard.c' object='srv/vesmail-guard.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(vesmail_CFLAGS) $(CFLAGS) -c -o srv/vesmail-guard.obj `if test -f 'srv/guard.c'; then $(CYGPATH_W) 'srv/guard.c'; else $(CYGPATH_W) '$(srcdir)/srv/guard.c'; fi`
+
+srv/vesmail-curlsh.o: srv/curlsh.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(vesmail_CFLAGS) $(CFLAGS) -MT srv/vesmail-curlsh.o -MD -MP -MF srv/$(DEPDIR)/vesmail-curlsh.Tpo -c -o srv/vesmail-curlsh.o `test -f 'srv/curlsh.c' || echo '$(srcdir)/'`srv/curlsh.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) srv/$(DEPDIR)/vesmail-curlsh.Tpo srv/$(DEPDIR)/vesmail-curlsh.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='srv/curlsh.c' object='srv/vesmail-curlsh.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(vesmail_CFLAGS) $(CFLAGS) -c -o srv/vesmail-curlsh.o `test -f 'srv/curlsh.c' || echo '$(srcdir)/'`srv/curlsh.c
+
+srv/vesmail-curlsh.obj: srv/curlsh.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(vesmail_CFLAGS) $(CFLAGS) -MT srv/vesmail-curlsh.obj -MD -MP -MF srv/$(DEPDIR)/vesmail-curlsh.Tpo -c -o srv/vesmail-curlsh.obj `if test -f 'srv/curlsh.c'; then $(CYGPATH_W) 'srv/curlsh.c'; else $(CYGPATH_W) '$(srcdir)/srv/curlsh.c'; fi`
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) srv/$(DEPDIR)/vesmail-curlsh.Tpo srv/$(DEPDIR)/vesmail-curlsh.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='srv/curlsh.c' object='srv/vesmail-curlsh.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(vesmail_CFLAGS) $(CFLAGS) -c -o srv/vesmail-curlsh.obj `if test -f 'srv/curlsh.c'; then $(CYGPATH_W) 'srv/curlsh.c'; else $(CYGPATH_W) '$(srcdir)/srv/curlsh.c'; fi`
+
+imap/vesmail-imap.o: imap/imap.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(vesmail_CFLAGS) $(CFLAGS) -MT imap/vesmail-imap.o -MD -MP -MF imap/$(DEPDIR)/vesmail-imap.Tpo -c -o imap/vesmail-imap.o `test -f 'imap/imap.c' || echo '$(srcdir)/'`imap/imap.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) imap/$(DEPDIR)/vesmail-imap.Tpo imap/$(DEPDIR)/vesmail-imap.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='imap/imap.c' object='imap/vesmail-imap.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(vesmail_CFLAGS) $(CFLAGS) -c -o imap/vesmail-imap.o `test -f 'imap/imap.c' || echo '$(srcdir)/'`imap/imap.c
+
+imap/vesmail-imap.obj: imap/imap.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(vesmail_CFLAGS) $(CFLAGS) -MT imap/vesmail-imap.obj -MD -MP -MF imap/$(DEPDIR)/vesmail-imap.Tpo -c -o imap/vesmail-imap.obj `if test -f 'imap/imap.c'; then $(CYGPATH_W) 'imap/imap.c'; else $(CYGPATH_W) '$(srcdir)/imap/imap.c'; fi`
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) imap/$(DEPDIR)/vesmail-imap.Tpo imap/$(DEPDIR)/vesmail-imap.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='imap/imap.c' object='imap/vesmail-imap.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(vesmail_CFLAGS) $(CFLAGS) -c -o imap/vesmail-imap.obj `if test -f 'imap/imap.c'; then $(CYGPATH_W) 'imap/imap.c'; else $(CYGPATH_W) '$(srcdir)/imap/imap.c'; fi`
+
+imap/vesmail-imap_xform.o: imap/imap_xform.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(vesmail_CFLAGS) $(CFLAGS) -MT imap/vesmail-imap_xform.o -MD -MP -MF imap/$(DEPDIR)/vesmail-imap_xform.Tpo -c -o imap/vesmail-imap_xform.o `test -f 'imap/imap_xform.c' || echo '$(srcdir)/'`imap/imap_xform.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) imap/$(DEPDIR)/vesmail-imap_xform.Tpo imap/$(DEPDIR)/vesmail-imap_xform.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='imap/imap_xform.c' object='imap/vesmail-imap_xform.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(vesmail_CFLAGS) $(CFLAGS) -c -o imap/vesmail-imap_xform.o `test -f 'imap/imap_xform.c' || echo '$(srcdir)/'`imap/imap_xform.c
+
+imap/vesmail-imap_xform.obj: imap/imap_xform.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(vesmail_CFLAGS) $(CFLAGS) -MT imap/vesmail-imap_xform.obj -MD -MP -MF imap/$(DEPDIR)/vesmail-imap_xform.Tpo -c -o imap/vesmail-imap_xform.obj `if test -f 'imap/imap_xform.c'; then $(CYGPATH_W) 'imap/imap_xform.c'; else $(CYGPATH_W) '$(srcdir)/imap/imap_xform.c'; fi`
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) imap/$(DEPDIR)/vesmail-imap_xform.Tpo imap/$(DEPDIR)/vesmail-imap_xform.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='imap/imap_xform.c' object='imap/vesmail-imap_xform.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(vesmail_CFLAGS) $(CFLAGS) -c -o imap/vesmail-imap_xform.obj `if test -f 'imap/imap_xform.c'; then $(CYGPATH_W) 'imap/imap_xform.c'; else $(CYGPATH_W) '$(srcdir)/imap/imap_xform.c'; fi`
+
+imap/vesmail-imap_token.o: imap/imap_token.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(vesmail_CFLAGS) $(CFLAGS) -MT imap/vesmail-imap_token.o -MD -MP -MF imap/$(DEPDIR)/vesmail-imap_token.Tpo -c -o imap/vesmail-imap_token.o `test -f 'imap/imap_token.c' || echo '$(srcdir)/'`imap/imap_token.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) imap/$(DEPDIR)/vesmail-imap_token.Tpo imap/$(DEPDIR)/vesmail-imap_token.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='imap/imap_token.c' object='imap/vesmail-imap_token.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(vesmail_CFLAGS) $(CFLAGS) -c -o imap/vesmail-imap_token.o `test -f 'imap/imap_token.c' || echo '$(srcdir)/'`imap/imap_token.c
+
+imap/vesmail-imap_token.obj: imap/imap_token.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(vesmail_CFLAGS) $(CFLAGS) -MT imap/vesmail-imap_token.obj -MD -MP -MF imap/$(DEPDIR)/vesmail-imap_token.Tpo -c -o imap/vesmail-imap_token.obj `if test -f 'imap/imap_token.c'; then $(CYGPATH_W) 'imap/imap_token.c'; else $(CYGPATH_W) '$(srcdir)/imap/imap_token.c'; fi`
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) imap/$(DEPDIR)/vesmail-imap_token.Tpo imap/$(DEPDIR)/vesmail-imap_token.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='imap/imap_token.c' object='imap/vesmail-imap_token.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(vesmail_CFLAGS) $(CFLAGS) -c -o imap/vesmail-imap_token.obj `if test -f 'imap/imap_token.c'; then $(CYGPATH_W) 'imap/imap_token.c'; else $(CYGPATH_W) '$(srcdir)/imap/imap_token.c'; fi`
+
+imap/vesmail-imap_track.o: imap/imap_track.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(vesmail_CFLAGS) $(CFLAGS) -MT imap/vesmail-imap_track.o -MD -MP -MF imap/$(DEPDIR)/vesmail-imap_track.Tpo -c -o imap/vesmail-imap_track.o `test -f 'imap/imap_track.c' || echo '$(srcdir)/'`imap/imap_track.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) imap/$(DEPDIR)/vesmail-imap_track.Tpo imap/$(DEPDIR)/vesmail-imap_track.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='imap/imap_track.c' object='imap/vesmail-imap_track.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(vesmail_CFLAGS) $(CFLAGS) -c -o imap/vesmail-imap_track.o `test -f 'imap/imap_track.c' || echo '$(srcdir)/'`imap/imap_track.c
+
+imap/vesmail-imap_track.obj: imap/imap_track.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(vesmail_CFLAGS) $(CFLAGS) -MT imap/vesmail-imap_track.obj -MD -MP -MF imap/$(DEPDIR)/vesmail-imap_track.Tpo -c -o imap/vesmail-imap_track.obj `if test -f 'imap/imap_track.c'; then $(CYGPATH_W) 'imap/imap_track.c'; else $(CYGPATH_W) '$(srcdir)/imap/imap_track.c'; fi`
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) imap/$(DEPDIR)/vesmail-imap_track.Tpo imap/$(DEPDIR)/vesmail-imap_track.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='imap/imap_track.c' object='imap/vesmail-imap_track.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(vesmail_CFLAGS) $(CFLAGS) -c -o imap/vesmail-imap_track.obj `if test -f 'imap/imap_track.c'; then $(CYGPATH_W) 'imap/imap_track.c'; else $(CYGPATH_W) '$(srcdir)/imap/imap_track.c'; fi`
+
+imap/vesmail-imap_start.o: imap/imap_start.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(vesmail_CFLAGS) $(CFLAGS) -MT imap/vesmail-imap_start.o -MD -MP -MF imap/$(DEPDIR)/vesmail-imap_start.Tpo -c -o imap/vesmail-imap_start.o `test -f 'imap/imap_start.c' || echo '$(srcdir)/'`imap/imap_start.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) imap/$(DEPDIR)/vesmail-imap_start.Tpo imap/$(DEPDIR)/vesmail-imap_start.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='imap/imap_start.c' object='imap/vesmail-imap_start.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(vesmail_CFLAGS) $(CFLAGS) -c -o imap/vesmail-imap_start.o `test -f 'imap/imap_start.c' || echo '$(srcdir)/'`imap/imap_start.c
+
+imap/vesmail-imap_start.obj: imap/imap_start.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(vesmail_CFLAGS) $(CFLAGS) -MT imap/vesmail-imap_start.obj -MD -MP -MF imap/$(DEPDIR)/vesmail-imap_start.Tpo -c -o imap/vesmail-imap_start.obj `if test -f 'imap/imap_start.c'; then $(CYGPATH_W) 'imap/imap_start.c'; else $(CYGPATH_W) '$(srcdir)/imap/imap_start.c'; fi`
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) imap/$(DEPDIR)/vesmail-imap_start.Tpo imap/$(DEPDIR)/vesmail-imap_start.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='imap/imap_start.c' object='imap/vesmail-imap_start.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(vesmail_CFLAGS) $(CFLAGS) -c -o imap/vesmail-imap_start.obj `if test -f 'imap/imap_start.c'; then $(CYGPATH_W) 'imap/imap_start.c'; else $(CYGPATH_W) '$(srcdir)/imap/imap_start.c'; fi`
+
+imap/vesmail-imap_proxy.o: imap/imap_proxy.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(vesmail_CFLAGS) $(CFLAGS) -MT imap/vesmail-imap_proxy.o -MD -MP -MF imap/$(DEPDIR)/vesmail-imap_proxy.Tpo -c -o imap/vesmail-imap_proxy.o `test -f 'imap/imap_proxy.c' || echo '$(srcdir)/'`imap/imap_proxy.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) imap/$(DEPDIR)/vesmail-imap_proxy.Tpo imap/$(DEPDIR)/vesmail-imap_proxy.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='imap/imap_proxy.c' object='imap/vesmail-imap_proxy.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(vesmail_CFLAGS) $(CFLAGS) -c -o imap/vesmail-imap_proxy.o `test -f 'imap/imap_proxy.c' || echo '$(srcdir)/'`imap/imap_proxy.c
+
+imap/vesmail-imap_proxy.obj: imap/imap_proxy.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(vesmail_CFLAGS) $(CFLAGS) -MT imap/vesmail-imap_proxy.obj -MD -MP -MF imap/$(DEPDIR)/vesmail-imap_proxy.Tpo -c -o imap/vesmail-imap_proxy.obj `if test -f 'imap/imap_proxy.c'; then $(CYGPATH_W) 'imap/imap_proxy.c'; else $(CYGPATH_W) '$(srcdir)/imap/imap_proxy.c'; fi`
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) imap/$(DEPDIR)/vesmail-imap_proxy.Tpo imap/$(DEPDIR)/vesmail-imap_proxy.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='imap/imap_proxy.c' object='imap/vesmail-imap_proxy.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(vesmail_CFLAGS) $(CFLAGS) -c -o imap/vesmail-imap_proxy.obj `if test -f 'imap/imap_proxy.c'; then $(CYGPATH_W) 'imap/imap_proxy.c'; else $(CYGPATH_W) '$(srcdir)/imap/imap_proxy.c'; fi`
+
+imap/vesmail-imap_msg.o: imap/imap_msg.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(vesmail_CFLAGS) $(CFLAGS) -MT imap/vesmail-imap_msg.o -MD -MP -MF imap/$(DEPDIR)/vesmail-imap_msg.Tpo -c -o imap/vesmail-imap_msg.o `test -f 'imap/imap_msg.c' || echo '$(srcdir)/'`imap/imap_msg.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) imap/$(DEPDIR)/vesmail-imap_msg.Tpo imap/$(DEPDIR)/vesmail-imap_msg.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='imap/imap_msg.c' object='imap/vesmail-imap_msg.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(vesmail_CFLAGS) $(CFLAGS) -c -o imap/vesmail-imap_msg.o `test -f 'imap/imap_msg.c' || echo '$(srcdir)/'`imap/imap_msg.c
+
+imap/vesmail-imap_msg.obj: imap/imap_msg.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(vesmail_CFLAGS) $(CFLAGS) -MT imap/vesmail-imap_msg.obj -MD -MP -MF imap/$(DEPDIR)/vesmail-imap_msg.Tpo -c -o imap/vesmail-imap_msg.obj `if test -f 'imap/imap_msg.c'; then $(CYGPATH_W) 'imap/imap_msg.c'; else $(CYGPATH_W) '$(srcdir)/imap/imap_msg.c'; fi`
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) imap/$(DEPDIR)/vesmail-imap_msg.Tpo imap/$(DEPDIR)/vesmail-imap_msg.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='imap/imap_msg.c' object='imap/vesmail-imap_msg.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(vesmail_CFLAGS) $(CFLAGS) -c -o imap/vesmail-imap_msg.obj `if test -f 'imap/imap_msg.c'; then $(CYGPATH_W) 'imap/imap_msg.c'; else $(CYGPATH_W) '$(srcdir)/imap/imap_msg.c'; fi`
+
+imap/vesmail-imap_fetch.o: imap/imap_fetch.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(vesmail_CFLAGS) $(CFLAGS) -MT imap/vesmail-imap_fetch.o -MD -MP -MF imap/$(DEPDIR)/vesmail-imap_fetch.Tpo -c -o imap/vesmail-imap_fetch.o `test -f 'imap/imap_fetch.c' || echo '$(srcdir)/'`imap/imap_fetch.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) imap/$(DEPDIR)/vesmail-imap_fetch.Tpo imap/$(DEPDIR)/vesmail-imap_fetch.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='imap/imap_fetch.c' object='imap/vesmail-imap_fetch.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(vesmail_CFLAGS) $(CFLAGS) -c -o imap/vesmail-imap_fetch.o `test -f 'imap/imap_fetch.c' || echo '$(srcdir)/'`imap/imap_fetch.c
+
+imap/vesmail-imap_fetch.obj: imap/imap_fetch.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(vesmail_CFLAGS) $(CFLAGS) -MT imap/vesmail-imap_fetch.obj -MD -MP -MF imap/$(DEPDIR)/vesmail-imap_fetch.Tpo -c -o imap/vesmail-imap_fetch.obj `if test -f 'imap/imap_fetch.c'; then $(CYGPATH_W) 'imap/imap_fetch.c'; else $(CYGPATH_W) '$(srcdir)/imap/imap_fetch.c'; fi`
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) imap/$(DEPDIR)/vesmail-imap_fetch.Tpo imap/$(DEPDIR)/vesmail-imap_fetch.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='imap/imap_fetch.c' object='imap/vesmail-imap_fetch.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(vesmail_CFLAGS) $(CFLAGS) -c -o imap/vesmail-imap_fetch.obj `if test -f 'imap/imap_fetch.c'; then $(CYGPATH_W) 'imap/imap_fetch.c'; else $(CYGPATH_W) '$(srcdir)/imap/imap_fetch.c'; fi`
+
+imap/vesmail-imap_result.o: imap/imap_result.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(vesmail_CFLAGS) $(CFLAGS) -MT imap/vesmail-imap_result.o -MD -MP -MF imap/$(DEPDIR)/vesmail-imap_result.Tpo -c -o imap/vesmail-imap_result.o `test -f 'imap/imap_result.c' || echo '$(srcdir)/'`imap/imap_result.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) imap/$(DEPDIR)/vesmail-imap_result.Tpo imap/$(DEPDIR)/vesmail-imap_result.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='imap/imap_result.c' object='imap/vesmail-imap_result.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(vesmail_CFLAGS) $(CFLAGS) -c -o imap/vesmail-imap_result.o `test -f 'imap/imap_result.c' || echo '$(srcdir)/'`imap/imap_result.c
+
+imap/vesmail-imap_result.obj: imap/imap_result.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(vesmail_CFLAGS) $(CFLAGS) -MT imap/vesmail-imap_result.obj -MD -MP -MF imap/$(DEPDIR)/vesmail-imap_result.Tpo -c -o imap/vesmail-imap_result.obj `if test -f 'imap/imap_result.c'; then $(CYGPATH_W) 'imap/imap_result.c'; else $(CYGPATH_W) '$(srcdir)/imap/imap_result.c'; fi`
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) imap/$(DEPDIR)/vesmail-imap_result.Tpo imap/$(DEPDIR)/vesmail-imap_result.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='imap/imap_result.c' object='imap/vesmail-imap_result.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(vesmail_CFLAGS) $(CFLAGS) -c -o imap/vesmail-imap_result.obj `if test -f 'imap/imap_result.c'; then $(CYGPATH_W) 'imap/imap_result.c'; else $(CYGPATH_W) '$(srcdir)/imap/imap_result.c'; fi`
+
+imap/vesmail-imap_result_proc.o: imap/imap_result_proc.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(vesmail_CFLAGS) $(CFLAGS) -MT imap/vesmail-imap_result_proc.o -MD -MP -MF imap/$(DEPDIR)/vesmail-imap_result_proc.Tpo -c -o imap/vesmail-imap_result_proc.o `test -f 'imap/imap_result_proc.c' || echo '$(srcdir)/'`imap/imap_result_proc.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) imap/$(DEPDIR)/vesmail-imap_result_proc.Tpo imap/$(DEPDIR)/vesmail-imap_result_proc.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='imap/imap_result_proc.c' object='imap/vesmail-imap_result_proc.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(vesmail_CFLAGS) $(CFLAGS) -c -o imap/vesmail-imap_result_proc.o `test -f 'imap/imap_result_proc.c' || echo '$(srcdir)/'`imap/imap_result_proc.c
+
+imap/vesmail-imap_result_proc.obj: imap/imap_result_proc.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(vesmail_CFLAGS) $(CFLAGS) -MT imap/vesmail-imap_result_proc.obj -MD -MP -MF imap/$(DEPDIR)/vesmail-imap_result_proc.Tpo -c -o imap/vesmail-imap_result_proc.obj `if test -f 'imap/imap_result_proc.c'; then $(CYGPATH_W) 'imap/imap_result_proc.c'; else $(CYGPATH_W) '$(srcdir)/imap/imap_result_proc.c'; fi`
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) imap/$(DEPDIR)/vesmail-imap_result_proc.Tpo imap/$(DEPDIR)/vesmail-imap_result_proc.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='imap/imap_result_proc.c' object='imap/vesmail-imap_result_proc.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(vesmail_CFLAGS) $(CFLAGS) -c -o imap/vesmail-imap_result_proc.obj `if test -f 'imap/imap_result_proc.c'; then $(CYGPATH_W) 'imap/imap_result_proc.c'; else $(CYGPATH_W) '$(srcdir)/imap/imap_result_proc.c'; fi`
+
+imap/vesmail-imap_sect.o: imap/imap_sect.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(vesmail_CFLAGS) $(CFLAGS) -MT imap/vesmail-imap_sect.o -MD -MP -MF imap/$(DEPDIR)/vesmail-imap_sect.Tpo -c -o imap/vesmail-imap_sect.o `test -f 'imap/imap_sect.c' || echo '$(srcdir)/'`imap/imap_sect.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) imap/$(DEPDIR)/vesmail-imap_sect.Tpo imap/$(DEPDIR)/vesmail-imap_sect.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='imap/imap_sect.c' object='imap/vesmail-imap_sect.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(vesmail_CFLAGS) $(CFLAGS) -c -o imap/vesmail-imap_sect.o `test -f 'imap/imap_sect.c' || echo '$(srcdir)/'`imap/imap_sect.c
+
+imap/vesmail-imap_sect.obj: imap/imap_sect.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(vesmail_CFLAGS) $(CFLAGS) -MT imap/vesmail-imap_sect.obj -MD -MP -MF imap/$(DEPDIR)/vesmail-imap_sect.Tpo -c -o imap/vesmail-imap_sect.obj `if test -f 'imap/imap_sect.c'; then $(CYGPATH_W) 'imap/imap_sect.c'; else $(CYGPATH_W) '$(srcdir)/imap/imap_sect.c'; fi`
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) imap/$(DEPDIR)/vesmail-imap_sect.Tpo imap/$(DEPDIR)/vesmail-imap_sect.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='imap/imap_sect.c' object='imap/vesmail-imap_sect.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(vesmail_CFLAGS) $(CFLAGS) -c -o imap/vesmail-imap_sect.obj `if test -f 'imap/imap_sect.c'; then $(CYGPATH_W) 'imap/imap_sect.c'; else $(CYGPATH_W) '$(srcdir)/imap/imap_sect.c'; fi`
+
+imap/vesmail-imap_append.o: imap/imap_append.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(vesmail_CFLAGS) $(CFLAGS) -MT imap/vesmail-imap_append.o -MD -MP -MF imap/$(DEPDIR)/vesmail-imap_append.Tpo -c -o imap/vesmail-imap_append.o `test -f 'imap/imap_append.c' || echo '$(srcdir)/'`imap/imap_append.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) imap/$(DEPDIR)/vesmail-imap_append.Tpo imap/$(DEPDIR)/vesmail-imap_append.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='imap/imap_append.c' object='imap/vesmail-imap_append.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(vesmail_CFLAGS) $(CFLAGS) -c -o imap/vesmail-imap_append.o `test -f 'imap/imap_append.c' || echo '$(srcdir)/'`imap/imap_append.c
+
+imap/vesmail-imap_append.obj: imap/imap_append.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(vesmail_CFLAGS) $(CFLAGS) -MT imap/vesmail-imap_append.obj -MD -MP -MF imap/$(DEPDIR)/vesmail-imap_append.Tpo -c -o imap/vesmail-imap_append.obj `if test -f 'imap/imap_append.c'; then $(CYGPATH_W) 'imap/imap_append.c'; else $(CYGPATH_W) '$(srcdir)/imap/imap_append.c'; fi`
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) imap/$(DEPDIR)/vesmail-imap_append.Tpo imap/$(DEPDIR)/vesmail-imap_append.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='imap/imap_append.c' object='imap/vesmail-imap_append.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(vesmail_CFLAGS) $(CFLAGS) -c -o imap/vesmail-imap_append.obj `if test -f 'imap/imap_append.c'; then $(CYGPATH_W) 'imap/imap_append.c'; else $(CYGPATH_W) '$(srcdir)/imap/imap_append.c'; fi`
+
+imap/vesmail-imap_xves.o: imap/imap_xves.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(vesmail_CFLAGS) $(CFLAGS) -MT imap/vesmail-imap_xves.o -MD -MP -MF imap/$(DEPDIR)/vesmail-imap_xves.Tpo -c -o imap/vesmail-imap_xves.o `test -f 'imap/imap_xves.c' || echo '$(srcdir)/'`imap/imap_xves.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) imap/$(DEPDIR)/vesmail-imap_xves.Tpo imap/$(DEPDIR)/vesmail-imap_xves.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='imap/imap_xves.c' object='imap/vesmail-imap_xves.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(vesmail_CFLAGS) $(CFLAGS) -c -o imap/vesmail-imap_xves.o `test -f 'imap/imap_xves.c' || echo '$(srcdir)/'`imap/imap_xves.c
+
+imap/vesmail-imap_xves.obj: imap/imap_xves.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(vesmail_CFLAGS) $(CFLAGS) -MT imap/vesmail-imap_xves.obj -MD -MP -MF imap/$(DEPDIR)/vesmail-imap_xves.Tpo -c -o imap/vesmail-imap_xves.obj `if test -f 'imap/imap_xves.c'; then $(CYGPATH_W) 'imap/imap_xves.c'; else $(CYGPATH_W) '$(srcdir)/imap/imap_xves.c'; fi`
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) imap/$(DEPDIR)/vesmail-imap_xves.Tpo imap/$(DEPDIR)/vesmail-imap_xves.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='imap/imap_xves.c' object='imap/vesmail-imap_xves.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(vesmail_CFLAGS) $(CFLAGS) -c -o imap/vesmail-imap_xves.obj `if test -f 'imap/imap_xves.c'; then $(CYGPATH_W) 'imap/imap_xves.c'; else $(CYGPATH_W) '$(srcdir)/imap/imap_xves.c'; fi`
+
+smtp/vesmail-smtp.o: smtp/smtp.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(vesmail_CFLAGS) $(CFLAGS) -MT smtp/vesmail-smtp.o -MD -MP -MF smtp/$(DEPDIR)/vesmail-smtp.Tpo -c -o smtp/vesmail-smtp.o `test -f 'smtp/smtp.c' || echo '$(srcdir)/'`smtp/smtp.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) smtp/$(DEPDIR)/vesmail-smtp.Tpo smtp/$(DEPDIR)/vesmail-smtp.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='smtp/smtp.c' object='smtp/vesmail-smtp.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(vesmail_CFLAGS) $(CFLAGS) -c -o smtp/vesmail-smtp.o `test -f 'smtp/smtp.c' || echo '$(srcdir)/'`smtp/smtp.c
+
+smtp/vesmail-smtp.obj: smtp/smtp.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(vesmail_CFLAGS) $(CFLAGS) -MT smtp/vesmail-smtp.obj -MD -MP -MF smtp/$(DEPDIR)/vesmail-smtp.Tpo -c -o smtp/vesmail-smtp.obj `if test -f 'smtp/smtp.c'; then $(CYGPATH_W) 'smtp/smtp.c'; else $(CYGPATH_W) '$(srcdir)/smtp/smtp.c'; fi`
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) smtp/$(DEPDIR)/vesmail-smtp.Tpo smtp/$(DEPDIR)/vesmail-smtp.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='smtp/smtp.c' object='smtp/vesmail-smtp.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(vesmail_CFLAGS) $(CFLAGS) -c -o smtp/vesmail-smtp.obj `if test -f 'smtp/smtp.c'; then $(CYGPATH_W) 'smtp/smtp.c'; else $(CYGPATH_W) '$(srcdir)/smtp/smtp.c'; fi`
+
+smtp/vesmail-smtp_cmd.o: smtp/smtp_cmd.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(vesmail_CFLAGS) $(CFLAGS) -MT smtp/vesmail-smtp_cmd.o -MD -MP -MF smtp/$(DEPDIR)/vesmail-smtp_cmd.Tpo -c -o smtp/vesmail-smtp_cmd.o `test -f 'smtp/smtp_cmd.c' || echo '$(srcdir)/'`smtp/smtp_cmd.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) smtp/$(DEPDIR)/vesmail-smtp_cmd.Tpo smtp/$(DEPDIR)/vesmail-smtp_cmd.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='smtp/smtp_cmd.c' object='smtp/vesmail-smtp_cmd.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(vesmail_CFLAGS) $(CFLAGS) -c -o smtp/vesmail-smtp_cmd.o `test -f 'smtp/smtp_cmd.c' || echo '$(srcdir)/'`smtp/smtp_cmd.c
+
+smtp/vesmail-smtp_cmd.obj: smtp/smtp_cmd.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(vesmail_CFLAGS) $(CFLAGS) -MT smtp/vesmail-smtp_cmd.obj -MD -MP -MF smtp/$(DEPDIR)/vesmail-smtp_cmd.Tpo -c -o smtp/vesmail-smtp_cmd.obj `if test -f 'smtp/smtp_cmd.c'; then $(CYGPATH_W) 'smtp/smtp_cmd.c'; else $(CYGPATH_W) '$(srcdir)/smtp/smtp_cmd.c'; fi`
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) smtp/$(DEPDIR)/vesmail-smtp_cmd.Tpo smtp/$(DEPDIR)/vesmail-smtp_cmd.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='smtp/smtp_cmd.c' object='smtp/vesmail-smtp_cmd.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(vesmail_CFLAGS) $(CFLAGS) -c -o smtp/vesmail-smtp_cmd.obj `if test -f 'smtp/smtp_cmd.c'; then $(CYGPATH_W) 'smtp/smtp_cmd.c'; else $(CYGPATH_W) '$(srcdir)/smtp/smtp_cmd.c'; fi`
+
+smtp/vesmail-smtp_reply.o: smtp/smtp_reply.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(vesmail_CFLAGS) $(CFLAGS) -MT smtp/vesmail-smtp_reply.o -MD -MP -MF smtp/$(DEPDIR)/vesmail-smtp_reply.Tpo -c -o smtp/vesmail-smtp_reply.o `test -f 'smtp/smtp_reply.c' || echo '$(srcdir)/'`smtp/smtp_reply.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) smtp/$(DEPDIR)/vesmail-smtp_reply.Tpo smtp/$(DEPDIR)/vesmail-smtp_reply.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='smtp/smtp_reply.c' object='smtp/vesmail-smtp_reply.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(vesmail_CFLAGS) $(CFLAGS) -c -o smtp/vesmail-smtp_reply.o `test -f 'smtp/smtp_reply.c' || echo '$(srcdir)/'`smtp/smtp_reply.c
+
+smtp/vesmail-smtp_reply.obj: smtp/smtp_reply.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(vesmail_CFLAGS) $(CFLAGS) -MT smtp/vesmail-smtp_reply.obj -MD -MP -MF smtp/$(DEPDIR)/vesmail-smtp_reply.Tpo -c -o smtp/vesmail-smtp_reply.obj `if test -f 'smtp/smtp_reply.c'; then $(CYGPATH_W) 'smtp/smtp_reply.c'; else $(CYGPATH_W) '$(srcdir)/smtp/smtp_reply.c'; fi`
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) smtp/$(DEPDIR)/vesmail-smtp_reply.Tpo smtp/$(DEPDIR)/vesmail-smtp_reply.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='smtp/smtp_reply.c' object='smtp/vesmail-smtp_reply.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(vesmail_CFLAGS) $(CFLAGS) -c -o smtp/vesmail-smtp_reply.obj `if test -f 'smtp/smtp_reply.c'; then $(CYGPATH_W) 'smtp/smtp_reply.c'; else $(CYGPATH_W) '$(srcdir)/smtp/smtp_reply.c'; fi`
+
+smtp/vesmail-smtp_track.o: smtp/smtp_track.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(vesmail_CFLAGS) $(CFLAGS) -MT smtp/vesmail-smtp_track.o -MD -MP -MF smtp/$(DEPDIR)/vesmail-smtp_track.Tpo -c -o smtp/vesmail-smtp_track.o `test -f 'smtp/smtp_track.c' || echo '$(srcdir)/'`smtp/smtp_track.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) smtp/$(DEPDIR)/vesmail-smtp_track.Tpo smtp/$(DEPDIR)/vesmail-smtp_track.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='smtp/smtp_track.c' object='smtp/vesmail-smtp_track.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(vesmail_CFLAGS) $(CFLAGS) -c -o smtp/vesmail-smtp_track.o `test -f 'smtp/smtp_track.c' || echo '$(srcdir)/'`smtp/smtp_track.c
+
+smtp/vesmail-smtp_track.obj: smtp/smtp_track.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(vesmail_CFLAGS) $(CFLAGS) -MT smtp/vesmail-smtp_track.obj -MD -MP -MF smtp/$(DEPDIR)/vesmail-smtp_track.Tpo -c -o smtp/vesmail-smtp_track.obj `if test -f 'smtp/smtp_track.c'; then $(CYGPATH_W) 'smtp/smtp_track.c'; else $(CYGPATH_W) '$(srcdir)/smtp/smtp_track.c'; fi`
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) smtp/$(DEPDIR)/vesmail-smtp_track.Tpo smtp/$(DEPDIR)/vesmail-smtp_track.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='smtp/smtp_track.c' object='smtp/vesmail-smtp_track.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(vesmail_CFLAGS) $(CFLAGS) -c -o smtp/vesmail-smtp_track.obj `if test -f 'smtp/smtp_track.c'; then $(CYGPATH_W) 'smtp/smtp_track.c'; else $(CYGPATH_W) '$(srcdir)/smtp/smtp_track.c'; fi`
+
+smtp/vesmail-smtp_start.o: smtp/smtp_start.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(vesmail_CFLAGS) $(CFLAGS) -MT smtp/vesmail-smtp_start.o -MD -MP -MF smtp/$(DEPDIR)/vesmail-smtp_start.Tpo -c -o smtp/vesmail-smtp_start.o `test -f 'smtp/smtp_start.c' || echo '$(srcdir)/'`smtp/smtp_start.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) smtp/$(DEPDIR)/vesmail-smtp_start.Tpo smtp/$(DEPDIR)/vesmail-smtp_start.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='smtp/smtp_start.c' object='smtp/vesmail-smtp_start.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(vesmail_CFLAGS) $(CFLAGS) -c -o smtp/vesmail-smtp_start.o `test -f 'smtp/smtp_start.c' || echo '$(srcdir)/'`smtp/smtp_start.c
+
+smtp/vesmail-smtp_start.obj: smtp/smtp_start.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(vesmail_CFLAGS) $(CFLAGS) -MT smtp/vesmail-smtp_start.obj -MD -MP -MF smtp/$(DEPDIR)/vesmail-smtp_start.Tpo -c -o smtp/vesmail-smtp_start.obj `if test -f 'smtp/smtp_start.c'; then $(CYGPATH_W) 'smtp/smtp_start.c'; else $(CYGPATH_W) '$(srcdir)/smtp/smtp_start.c'; fi`
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) smtp/$(DEPDIR)/vesmail-smtp_start.Tpo smtp/$(DEPDIR)/vesmail-smtp_start.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='smtp/smtp_start.c' object='smtp/vesmail-smtp_start.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(vesmail_CFLAGS) $(CFLAGS) -c -o smtp/vesmail-smtp_start.obj `if test -f 'smtp/smtp_start.c'; then $(CYGPATH_W) 'smtp/smtp_start.c'; else $(CYGPATH_W) '$(srcdir)/smtp/smtp_start.c'; fi`
+
+smtp/vesmail-smtp_proxy.o: smtp/smtp_proxy.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(vesmail_CFLAGS) $(CFLAGS) -MT smtp/vesmail-smtp_proxy.o -MD -MP -MF smtp/$(DEPDIR)/vesmail-smtp_proxy.Tpo -c -o smtp/vesmail-smtp_proxy.o `test -f 'smtp/smtp_proxy.c' || echo '$(srcdir)/'`smtp/smtp_proxy.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) smtp/$(DEPDIR)/vesmail-smtp_proxy.Tpo smtp/$(DEPDIR)/vesmail-smtp_proxy.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='smtp/smtp_proxy.c' object='smtp/vesmail-smtp_proxy.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(vesmail_CFLAGS) $(CFLAGS) -c -o smtp/vesmail-smtp_proxy.o `test -f 'smtp/smtp_proxy.c' || echo '$(srcdir)/'`smtp/smtp_proxy.c
+
+smtp/vesmail-smtp_proxy.obj: smtp/smtp_proxy.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(vesmail_CFLAGS) $(CFLAGS) -MT smtp/vesmail-smtp_proxy.obj -MD -MP -MF smtp/$(DEPDIR)/vesmail-smtp_proxy.Tpo -c -o smtp/vesmail-smtp_proxy.obj `if test -f 'smtp/smtp_proxy.c'; then $(CYGPATH_W) 'smtp/smtp_proxy.c'; else $(CYGPATH_W) '$(srcdir)/smtp/smtp_proxy.c'; fi`
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) smtp/$(DEPDIR)/vesmail-smtp_proxy.Tpo smtp/$(DEPDIR)/vesmail-smtp_proxy.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='smtp/smtp_proxy.c' object='smtp/vesmail-smtp_proxy.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(vesmail_CFLAGS) $(CFLAGS) -c -o smtp/vesmail-smtp_proxy.obj `if test -f 'smtp/smtp_proxy.c'; then $(CYGPATH_W) 'smtp/smtp_proxy.c'; else $(CYGPATH_W) '$(srcdir)/smtp/smtp_proxy.c'; fi`
+
+smtp/vesmail-smtp_xves.o: smtp/smtp_xves.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(vesmail_CFLAGS) $(CFLAGS) -MT smtp/vesmail-smtp_xves.o -MD -MP -MF smtp/$(DEPDIR)/vesmail-smtp_xves.Tpo -c -o smtp/vesmail-smtp_xves.o `test -f 'smtp/smtp_xves.c' || echo '$(srcdir)/'`smtp/smtp_xves.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) smtp/$(DEPDIR)/vesmail-smtp_xves.Tpo smtp/$(DEPDIR)/vesmail-smtp_xves.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='smtp/smtp_xves.c' object='smtp/vesmail-smtp_xves.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(vesmail_CFLAGS) $(CFLAGS) -c -o smtp/vesmail-smtp_xves.o `test -f 'smtp/smtp_xves.c' || echo '$(srcdir)/'`smtp/smtp_xves.c
+
+smtp/vesmail-smtp_xves.obj: smtp/smtp_xves.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(vesmail_CFLAGS) $(CFLAGS) -MT smtp/vesmail-smtp_xves.obj -MD -MP -MF smtp/$(DEPDIR)/vesmail-smtp_xves.Tpo -c -o smtp/vesmail-smtp_xves.obj `if test -f 'smtp/smtp_xves.c'; then $(CYGPATH_W) 'smtp/smtp_xves.c'; else $(CYGPATH_W) '$(srcdir)/smtp/smtp_xves.c'; fi`
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) smtp/$(DEPDIR)/vesmail-smtp_xves.Tpo smtp/$(DEPDIR)/vesmail-smtp_xves.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='smtp/smtp_xves.c' object='smtp/vesmail-smtp_xves.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(vesmail_CFLAGS) $(CFLAGS) -c -o smtp/vesmail-smtp_xves.obj `if test -f 'smtp/smtp_xves.c'; then $(CYGPATH_W) 'smtp/smtp_xves.c'; else $(CYGPATH_W) '$(srcdir)/smtp/smtp_xves.c'; fi`
+
+now/vesmail-now.o: now/now.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(vesmail_CFLAGS) $(CFLAGS) -MT now/vesmail-now.o -MD -MP -MF now/$(DEPDIR)/vesmail-now.Tpo -c -o now/vesmail-now.o `test -f 'now/now.c' || echo '$(srcdir)/'`now/now.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) now/$(DEPDIR)/vesmail-now.Tpo now/$(DEPDIR)/vesmail-now.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='now/now.c' object='now/vesmail-now.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(vesmail_CFLAGS) $(CFLAGS) -c -o now/vesmail-now.o `test -f 'now/now.c' || echo '$(srcdir)/'`now/now.c
+
+now/vesmail-now.obj: now/now.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(vesmail_CFLAGS) $(CFLAGS) -MT now/vesmail-now.obj -MD -MP -MF now/$(DEPDIR)/vesmail-now.Tpo -c -o now/vesmail-now.obj `if test -f 'now/now.c'; then $(CYGPATH_W) 'now/now.c'; else $(CYGPATH_W) '$(srcdir)/now/now.c'; fi`
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) now/$(DEPDIR)/vesmail-now.Tpo now/$(DEPDIR)/vesmail-now.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='now/now.c' object='now/vesmail-now.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(vesmail_CFLAGS) $(CFLAGS) -c -o now/vesmail-now.obj `if test -f 'now/now.c'; then $(CYGPATH_W) 'now/now.c'; else $(CYGPATH_W) '$(srcdir)/now/now.c'; fi`
+
+now/vesmail-now_store.o: now/now_store.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(vesmail_CFLAGS) $(CFLAGS) -MT now/vesmail-now_store.o -MD -MP -MF now/$(DEPDIR)/vesmail-now_store.Tpo -c -o now/vesmail-now_store.o `test -f 'now/now_store.c' || echo '$(srcdir)/'`now/now_store.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) now/$(DEPDIR)/vesmail-now_store.Tpo now/$(DEPDIR)/vesmail-now_store.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='now/now_store.c' object='now/vesmail-now_store.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(vesmail_CFLAGS) $(CFLAGS) -c -o now/vesmail-now_store.o `test -f 'now/now_store.c' || echo '$(srcdir)/'`now/now_store.c
+
+now/vesmail-now_store.obj: now/now_store.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(vesmail_CFLAGS) $(CFLAGS) -MT now/vesmail-now_store.obj -MD -MP -MF now/$(DEPDIR)/vesmail-now_store.Tpo -c -o now/vesmail-now_store.obj `if test -f 'now/now_store.c'; then $(CYGPATH_W) 'now/now_store.c'; else $(CYGPATH_W) '$(srcdir)/now/now_store.c'; fi`
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) now/$(DEPDIR)/vesmail-now_store.Tpo now/$(DEPDIR)/vesmail-now_store.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='now/now_store.c' object='now/vesmail-now_store.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(vesmail_CFLAGS) $(CFLAGS) -c -o now/vesmail-now_store.obj `if test -f 'now/now_store.c'; then $(CYGPATH_W) 'now/now_store.c'; else $(CYGPATH_W) '$(srcdir)/now/now_store.c'; fi`
+
+now/vesmail-now_probe.o: now/now_probe.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(vesmail_CFLAGS) $(CFLAGS) -MT now/vesmail-now_probe.o -MD -MP -MF now/$(DEPDIR)/vesmail-now_probe.Tpo -c -o now/vesmail-now_probe.o `test -f 'now/now_probe.c' || echo '$(srcdir)/'`now/now_probe.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) now/$(DEPDIR)/vesmail-now_probe.Tpo now/$(DEPDIR)/vesmail-now_probe.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='now/now_probe.c' object='now/vesmail-now_probe.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(vesmail_CFLAGS) $(CFLAGS) -c -o now/vesmail-now_probe.o `test -f 'now/now_probe.c' || echo '$(srcdir)/'`now/now_probe.c
+
+now/vesmail-now_probe.obj: now/now_probe.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(vesmail_CFLAGS) $(CFLAGS) -MT now/vesmail-now_probe.obj -MD -MP -MF now/$(DEPDIR)/vesmail-now_probe.Tpo -c -o now/vesmail-now_probe.obj `if test -f 'now/now_probe.c'; then $(CYGPATH_W) 'now/now_probe.c'; else $(CYGPATH_W) '$(srcdir)/now/now_probe.c'; fi`
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) now/$(DEPDIR)/vesmail-now_probe.Tpo now/$(DEPDIR)/vesmail-now_probe.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='now/now_probe.c' object='now/vesmail-now_probe.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(vesmail_CFLAGS) $(CFLAGS) -c -o now/vesmail-now_probe.obj `if test -f 'now/now_probe.c'; then $(CYGPATH_W) 'now/now_probe.c'; else $(CYGPATH_W) '$(srcdir)/now/now_probe.c'; fi`
+
+cli/vesmail-vesmail.o: cli/vesmail.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(vesmail_CFLAGS) $(CFLAGS) -MT cli/vesmail-vesmail.o -MD -MP -MF cli/$(DEPDIR)/vesmail-vesmail.Tpo -c -o cli/vesmail-vesmail.o `test -f 'cli/vesmail.c' || echo '$(srcdir)/'`cli/vesmail.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) cli/$(DEPDIR)/vesmail-vesmail.Tpo cli/$(DEPDIR)/vesmail-vesmail.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='cli/vesmail.c' object='cli/vesmail-vesmail.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(vesmail_CFLAGS) $(CFLAGS) -c -o cli/vesmail-vesmail.o `test -f 'cli/vesmail.c' || echo '$(srcdir)/'`cli/vesmail.c
+
+cli/vesmail-vesmail.obj: cli/vesmail.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(vesmail_CFLAGS) $(CFLAGS) -MT cli/vesmail-vesmail.obj -MD -MP -MF cli/$(DEPDIR)/vesmail-vesmail.Tpo -c -o cli/vesmail-vesmail.obj `if test -f 'cli/vesmail.c'; then $(CYGPATH_W) 'cli/vesmail.c'; else $(CYGPATH_W) '$(srcdir)/cli/vesmail.c'; fi`
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) cli/$(DEPDIR)/vesmail-vesmail.Tpo cli/$(DEPDIR)/vesmail-vesmail.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='cli/vesmail.c' object='cli/vesmail-vesmail.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(vesmail_CFLAGS) $(CFLAGS) -c -o cli/vesmail-vesmail.obj `if test -f 'cli/vesmail.c'; then $(CYGPATH_W) 'cli/vesmail.c'; else $(CYGPATH_W) '$(srcdir)/cli/vesmail.c'; fi`
+
+cli/vesmail-help.o: cli/help.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(vesmail_CFLAGS) $(CFLAGS) -MT cli/vesmail-help.o -MD -MP -MF cli/$(DEPDIR)/vesmail-help.Tpo -c -o cli/vesmail-help.o `test -f 'cli/help.c' || echo '$(srcdir)/'`cli/help.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) cli/$(DEPDIR)/vesmail-help.Tpo cli/$(DEPDIR)/vesmail-help.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='cli/help.c' object='cli/vesmail-help.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(vesmail_CFLAGS) $(CFLAGS) -c -o cli/vesmail-help.o `test -f 'cli/help.c' || echo '$(srcdir)/'`cli/help.c
+
+cli/vesmail-help.obj: cli/help.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(vesmail_CFLAGS) $(CFLAGS) -MT cli/vesmail-help.obj -MD -MP -MF cli/$(DEPDIR)/vesmail-help.Tpo -c -o cli/vesmail-help.obj `if test -f 'cli/help.c'; then $(CYGPATH_W) 'cli/help.c'; else $(CYGPATH_W) '$(srcdir)/cli/help.c'; fi`
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) cli/$(DEPDIR)/vesmail-help.Tpo cli/$(DEPDIR)/vesmail-help.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='cli/help.c' object='cli/vesmail-help.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(vesmail_CFLAGS) $(CFLAGS) -c -o cli/vesmail-help.obj `if test -f 'cli/help.c'; then $(CYGPATH_W) 'cli/help.c'; else $(CYGPATH_W) '$(srcdir)/cli/help.c'; fi`
+
+cli/vesmail-tty.o: cli/tty.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(vesmail_CFLAGS) $(CFLAGS) -MT cli/vesmail-tty.o -MD -MP -MF cli/$(DEPDIR)/vesmail-tty.Tpo -c -o cli/vesmail-tty.o `test -f 'cli/tty.c' || echo '$(srcdir)/'`cli/tty.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) cli/$(DEPDIR)/vesmail-tty.Tpo cli/$(DEPDIR)/vesmail-tty.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='cli/tty.c' object='cli/vesmail-tty.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(vesmail_CFLAGS) $(CFLAGS) -c -o cli/vesmail-tty.o `test -f 'cli/tty.c' || echo '$(srcdir)/'`cli/tty.c
+
+cli/vesmail-tty.obj: cli/tty.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(vesmail_CFLAGS) $(CFLAGS) -MT cli/vesmail-tty.obj -MD -MP -MF cli/$(DEPDIR)/vesmail-tty.Tpo -c -o cli/vesmail-tty.obj `if test -f 'cli/tty.c'; then $(CYGPATH_W) 'cli/tty.c'; else $(CYGPATH_W) '$(srcdir)/cli/tty.c'; fi`
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) cli/$(DEPDIR)/vesmail-tty.Tpo cli/$(DEPDIR)/vesmail-tty.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='cli/tty.c' object='cli/vesmail-tty.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(vesmail_CFLAGS) $(CFLAGS) -c -o cli/vesmail-tty.obj `if test -f 'cli/tty.c'; then $(CYGPATH_W) 'cli/tty.c'; else $(CYGPATH_W) '$(srcdir)/cli/tty.c'; fi`
+
+util/vesmail-jTree.o: util/jTree.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(vesmail_CFLAGS) $(CFLAGS) -MT util/vesmail-jTree.o -MD -MP -MF util/$(DEPDIR)/vesmail-jTree.Tpo -c -o util/vesmail-jTree.o `test -f 'util/jTree.c' || echo '$(srcdir)/'`util/jTree.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) util/$(DEPDIR)/vesmail-jTree.Tpo util/$(DEPDIR)/vesmail-jTree.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='util/jTree.c' object='util/vesmail-jTree.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(vesmail_CFLAGS) $(CFLAGS) -c -o util/vesmail-jTree.o `test -f 'util/jTree.c' || echo '$(srcdir)/'`util/jTree.c
+
+util/vesmail-jTree.obj: util/jTree.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(vesmail_CFLAGS) $(CFLAGS) -MT util/vesmail-jTree.obj -MD -MP -MF util/$(DEPDIR)/vesmail-jTree.Tpo -c -o util/vesmail-jTree.obj `if test -f 'util/jTree.c'; then $(CYGPATH_W) 'util/jTree.c'; else $(CYGPATH_W) '$(srcdir)/util/jTree.c'; fi`
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) util/$(DEPDIR)/vesmail-jTree.Tpo util/$(DEPDIR)/vesmail-jTree.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='util/jTree.c' object='util/vesmail-jTree.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(vesmail_CFLAGS) $(CFLAGS) -c -o util/vesmail-jTree.obj `if test -f 'util/jTree.c'; then $(CYGPATH_W) 'util/jTree.c'; else $(CYGPATH_W) '$(srcdir)/util/jTree.c'; fi`
 
 ID: $(am__tagged_files)
 	$(am__define_uniq_tagged_files); mkid -fID $$unique

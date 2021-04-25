@@ -44,6 +44,11 @@ srv/proc.h \
 srv/override.h \
 srv/guard.h
 
+if VESMAIL_CURLSH
+SRV_CFILES += srv/curlsh.c
+SRV_HFILES += srv/curlsh.h
+endif
+
 IMAP_CFILES = imap/imap.c \
 imap/imap_xform.c \
 imap/imap_token.c \
@@ -114,6 +119,12 @@ bin_PROGRAMS = vesmail
 vesmail_LDADD = -lVES -lcrypto -lcurl -lssl
 if HAVE_PTHREAD_H
 vesmail_LDADD += -lpthread
+endif
+
+vesmail_CFLAGS =
+
+if VESMAIL_CURLSH
+vesmail_CFLAGS += -DVESMAIL_CURLSH
 endif
 
 vesmail_SOURCES = $(LIB_CFILES) $(SRV_CFILES) $(IMAP_CFILES) $(SMTP_CFILES) $(NOW_CFILES) $(CLI_CFILES) \

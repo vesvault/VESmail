@@ -41,6 +41,7 @@ typedef struct VESmail_proc {
 	struct jVar *jconf;
 	int refct;
     } *ctx;
+    void (* collectfn)(struct VESmail_proc *);
     void *ref;
     int fdesc;
     short int tid;

@@ -39,6 +39,7 @@
 #include <libVES/User.h>
 #include <libVES/List.h>
 #include <libVES/VaultItem.h>
+#include <libVES/VaultKey.h>
 #include <libVES/Ref.h>
 #include "../VESmail.h"
 #include "../lib/mail.h"
@@ -202,52 +203,65 @@ int VESmail_smtp_proxy_cmd_rcpt(VESmail_server *srv, VESmail_smtp_cmd *cmd) {
 	    };
 	    return VESmail_smtp_proxy_qreply(srv, &re);
 	}
+	char *er = NULL;
 	switch (smtp->mode) {
-	    case VESMAIL_SMTP_M_REJECT:
-	    case VESMAIL_SMTP_M_FALLBACK: {
+	    case VESMAIL_SMTP_M_REJECT: {
 		libVES_List *l = libVES_User_activeVaultKeys(u, NULL, srv->ves);
 		libVES_List_free(l);
-		char p_e;
-		if (l) {
-		    char buf[192];
-		    char *d = buf;
-		    const char *s = u->email;
-		    if (s) while (d < buf + sizeof(buf) - 1) {
-			char c = *s++;
-			if (!c) break;
-			*d++ = (c >= 'A' && c <= 'Z') ? (c | 0x20) : c;
-		    }
+		if (l) break;
+		if (!libVES_checkError(srv->ves, LIBVES_E_NOTFOUND)) {
+		    er = VESmail_server_errorStr(srv, VESMAIL_E_VES);
+		    break;
+		}
+		static const VESmail_smtp_reply re = {
+		    .code = 450,
+		    .dsn = 0x4100,
+		    .head = VESmail_server_ERRCODE(VESMAIL_E_DENIED) " VESmail user is not on VESvault yet, relaying denied."
+		};
+		VESmail_server_log(srv, "smtp action=REJECT rcpt=%s", libVES_User_getEmail(u));
+		return VESmail_smtp_proxy_qreply(srv, &re);
+	    }
+	    case VESMAIL_SMTP_M_FALLBACK: {
+		char buf[256];
+		char *d = buf;
+		const char *s = u->email;
+		if (s) while (d < buf + sizeof(buf) - 1) {
+		    char c = *s++;
+		    if (!c) break;
+		    *d++ = (c >= 'A' && c <= 'Z') ? (c | 0x20) : c;
+		}
+		*d = 0;
+		libVES_Ref *ref = libVES_External_new(srv->optns->vesDomain, buf);
+		libVES_VaultKey *vk = libVES_VaultKey_get(ref, srv->ves, NULL);
+		libVES_VaultKey_free_ref_user(vk, ref, NULL);
+		libVES_VaultKey_free(vk);
+		libVES_VaultItem *vi = NULL;
+		if (vk) {
 		    if (d > buf + sizeof(buf) - 8) break;
 		    strcpy(d, "!plain");
-		    libVES_Ref *p_r = libVES_External_new(srv->optns->vesDomain, buf);
-		    libVES_VaultItem *p_i = libVES_VaultItem_get(p_r, srv->ves);
-		    libVES_VaultItem_free(p_i);
-		    libVES_Ref_free(p_r);
-		    p_e = !p_i;
-		} else {
-		    p_e = 1;
+		    ref = libVES_External_new(srv->optns->vesDomain, buf);
+		    vi = libVES_VaultItem_get(ref, srv->ves);
+		    libVES_VaultItem_free(vi);
+		    libVES_Ref_free(ref);
+		    if (!vi && libVES_checkError(srv->ves, LIBVES_E_NOTFOUND)) {
+			break;
+		    }
 		}
-		if (p_e && !libVES_checkError(srv->ves, LIBVES_E_NOTFOUND)) {
-		    char *e = VESmail_server_errorStr(srv, VESMAIL_E_VES);
-		    int r = VESmail_smtp_reply_sendln(srv, 451, 0, VESMAIL_SMTP_RF_FINAL, e);
-		    free(e);
-		    return r;
-		}
-		if (smtp->mode == VESMAIL_SMTP_M_REJECT) {
-		    if (l) break;
-		    static const VESmail_smtp_reply re = {
-			.code = 450,
-			.dsn = 0x4100,
-			.head = VESmail_server_ERRCODE(VESMAIL_E_DENIED) " VESmail user is not on VESvault yet, relaying denied."
-		    };
-		    return VESmail_smtp_proxy_qreply(srv, &re);
-		} else {
-		    if (l && p_e) break;
+		if (vi || libVES_checkError(srv->ves, LIBVES_E_NOTFOUND)) {
 		    VESmail_smtp_proxy_plain(srv);
+		    VESmail_server_log(srv, "smtp action=FALLBACK rcpt=%s", libVES_User_getEmail(u));
+		} else {
+		    er = VESmail_server_errorStr(srv, VESMAIL_E_VES);
 		}
+		break;
 	    }
 	    default:
 		break;
+	}
+	if (er) {
+	    int r = VESmail_smtp_reply_sendln(srv, 451, 0, VESMAIL_SMTP_RF_FINAL, er);
+	    free(er);
+	    return r;
 	}
     } else {
 	u = NULL;
@@ -360,7 +374,11 @@ int VESmail_smtp_proxy_cmd(VESmail_server *srv, VESmail_smtp_cmd *cmd) {
 	    smtp->mail->logfn = srv->logfn;
 	    smtp->mail->flags &= ~(VESMAIL_O_XCHG | VESMAIL_O_HDR_RCPT);
 	    if (smtp->mode <= VESMAIL_SMTP_M_XCHG) smtp->mail->flags |= VESMAIL_O_XCHG;
-	    if (smtp->mode == VESMAIL_SMTP_M_PLAIN || (smtp->flags & VESMAIL_SMTP_F_PLAIN)) VESmail_smtp_proxy_plain(srv);
+	    if (srv->optns->now.url && !srv->optns->now.dir) smtp->mail->flags |= VESMAIL_O_VRFY_TKN;
+	    if (smtp->mode == VESMAIL_SMTP_M_PLAIN || (smtp->flags & VESMAIL_SMTP_F_PLAIN)) {
+		VESmail_smtp_proxy_plain(srv);
+		VESmail_server_log(srv, "smtp action=PLAIN");
+	    }
 	    break;
 	case VESMAIL_SMTP_V_RCPT:
 	    return VESmail_smtp_proxy_cmd_rcpt(srv, cmd);

@@ -42,7 +42,7 @@
 #else
 #include <sys/socket.h>
 #include <netdb.h>
-//#include <netinet/ip.h>
+#include <netinet/ip.h>
 #endif
 
 #include <time.h>
@@ -89,6 +89,8 @@ VESmail_server *VESmail_server_init(VESmail_server *srv, VESmail_optns *optns) {
     srv->debug = 0;
     srv->dumpfd = -1;
     srv->subcode = 0;
+    srv->authcode = VESMAIL_E_HOLD;
+    srv->stat = 0;
     srv->lastwrite = time(NULL);
     srv->reqbytes = srv->rspbytes = 0;
     srv->tmout.unauthd = 30;
@@ -243,6 +245,7 @@ int VESmail_server_run(VESmail_server *srv, int flags) {
 }
 
 int VESmail_server_logauth(VESmail_server *srv, int er, long usec) {
+    srv->authcode = er;
     char *host = VESmail_server_sockname(srv, 0);
     char *peer = VESmail_server_sockname(srv, 1);
     const char *st;
@@ -267,6 +270,7 @@ int VESmail_server_logauth(VESmail_server *srv, int er, long usec) {
 }
 
 int VESmail_server_auth(VESmail_server *srv, const char *user, const char *pwd, int pwlen) {
+    srv->authcode = VESMAIL_E_HOLD;
     free(srv->login);
     srv->login = VESmail_strndup(user, VESMAIL_SRV_MAXLOGIN);
     if (!VESmail_tls_server_allow_plain(srv)) {
@@ -368,7 +372,7 @@ int VESmail_server_connect(VESmail_server *srv, jVar *conf, const char *dport) {
 	.ai_family = AF_UNSPEC,
 	.ai_socktype = SOCK_STREAM,
 	.ai_protocol = 0,
-	.ai_flags = AI_V4MAPPED | AI_ADDRCONFIG,
+	.ai_flags = AI_ADDRCONFIG,
 	.ai_addrlen = 0,
 	.ai_addr = NULL,
 	.ai_canonname = NULL,
@@ -548,18 +552,27 @@ int VESmail_server_abuse_user(VESmail_server *srv, int val) {
     return me ? srv->abusefn(srv->abuseref, &me->id, sizeof(me->id), val) : 0;
 }
 
+void VESmail_server_shutdown(VESmail_server *srv) {
+    if (!srv || (srv->flags & VESMAIL_SRVF_DONE)) return;
+    VESmail_server_disconnect(srv);
+    if (srv->freefn) srv->freefn(srv);
+    VESmail_tls_server_done(srv);
+    BIO_free_all(srv->req_bio);
+    srv->req_bio = NULL;
+    VESmail_xform_free(srv->req_in);
+    VESmail_xform_free(srv->req_out);
+    VESmail_xform_free(srv->rsp_in);
+    VESmail_xform_free(srv->rsp_out);
+    srv->req_in = srv->req_out = srv->rsp_in = srv->rsp_out = NULL;
+    VESmail_sasl_free(srv->sasl);
+    srv->sasl = NULL;
+    srv->flags |= VESMAIL_SRVF_DONE;
+}
+
 void VESmail_server_free(VESmail_server *srv) {
     if (srv) {
-	if (srv->freefn) srv->freefn(srv);
-	VESmail_server_disconnect(srv);
-	VESmail_tls_server_done(srv);
-	BIO_free_all(srv->req_bio);
-	VESmail_xform_free(srv->req_in);
-	VESmail_xform_free(srv->req_out);
-	VESmail_xform_free(srv->rsp_in);
-	VESmail_xform_free(srv->rsp_out);
+	VESmail_server_shutdown(srv);
 	jVar_free(srv->uconf);
-	VESmail_sasl_free(srv->sasl);
 	VESmail_override_free(srv->override);
 	free(srv->login);
     }

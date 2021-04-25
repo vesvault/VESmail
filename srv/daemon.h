@@ -50,6 +50,7 @@ typedef struct VESmail_daemon {
 	void *mutex;
 	struct jTree *jtree;
     } sni;
+    void *ref;
     short int flags;
     char debug;
     char tag;
@@ -59,11 +60,15 @@ typedef struct VESmail_daemon {
 #define	VESMAIL_DMF_KEEPSOCK		0x01
 
 // SIGHUP, SIGINT
+#ifndef VESMAIL_DAEMON_SIG_DOWN
 #define VESMAIL_DAEMON_SIG_DOWN		1
 #define VESMAIL_DAEMON_SIG_DOWN2	2
+#endif
 
 // SIGTERM
+#ifndef VESMAIL_DAEMON_SIG_TERM
 #define VESMAIL_DAEMON_SIG_TERM		15
+#endif
 
 
 #define VESMAIL_DAEMON_DEBUG(daemon, level, code)	if ((daemon)->debug >= (level)) { code; }

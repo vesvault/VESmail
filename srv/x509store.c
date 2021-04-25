@@ -33,24 +33,62 @@
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
-
 #include <sys/types.h>
 #include <stddef.h>
 #include <string.h>
 #include <stdlib.h>
-#include <errno.h>
-
+#include <openssl/x509.h>
+#include <openssl/x509_vfy.h>
+#include <openssl/ssl.h>
+#include <curl/curl.h>
+#include <libVES.h>
 #include "../VESmail.h"
-#include "server.h"
-#include "arch.h"
+#include "tls.h"
 
-
-#ifndef VESMAIL_POLL_TMOUT
-#define VESMAIL_POLL_TMOUT 5
+#ifdef VESMAIL_CURLSH
+#include "curlsh.h"
 #endif
 
-#ifdef _WIN32
-#include "arch_win.c"
-#else
-#include "arch_unix.c"
+#include "x509store.h"
+
+
+void *VESmail_x509store = NULL;
+
+int VESmail_x509store_addcert(const unsigned char *der, int len) {
+    if (!VESmail_x509store) {
+	VESmail_x509store = X509_STORE_new();
+    }
+    X509 *crt = d2i_X509(NULL, &der, len);
+    if (crt) {
+	X509_STORE_add_cert(VESmail_x509store, crt);
+	return 0;
+    }
+    return VESMAIL_E_TLS;
+}
+
+
+CURLcode VESmail_x509store_fn_curlctx(CURL *curl, void *sslctx, void *parm) {
+    VESmail_tls_applyCA(sslctx);
+    return 0;
+}
+
+void VESmail_x509store_fn_veshttp(libVES *ves) {
+    curl_easy_setopt(ves->curl, CURLOPT_SSL_CTX_FUNCTION, &VESmail_x509store_fn_curlctx);
+#ifdef VESMAIL_CURLSH
+    VESmail_curlsh_apply(ves->curl);
 #endif
+}
+
+
+// VESmail must be compiled with -DVESMAIL_X509STORE to avoid conflicts
+// with the functions defined in src/tls.c
+
+
+void VESmail_tls_applyCA(void *ctx) {
+    if (VESmail_x509store) SSL_CTX_set1_verify_cert_store(ctx, VESmail_x509store);
+}
+
+libVES *VESmail_tls_initVES(libVES *ves) {
+    ves->httpInitFn = &VESmail_x509store_fn_veshttp;
+    return ves;
+}

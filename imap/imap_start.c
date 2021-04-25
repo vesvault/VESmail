@@ -353,8 +353,9 @@ int VESmail_imap_start_req_fn(VESmail_server *srv, VESmail_imap_token *token) {
 		user[token->list[2]->len] = 0;
 		rs = VESmail_imap_auth(srv, user, VESmail_imap_token_data(token->list[3]), token->list[3]->len);
 		if (rs < 0) {
-		    rs = VESmail_imap_rsp_send_error(srv, VESmail_imap_cp_tag(token), rs);
-		    VESmail_imap_track_done(&VESMAIL_IMAP(srv)->track);
+		    char *err = VESmail_server_errorStr(srv, rs);
+		    rs = VESmail_imap_start_login_fail(srv, rs, err, NULL);
+		    free(err);
 		}
 		return rs;
 	    }

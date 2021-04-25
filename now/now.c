@@ -131,7 +131,7 @@ int VESmail_now_send_status(VESmail_server *srv, int code) {
 
 int VESmail_now_sendcl(VESmail_server *srv, const char *body) {
     char buf[64];
-    sprintf(buf, "Content-Length: %lu\r\n", (body ? strlen(body) : 0));
+    sprintf(buf, "Content-Length: %u\r\n", (body ? (unsigned int) strlen(body) : 0));
     return VESmail_now_send(srv, 0, buf);
 }
 
@@ -210,6 +210,7 @@ int VESmail_now_xform_fn_post(VESmail_xform *xform, int final, const char *src, 
     libVES_Ref *ref = extid ? libVES_External_new(srv->optns->vesDomain, extid) : NULL;
     libVES *ves = libVES_fromRef(ref);
     if (srv->debug > 1) ves->debug = srv->debug - 1;
+    VESmail_tls_initVES(ves);
     if (token) libVES_setSessionToken(ves, token);
     if (veskey && (!jVar_isString(veskey) || !libVES_unlock(ves, veskey->len, veskey->vString))) {
 	e = 401;

@@ -3,7 +3,7 @@
 
 
 AC_PREREQ([2.69])
-AC_INIT([VESmail], [1.52b], [bugs@vesvault.com])
+AC_INIT([VESmail], [1.54b], [bugs@vesvault.com])
 AC_CONFIG_SRCDIR([cli/vesmail.c])
 AC_CONFIG_HEADERS([config.h])
 
@@ -21,6 +21,8 @@ AC_PROG_RANLIB
 # Checks for header files.
 AC_CHECK_HEADERS([string.h stddef.h fcntl.h unistd.h sys/ioctl.h openssl/evp.h curl/curl.h termios.h windows.h libVES.h jVar.h poll.h])
 AC_CHECK_HEADERS([pthread.h], [AM_CONDITIONAL([HAVE_PTHREAD_H], [test 1])])
+
+AM_CONDITIONAL([VESMAIL_CURLSH], [test "$VESMAIL_CURLSH" != ""])
 
 # Checks for typedefs, structures, and compiler characteristics.
 AC_TYPE_SIZE_T

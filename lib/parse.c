@@ -71,6 +71,9 @@ const struct {
     {.key = "from", .type = VESMAIL_H_NOENC},
     {.key = "in-reply-to", .type = VESMAIL_H_NOENC},
     {.key = "references", .type = VESMAIL_H_REFS},
+    {.key = "importance", .type = VESMAIL_H_NOENC},
+    {.key = "priority", .type = VESMAIL_H_NOENC},
+    {.key = "auto-submitted", .type = VESMAIL_H_NOENC},
     {.type = VESMAIL_H_OTHER}
 };
 

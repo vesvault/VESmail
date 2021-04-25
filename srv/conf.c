@@ -48,6 +48,9 @@
 #include "arch.h"
 #include "conf.h"
 
+
+#ifndef VESMAIL_LOCAL
+
 #define VESmail_conf_ALLOCD_bannerPath		0x01
 #define VESmail_conf_ALLOCD_now_manifest	0x04
 #define VESmail_conf_ALLOCD_now_headers		0x08
@@ -201,6 +204,8 @@ jVar *VESmail_conf_get_app(VESmail_optns *optns) {
     return conf->app;
 }
 
+#endif
+
 void VESmail_conf_setstr(char **val, jVar *conf) {
     if (conf) *val = jVar_getStringP(conf);
 }
@@ -229,6 +234,8 @@ int VESmail_conf_setpstr(char ***d, jVar *b, int f) {
     return p ? 1 : 0;
 }
 
+#ifndef VESMAIL_LOCAL
+
 void VESmail_conf_apply(VESmail_conf *conf, jVar *jconf) {
     VESmail_conf_setstr(&conf->optns->acl, jVar_get(jconf, "acl"));
     VESmail_conf_setstr(&conf->optns->now.url, jVar_get(jconf, "now-url"));
@@ -245,7 +252,6 @@ void VESmail_conf_apply(VESmail_conf *conf, jVar *jconf) {
 	jVar *max = jVar_get(jnow, "maxsize");
 	if (jVar_isInt(max)) conf->now.maxSize = jVar_getInt(max);
     }
-    if (conf->optns->now.url && !conf->optns->now.dir) conf->optns->flags |= VESMAIL_O_VRFY_TKN;
     jVar *jtls = jVar_get(jconf, "tls");
     if (jtls) {
 	VESmail_conf_setstr(&conf->tls->cert, jVar_get(jtls, "cert"));
@@ -280,7 +286,9 @@ void VESmail_conf_applyroot(VESmail_conf *conf, jVar *jconf, int (* snifn)(struc
 	if (rq) conf->sni.require = jVar_getBool(rq);
 	conf->tls->snifn = snifn;
     }
+#ifndef VESMAIL_X509STORE
     VESmail_conf_setstr(&VESmail_tls_caBundle, jVar_get(jconf, "caBundle"));
+#endif
     jVar *mft = jVar_get(jVar_get(jconf, "now"), "manifest");
     if (!mft) mft = jVar_get(jconf, "now-manifest");
     if (mft) {
@@ -332,7 +340,9 @@ VESmail_conf *VESmail_conf_clone(VESmail_conf *conf) {
     return cf;
 }
 
-void VESmail_conf_vlog(VESmail_conf *conf, const char *fmt, void *va) {
+#endif
+
+void VESmail_conf_vlog(VESmail_conf *conf, const char *fmt, va_list va) {
     static void *mutex = NULL;
     if (conf->log.filename) {
 	if (!conf->log.fh) {
@@ -358,6 +368,8 @@ void VESmail_conf_log(VESmail_conf *conf, const char *fmt, ...) {
     VESmail_conf_vlog(conf, fmt, va);
     va_end(va);
 }
+
+#ifndef VESMAIL_LOCAL
 
 void VESmail_conf_closelog(VESmail_conf *conf) {
     if (conf->log.fh) {
@@ -424,3 +436,5 @@ void VESmail_conf_daemon_free(struct VESmail_conf_daemon *cds) {
     }
     free(cds);
 }
+
+#endif

@@ -30,27 +30,34 @@
  *
  ***************************************************************************/
 
-#ifdef HAVE_CONFIG_H
-#include "config.h"
+extern struct VESmail_daemon **VESmail_local_daemons;
+extern int VESmail_local_ulen;
+
+void VESmail_local_init();
+struct VESmail_daemon **VESmail_local_start();
+int VESmail_local_watch();
+int VESmail_local_getstat(int idx);
+void VESmail_local_getuser(const char **usr, int *st);
+const char *VESmail_local_getuserprofileurl(const char *ulogin);
+int VESmail_local_run(long udelay);
+const char *VESmail_local_gethost(struct VESmail_daemon *daemon);
+const char *VESmail_local_getport(struct VESmail_daemon *daemon);
+
+#define	VESMAIL_LCST_LSTN	0x0001
+#define	VESMAIL_LCST_LSTNERR	0x0002
+#define	VESMAIL_LCST_TRFREQ	0x0004
+#define	VESMAIL_LCST_TRFRSP	0x0008
+#define	VESMAIL_LCST_PROC	0x0010
+#define	VESMAIL_LCST_PROCERR	0x0020
+#define	VESMAIL_LCST_PROCNEW	0x0040
+#define	VESMAIL_LCST_PROCDONE	0x0080
+#define	VESMAIL_LCST_LOGINOK	0x00010000
+#define	VESMAIL_LCST_LOGINERR	0x00020000
+
+#ifndef VESMAIL_APP_BUILD
+#define	VESMAIL_APP_BUILD	local
 #endif
+#define	VESMAIL_APP_BUILDSTR2(_build)	#_build
+#define	VESMAIL_APP_BUILDSTR(_build)	VESMAIL_APP_BUILDSTR2(_build)
+#define VESMAIL_VERSION_SHORT	"vesmail-" VESMAIL_APP_BUILDSTR(VESMAIL_APP_BUILD) "/" VESMAIL_VERSION
 
-#include <sys/types.h>
-#include <stddef.h>
-#include <string.h>
-#include <stdlib.h>
-#include <errno.h>
-
-#include "../VESmail.h"
-#include "server.h"
-#include "arch.h"
-
-
-#ifndef VESMAIL_POLL_TMOUT
-#define VESMAIL_POLL_TMOUT 5
-#endif
-
-#ifdef _WIN32
-#include "arch_win.c"
-#else
-#include "arch_unix.c"
-#endif

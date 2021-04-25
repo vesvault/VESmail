@@ -174,7 +174,7 @@ int VESmail_multi_xform_fn(VESmail_xform *xform, int final, const char *src, int
     return rs;
 }
 
-void VESmail_xform_free_multi(VESmail_xform *xform) {
+void VESmail_multi_xform_freefn(VESmail_xform *xform) {
     if (xform->multi) {
 	VESmail_xform_free(xform->multi->post);
     }
@@ -184,7 +184,7 @@ void VESmail_xform_free_multi(VESmail_xform *xform) {
 VESmail_xform *VESmail_xform_new_multi(VESmail_parse *parse) {
     VESmail_xform *xform = VESmail_xform_new(&VESmail_multi_xform_fn, parse->xform, parse);
     xform->multi = malloc(sizeof(*(xform->multi)));
-    xform->freefn = &VESmail_xform_free_multi;
+    xform->freefn = &VESmail_multi_xform_freefn;
     xform->multi->post = NULL;
     xform->chain = parse->xform;
     return xform;

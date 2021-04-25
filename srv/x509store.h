@@ -30,27 +30,10 @@
  *
  ***************************************************************************/
 
-#ifdef HAVE_CONFIG_H
-#include "config.h"
+#ifndef VESMAIL_X509STORE
+#error VESMAIL_X509STORE is expected to be set
 #endif
 
-#include <sys/types.h>
-#include <stddef.h>
-#include <string.h>
-#include <stdlib.h>
-#include <errno.h>
+extern void *VESmail_x509store;
 
-#include "../VESmail.h"
-#include "server.h"
-#include "arch.h"
-
-
-#ifndef VESMAIL_POLL_TMOUT
-#define VESMAIL_POLL_TMOUT 5
-#endif
-
-#ifdef _WIN32
-#include "arch_win.c"
-#else
-#include "arch_unix.c"
-#endif
+int VESmail_x509store_addcert(const unsigned char *der, int len);

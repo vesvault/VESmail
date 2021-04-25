@@ -51,6 +51,8 @@
 #include "override.h"
 #include "proc.h"
 
+#ifndef VESMAIL_LOCAL
+
 #define	VESMAIL_PROC_ABUSE_GRACE	3600
 
 jTree *VESmail_proc_abuse_jtree = NULL;
@@ -63,16 +65,6 @@ struct VESmail_proc_abuse {
 	char data[0];
     } key;
 };
-
-void VESmail_proc_logfn(void *logref, const char *fmt, ...) {
-    VESmail_proc *proc = logref;
-    char fbuf[256];
-    sprintf(fbuf, "[t%04d]: %s", proc->tid, fmt);
-    va_list va;
-    va_start(va, fmt);
-    VESmail_conf_vlog(proc->conf, fbuf, va);
-    va_end(va);
-}
 
 int VESmail_proc_abuse_cmpfn(void *a, void *b, void *arg) {
     struct VESmail_proc_abuse *aa = a;
@@ -112,6 +104,18 @@ int VESmail_proc_abusefn(void *ref, void *key, int keylen, int val) {
     return t - ab->tstamp;
 }
 
+#endif
+
+void VESmail_proc_logfn(void *logref, const char *fmt, ...) {
+    VESmail_proc *proc = logref;
+    char fbuf[256];
+    sprintf(fbuf, "[t%04d]: %s", proc->tid, fmt);
+    va_list va;
+    va_start(va, fmt);
+    VESmail_conf_vlog(proc->conf, fbuf, va);
+    va_end(va);
+}
+
 VESmail_override *VESmail_proc_ovrdfn(void *ovrdref) {
     return VESmail_override_new(VESmail_override_mode(((VESmail_proc *) ovrdref)->conf));
 }
@@ -125,6 +129,7 @@ VESmail_proc *VESmail_proc_new(VESmail_daemon *daemon, int fd) {
     proc->thread = NULL;
     proc->ctx = NULL;
     proc->ref = NULL;
+    proc->collectfn = NULL;
     proc->fdesc = fd;
     proc->flags = 0;
     VESmail_arch_mutex_lock(&tid_mutex);
@@ -140,7 +145,9 @@ VESmail_proc *VESmail_proc_new(VESmail_daemon *daemon, int fd) {
 	srv->ovrdfn = &VESmail_proc_ovrdfn;
 	srv->dumpfd = daemon->conf->dumpfd;
 	VESmail_server_set_tls(srv, daemon->conf->tls);
+#ifndef VESMAIL_LOCAL
 	if (daemon->conf->abuseSense > 0) srv->abusefn = &VESmail_proc_abusefn;
+#endif
 	int r = VESmail_server_set_sock(srv, fd);
 	if (r < 0) VESmail_proc_shutdown(proc, r);
     } else {
@@ -166,8 +173,9 @@ int VESmail_proc_launch(VESmail_proc *proc) {
 
 int VESmail_proc_watch(VESmail_proc *proc, void (* watchfn)(struct VESmail_proc *, void *), void *arg) {
     if (proc->flags & VESMAIL_PRF_DONE) return 0;
+    int shtdn = proc->flags & VESMAIL_PRF_SHUTDOWN;
     if (watchfn) watchfn(proc, arg);
-    if (proc->flags & VESMAIL_PRF_SHUTDOWN) VESmail_proc_done(proc);
+    if (shtdn) VESmail_proc_done(proc);
     return 1;
 }
 
@@ -177,6 +185,10 @@ void VESmail_proc_kill(VESmail_proc *proc) {
 
 int VESmail_proc_shutdown(VESmail_proc *proc, int e) {
     proc->exitcode = e;
+    if (proc->server) {
+	if (proc->collectfn) proc->collectfn(proc);
+	VESmail_server_shutdown(proc->server);
+    }
     proc->flags |= VESMAIL_PRF_SHUTDOWN;
     return e;
 }
@@ -193,11 +205,14 @@ void VESmail_proc_free(VESmail_proc *proc) {
     if (proc) {
 	VESmail_arch_thread_done(proc->thread);
 	VESmail_proc_done(proc);
+#ifndef VESMAIL_LOCAL
 	VESmail_proc_ctx_free(proc->ctx);
+#endif
     }
     free(proc);
 }
 
+#ifndef VESMAIL_LOCAL
 
 struct VESmail_proc_ctx *VESmail_proc_ctx_new(struct VESmail_proc *proc, jVar *jconf) {
     if (!jconf) return NULL;
@@ -237,3 +252,10 @@ void VESmail_proc_cleanup() {
     jTree_collapse(&VESmail_proc_abuse_jtree);
     VESmail_arch_mutex_done(VESmail_proc_abuse_mutex);
 }
+
+#else
+
+void VESmail_proc_cleanup() {
+}
+
+#endif

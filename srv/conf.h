@@ -84,7 +84,9 @@ void VESmail_conf_applyroot(struct VESmail_conf *conf, struct jVar *jconf, int (
 struct jVar *VESmail_conf_sni_read(struct VESmail_conf *conf, const char *sni, void (* errfn)(const char *, ...), unsigned long *mtime);
 void VESmail_conf_setstr(char **val, struct jVar *conf);
 struct VESmail_conf *VESmail_conf_clone(struct VESmail_conf *conf);
-void VESmail_conf_vlog(struct VESmail_conf *conf, const char *fmt, void *va);
+#ifdef va_arg
+void VESmail_conf_vlog(struct VESmail_conf *conf, const char *fmt, va_list va);
+#endif
 void VESmail_conf_log(struct VESmail_conf *conf, const char *fmt, ...);
 void VESmail_conf_closelog(struct VESmail_conf *conf);
 void VESmail_conf_free(struct VESmail_conf *conf);

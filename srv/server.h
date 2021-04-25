@@ -70,8 +70,10 @@ typedef struct VESmail_server {
 	void *ovrdref;
     };
     short int flags;
+    short int stat;
     char debug;
     unsigned char subcode;
+    short int authcode;
     int lastwrite;
     int dumpfd;
     long long int reqbytes;
@@ -96,6 +98,8 @@ typedef struct VESmail_server {
 
 #define	VESMAIL_SRVF_TLSS	0x0100
 #define	VESMAIL_SRVF_TLSC	0x0200
+
+#define	VESMAIL_SRVF_DONE	0x8000
 
 #define VESMAIL_SRV_DEBUG(srv, level, code)	if ((srv)->debug >= (level)) {\
     char debug[4096] = "[??]";\
@@ -123,4 +127,5 @@ int VESmail_server_logauth(struct VESmail_server *srv, int er, long usec);
 #define VESmail_server_ERRCODE(er)	VESmail_server_ERRCODE2(er)
 int VESmail_server_abuse_peer(struct VESmail_server *srv, int val);
 int VESmail_server_abuse_user(struct VESmail_server *srv, int val);
+void VESmail_server_shutdown(struct VESmail_server *srv);
 void VESmail_server_free(struct VESmail_server *srv);
