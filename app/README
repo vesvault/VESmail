@@ -6,7 +6,8 @@ Android App:
   VESmail-android (https://github.com/vesvault/VESmail-android)
 
 Windows App:
-  coming soon, CLI in the daemon mode can be used for now
+  VESmail-win (https://github.com/vesvault/VESmail-win)
+  CLI can be built for Windows too
 
 Apple App:
   coming soon

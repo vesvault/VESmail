@@ -200,6 +200,7 @@ int VESmail_now_xform_fn_post(VESmail_xform *xform, int final, const char *src, 
     jVar *conn = jVar_get(req, "probe");
     if (conn) {
 	int r = VESmail_now_probe(xform->server, conn, jVar_getStringP(jVar_get(req, "token")));
+	libVES_cleanseJVar(req);
 	jVar_free(req);
 	return r;
     }
@@ -281,6 +282,7 @@ int VESmail_now_xform_fn_post(VESmail_xform *xform, int final, const char *src, 
     }
     libVES_free(ves);
     VESmail_now_log(srv, "POST", e, "msgid", msgid);
+    libVES_cleanseJVar(req);
     jVar_free(req);
     return e == 200 ? rs : VESmail_now_error(srv, e, er);
 }

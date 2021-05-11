@@ -53,7 +53,7 @@
 
 VESmail_header *VESmail_header_decrypt(VESmail_parse *parse, VESmail_header *hdr) {
     libVES_Cipher *ci = VESmail_get_cipher(parse->mail);
-    if (!ci) return NULL;
+    if (!ci || !hdr->val) return NULL;
     int srclen = hdr->key - hdr->val + hdr->len;
     char *buf = NULL;
     const char *e = NULL;
@@ -310,6 +310,7 @@ int VESmail_xform_fn_decrypt(VESmail_xform *xform, int final, const char *src, i
     int ptlen = libVES_Cipher_decrypt(ci, final, src, *srclen, &dst);
     if (ptlen < 0) return VESMAIL_E_VES;
     int r = VESmail_xform_process(xform->chain, final, dst, ptlen);
+    VESmail_cleanse(dst, ptlen);
     free(dst);
     return r;
 }

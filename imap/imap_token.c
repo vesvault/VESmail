@@ -486,8 +486,10 @@ void VESmail_imap_token_free(VESmail_imap_token *token) {
 	switch (token->type) {
 	    case VESMAIL_IMAP_T_ATOM:
 	    case VESMAIL_IMAP_T_QUOTED:
+		VESmail_cleanse(token->data, token->len);
 		break;
 	    case VESMAIL_IMAP_T_LITERAL: {
+		VESmail_cleanse(token->literal, token->len);
 		free(token->literal);
 		VESmail_xform_free(token->xform);
 		break;

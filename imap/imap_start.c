@@ -138,6 +138,7 @@ int VESmail_imap_start_sasl_cont(struct VESmail_server *srv, struct VESmail_imap
 	if (tk) {
 	    VESmail_imap_token *chlr = VESmail_imap_token_line();
 	    VESmail_imap_token_push(chlr, VESmail_imap_token_atom(tk));
+	    VESmail_cleanse(tk, strlen(tk));
 	    free(tk);
 	    int r = VESmail_imap_req_fwd(srv, chlr, 0);
 	    VESmail_imap_token_free(chlr);
@@ -252,7 +253,7 @@ int VESmail_imap_start_fn_rsp_login(int verb, VESmail_imap_token *rsp, VESmail_i
 	    }
 	}
 	default:
-	    VESmail_server_logauth(trk->server, VESMAIL_E_RELAY, 0);
+	    VESmail_server_logauth(trk->server, VESMAIL_E_RAUTH, 0);
 	    VESmail_server_abuse_peer(trk->server, 10);
 	    VESmail_server_abuse_user(trk->server, 10);
 	    VESmail_server_disconnect(trk->server);

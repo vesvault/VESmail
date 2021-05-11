@@ -192,7 +192,7 @@ int VESmail_imap_msg_fn_hdr(VESmail_parse *parse, VESmail_header *hdr) {
 		if (!strcmp(lckey, *h)) {
 		    VESmail_header *hp = hdr;
 		    VESmail_header htmp;
-		    int l = hdr->len - (hdr->val - hdr->key);
+		    int l = hdr->val ? hdr->len - (hdr->val - hdr->key) : 0;
 		    if (l > VESMAIL_IMAP_MSG_MAXHDR) {
 			int dl = l - VESMAIL_IMAP_MSG_MAXHDR;
 			htmp.key = hdr->key;
@@ -221,7 +221,7 @@ int VESmail_imap_msg_fn_hdr(VESmail_parse *parse, VESmail_header *hdr) {
 			    char *d = *hval;
 			    const char *tail = hp->key + hp->len;
 			    const char *s;
-			    for (s = hp->val; s < tail; s++) {
+			    for (s = hp->val; s && s < tail; s++) {
 				char c = *s;
 				switch (c) {
 				    case 10: case 13: break;
@@ -500,7 +500,11 @@ void VESmail_imap_msg_free(VESmail_imap_msg *msg) {
 	    VESmail_header_free(h);
 	}
 	int i;
-	for (i = 0; i < sizeof(msg->headers) / sizeof(msg->headers[0]); i++) free(msg->headers[i]);
+	for (i = 0; i < sizeof(msg->headers) / sizeof(msg->headers[0]); i++) {
+	    char *s = msg->headers[i];
+	    if (s) VESmail_cleanse(s, strlen(s));
+	    free(s);
+	}
     }
     free(msg);
 }

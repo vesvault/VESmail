@@ -33,15 +33,17 @@
 extern struct VESmail_daemon **VESmail_local_daemons;
 extern int VESmail_local_ulen;
 
-void VESmail_local_init();
+void VESmail_local_init(const char *logfile);
 struct VESmail_daemon **VESmail_local_start();
 int VESmail_local_watch();
 int VESmail_local_getstat(int idx);
 void VESmail_local_getuser(const char **usr, int *st);
 const char *VESmail_local_getuserprofileurl(const char *ulogin);
+int VESmail_local_getusererror(const char *ulogin, char *err);
 int VESmail_local_run(long udelay);
 const char *VESmail_local_gethost(struct VESmail_daemon *daemon);
 const char *VESmail_local_getport(struct VESmail_daemon *daemon);
+void VESmail_local_sleep(void (* fn)(void *), void *arg);
 
 #define	VESMAIL_LCST_LSTN	0x0001
 #define	VESMAIL_LCST_LSTNERR	0x0002
@@ -53,6 +55,10 @@ const char *VESmail_local_getport(struct VESmail_daemon *daemon);
 #define	VESMAIL_LCST_PROCDONE	0x0080
 #define	VESMAIL_LCST_LOGINOK	0x00010000
 #define	VESMAIL_LCST_LOGINERR	0x00020000
+
+#define	VESMAIL_LCSF_UERR	0x8000
+
+#define	VESMAIL_E_LCL_CHKD	-126
 
 #ifndef VESMAIL_APP_BUILD
 #define	VESMAIL_APP_BUILD	local

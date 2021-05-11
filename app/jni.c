@@ -46,7 +46,7 @@
 
 
 JNIEXPORT void JNICALL VESMAIL_JNI(init)(JNIEnv *env, jobject obj) {
-    VESmail_local_init();
+    VESmail_local_init(NULL);
 }
 
 JNIEXPORT jint JNICALL VESMAIL_JNI(addcert)(JNIEnv *env, jobject obj, jbyteArray array) {
@@ -58,7 +58,7 @@ JNIEXPORT jint JNICALL VESMAIL_JNI(addcert)(JNIEnv *env, jobject obj, jbyteArray
 }
 
 JNIEXPORT jint JNICALL VESMAIL_JNI(start)(JNIEnv *env, jobject obj) {
-    VESmail_local_init();
+    VESmail_local_init(NULL);
     if (!VESmail_local_start()) return 0;
     return 1;
 }
@@ -106,12 +106,13 @@ JNIEXPORT jintArray JNICALL VESMAIL_JNI(getusers)(JNIEnv *env, jobject obj, jobj
     for (i = 0; i < VESmail_local_ulen; i++) {
 	VESmail_local_getuser(&ulogin, &st);
 	if (!ulogin) break;
+	if ((st & VESMAIL_LCST_LSTNERR) && VESmail_local_getusererror(ulogin, NULL)) st |= VESMAIL_LCSF_UERR;
 	ubuf[i] = st;
 	if (i == last) {
 	    cls = (*env)->GetObjectClass(env, dst);
 	    meth = (*env)->GetMethodID(env, cls, "setuser", "(ILjava/lang/String;)V");
 	}
-	if (i >= last) {
+	if (i >= (unsigned) last) {
 	    jstring juser = (*env)->NewStringUTF(env, ulogin);
 	    (*env)->CallVoidMethod(env, dst, meth, i, juser);
 	}
@@ -122,6 +123,18 @@ JNIEXPORT jintArray JNICALL VESMAIL_JNI(getusers)(JNIEnv *env, jobject obj, jobj
     }
     free(ubuf);
     return rs;
+}
+
+JNIEXPORT jstring JNICALL VESMAIL_JNI(getuser)(JNIEnv *env, jobject obj, jint idx) {
+    if (idx < 0) return NULL;
+    const char *ulogin = NULL;
+    int i;
+    for (i = 0; i <= idx; i++) {
+	VESmail_local_getuser(&ulogin, NULL);
+	if (!ulogin) break;
+    }
+    if (!ulogin) return NULL;
+    return (*env)->NewStringUTF(env, ulogin);
 }
 
 JNIEXPORT jstring JNICALL VESMAIL_JNI(getuserprofileurl)(JNIEnv *env, jobject obj, jint idx) {
@@ -135,4 +148,43 @@ JNIEXPORT jstring JNICALL VESMAIL_JNI(getuserprofileurl)(JNIEnv *env, jobject ob
     const char *prof = VESmail_local_getuserprofileurl(ulogin);
     if (!prof) return NULL;
     return (*env)->NewStringUTF(env, prof);
+}
+
+JNIEXPORT jstring JNICALL VESMAIL_JNI(getusererror)(JNIEnv *env, jobject obj, jint idx) {
+    if (idx < 0) return NULL;
+    const char *ulogin = NULL;
+    int i;
+    for (i = 0; i <= idx; i++) {
+	VESmail_local_getuser(&ulogin, NULL);
+	if (!ulogin) return NULL;
+    }
+    char err[32];
+    if (!VESmail_local_getusererror(ulogin, err)) return NULL;
+    return (*env)->NewStringUTF(env, err);
+}
+
+
+struct VESmail_jni_wake {
+    JavaVM *jvm;
+    jobject obj;
+    jmethodID meth;
+};
+
+void VESmail_jni_wakefn(void *arg) {
+    struct VESmail_jni_wake *wake = arg;
+    JNIEnv *env;
+    (*wake->jvm)->AttachCurrentThread(wake->jvm, &env, NULL);
+    (*env)->CallVoidMethod(env, wake->obj, wake->meth);
+    (*env)->DeleteGlobalRef(env, wake->obj);
+    (*wake->jvm)->DetachCurrentThread(wake->jvm);
+    free(wake);
+}
+
+JNIEXPORT void JNICALL VESMAIL_JNI(sleep)(JNIEnv *env, jobject obj, jobject dst) {
+    struct VESmail_jni_wake *wake = malloc(sizeof(struct VESmail_jni_wake));
+    (*env)->GetJavaVM(env, &wake->jvm);
+    jclass cls = (*env)->GetObjectClass(env, dst);
+    wake->obj = (*env)->NewGlobalRef(env, dst);
+    wake->meth = (*env)->GetMethodID(env, cls, "wakeup", "()V");
+    VESmail_local_sleep(&VESmail_jni_wakefn, wake);
 }

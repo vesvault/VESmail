@@ -45,3 +45,4 @@ int VESmail_b64decode(char **dst, const char *src, int *srclen, const char **err
 void VESmail_randstr(int len, char *buf);
 char *VESmail_strndup(const char *s, int len);
 char *VESmail_memsplice(char *str, int steml, unsigned long int *strl, int offs, int del, const char *ins, int insl);
+void VESmail_cleanse(void *buf, unsigned long len);

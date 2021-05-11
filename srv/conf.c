@@ -344,6 +344,7 @@ VESmail_conf *VESmail_conf_clone(VESmail_conf *conf) {
 
 void VESmail_conf_vlog(VESmail_conf *conf, const char *fmt, va_list va) {
     static void *mutex = NULL;
+    if (conf->log.wakefn) conf->log.wakefn(conf);
     if (conf->log.filename) {
 	if (!conf->log.fh) {
 	    if ((conf->log.fh = fopen(conf->log.filename, "a"))) VESmail_arch_setlinebuf(conf->log.fh);

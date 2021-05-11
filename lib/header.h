@@ -95,4 +95,4 @@ int VESmail_header_undivert(struct VESmail_parse *parse);
 
 char *VESmail_header_apply_msgid(struct VESmail_header *hdr, struct VESmail *mail);
 
-#define VESmail_header_free(hdr)	free(hdr)
+void VESmail_header_free(VESmail_header *hdr);

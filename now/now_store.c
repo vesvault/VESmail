@@ -183,7 +183,7 @@ int VESmail_now_store_hdrproc(VESmail_parse *parse, VESmail_header *hdr) {
     VESmail_server *srv = parse->ref;
     switch (hdr->type) {
 	case VESMAIL_H_VRFY:
-	    if (!srv->ves) {
+	    if (!srv->ves && hdr->val) {
 		char vrfy[80];
 		const char *s = hdr->val;
 		const char *tail = hdr->key + hdr->len;

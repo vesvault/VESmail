@@ -239,6 +239,7 @@ int VESmail_header_push_enc(VESmail_parse *parse, VESmail_header *hdr, int bufd)
 	    break;
 	}
 	case VESMAIL_H_CDISP: {
+	    if (!hdr->val) break;
 	    const char *s = memchr(hdr->val, ';', hdr->val - hdr->key + hdr->len);
 	    if (s) {
 		int r = VESmail_header_encrypt_push(parse, hdr);
@@ -401,6 +402,7 @@ int VESmail_header_process_enc(struct VESmail_parse *parse, struct VESmail_heade
     if (rs < 0) return rs;
     switch (hdr->type) {
 	case VESMAIL_H_RCPT: {
+	    if (!hdr->val) break;
 	    char *rcpt = VESmail_strndup(hdr->val, VESmail_header_get_eol(hdr) - hdr->val);
 	    VESmail_add_rcpt(parse->mail, rcpt, !(parse->mail->flags & VESMAIL_O_HDR_RCPT));
 	    free(rcpt);

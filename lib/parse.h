@@ -102,6 +102,7 @@ struct VESmail_xform;
 #define VESMAIL_PE_HDR_VES	0x0008
 #define VESMAIL_PE_HDR_END	0x0010
 #define VESMAIL_PE_CTE		0x0080
+#define VESMAIL_PE_COLLECT	0x8000
 
 struct VESmail_parse *VESmail_parse_new(struct VESmail *mail, int (* hdrfn)(struct VESmail_parse *, struct VESmail_header *), struct VESmail_xform *xform, int encap);
 int VESmail_parse_process(struct VESmail_parse *parse, int final, const char *src, int *srclen);

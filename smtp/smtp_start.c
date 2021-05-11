@@ -204,6 +204,7 @@ int VESmail_smtp_start_fn_r_auth(VESmail_smtp_track *trk, VESmail_smtp_reply *re
 		if (tk) {
 		    VESmail_smtp_track_new(srv, &VESmail_smtp_start_fn_r_auth);
 		    int rs = VESmail_smtp_cmd_fwda(srv, tk, 0);
+		    VESmail_cleanse(tk, strlen(tk));
 		    free(tk);
 		    return rs;
 		}
@@ -214,7 +215,7 @@ int VESmail_smtp_start_fn_r_auth(VESmail_smtp_track *trk, VESmail_smtp_reply *re
 	    break;
     }
     VESMAIL_SMTP(srv)->state = VESMAIL_SMTP_S_START;
-    VESmail_server_logauth(srv, VESMAIL_E_RELAY, 0);
+    VESmail_server_logauth(srv, VESMAIL_E_RAUTH, 0);
     VESmail_server_abuse_peer(srv, 10);
     VESmail_server_abuse_user(srv, 10);
     VESmail_server_disconnect(srv);
@@ -238,6 +239,7 @@ int VESmail_smtp_fwd_login(VESmail_server *srv) {
     char *ir = VESmail_sasl_process(srv->sasl, NULL, 0);
     VESMAIL_SRV_DEBUG(srv, 1, sprintf(debug, "AUTH %s", VESmail_sasl_get_name(srv->sasl)))
     int rs = VESmail_smtp_cmd_fwda(srv, "AUTH", (ir ? 2 : 1), VESmail_sasl_get_name(srv->sasl), ir);
+    if (ir) VESmail_cleanse(ir, strlen(ir));
     free(ir);
     return rs;
 }

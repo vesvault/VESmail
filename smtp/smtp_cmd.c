@@ -302,3 +302,8 @@ VESmail_xform *VESmail_xform_new_smtp_cmd(VESmail_server *srv) {
     VESmail_xform *xform = VESmail_xform_new(&VESmail_smtp_cmd_xform_fn, NULL, srv);
     return xform;
 }
+
+void VESmail_smtp_cmd_free(struct VESmail_smtp_cmd *cmd) {
+    if (cmd && cmd->head == cmd->data) VESmail_cleanse(cmd->data, cmd->len);
+    free(cmd);
+}

@@ -75,7 +75,7 @@ char *VESmail_header_apply_msgid(VESmail_header *hdr, VESmail *mail) {
     const char *s = hdr->val;
     char *msgid = NULL;
     char *d = NULL;
-    while (s < tail) {
+    while (s && s < tail) {
 	char c = *s++;
 	switch (c) {
 	    case '<':
@@ -167,8 +167,8 @@ int VESmail_header_keys_values(const char *str, int len, void (* cb)(void *arg, 
 
 char *VESmail_header_get_val(const VESmail_header *hdr, char *val, const char **extra) {
     const char *s = hdr->val;
-    const char *tail = hdr->key + hdr->len;
-    if (!val) val = malloc(tail - s);
+    const char *tail = s ? hdr->key + hdr->len : NULL;
+    if (!val) val = malloc(tail - s + 1);
     char *d = val;
     while (s < tail) {
 	char c = *s++;
@@ -240,7 +240,7 @@ VESmail_header *VESmail_header_add_eol(VESmail_header *hdr, const VESmail_header
 }
 
 VESmail_header *VESmail_header_rebuild_references(VESmail_header *hdr, const char *suff, int add) {
-    if (!suff) return VESmail_header_dup(hdr, NULL);
+    if (!suff || !hdr->val) return VESmail_header_dup(hdr, NULL);
     const char *lt = NULL;
     const char *gt = NULL;
     const char *tail = hdr->key + hdr->len;
@@ -381,4 +381,9 @@ int VESmail_header_commit_or_divert(VESmail_parse *parse, VESmail_header *hdr) {
     int inj = VESmail_check_inject(parse);
     if (inj < 0) return inj;
     return (inj ? &VESmail_header_divert : &VESmail_header_commit)(parse, hdr);
+}
+
+void VESmail_header_free(VESmail_header *hdr) {
+    if (hdr && hdr->key == hdr->data) VESmail_cleanse(hdr->data, hdr->len);
+    free(hdr);
 }

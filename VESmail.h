@@ -42,7 +42,7 @@ struct libVES;
 #ifdef	PACKAGE_VERSION
 #define	VESMAIL_VERSION		PACKAGE_VERSION
 #else
-#define	VESMAIL_VERSION		"1.54b"
+#define	VESMAIL_VERSION		"1.55"
 #endif
 
 #define	VESMAIL_SHORT_NAME	"VESmail"
@@ -65,6 +65,7 @@ struct libVES;
 #define	VESMAIL_E_RELAY		-20
 #define	VESMAIL_E_ABUSE		-21
 #define	VESMAIL_E_OVRD		-22
+#define	VESMAIL_E_RAUTH		-31
 #define	VESMAIL_E_INTERNAL	-32
 #define	VESMAIL_E_HOLD		-100
 
@@ -73,3 +74,5 @@ struct libVES;
 /*
 libVESmail interface calls to be defined here
 */
+
+void VESmail_cleanse(void *buf, unsigned long len);

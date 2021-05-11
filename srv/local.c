@@ -39,6 +39,7 @@
 #include <stdlib.h>
 #include <jVar.h>
 #include <libVES.h>
+#include <stdio.h>
 #include "../VESmail.h"
 #include "../lib/optns.h"
 #include "server.h"
@@ -69,6 +70,8 @@ char VESmail_local_host[] = "localhost\0";
 char VESmail_local_nowurl[] = "https://my.vesmail.email/now?msgid=\0";
 char *VESmail_local_bcc[] = { "my@now.vesmail.email", NULL };
 
+void VESmail_local_wakefn(struct VESmail_conf *conf);
+
 VESmail_conf VESmail_local_conf = {
     .hostname = VESmail_local_host,
     .progname = "vesmail",
@@ -83,7 +86,8 @@ VESmail_conf VESmail_local_conf = {
     },
     .log = {
 	.filename = NULL,
-	.fh = NULL
+	.fh = NULL,
+	.wakefn = &VESmail_local_wakefn
     },
     .now = {
 	.manifest = "{"
@@ -114,6 +118,7 @@ VESmail_conf VESmail_local_conf = {
 	.headers = VESmail_local_cors
     },
     .tls = &VESmail_local_tls,
+    .mutex = NULL,
     .abuseSense = 0,
     .overrides = VESMAIL_OVRD_ALLOW,
     .dumpfd = -1
@@ -174,6 +179,9 @@ struct VESmail_local_ustat {
     struct VESmail_local_ustat *chain;
     char *profileurl;
     struct VESmail_local_stat stat;
+    short int authcode;
+    unsigned char subcode;
+    unsigned char tag;
     char login[0];
 } *VESmail_local_ustat = NULL;
 
@@ -186,6 +194,9 @@ struct VESmail_local_ustat VESmail_local_unull = {
 
 struct VESmail_daemon **VESmail_local_daemons = NULL;
 
+void (*VESmail_local_wakecb)() = NULL;
+void *VESmail_local_wakemutex = NULL;
+
 
 struct VESmail_local_ustat *VESmail_local_ustat_free(struct VESmail_local_ustat *ustat) {
     struct VESmail_local_ustat *next;
@@ -197,13 +208,14 @@ struct VESmail_local_ustat *VESmail_local_ustat_free(struct VESmail_local_ustat 
     return next;
 }
 
-void VESmail_local_init() {
+void VESmail_local_init(const char *logfile) {
     static char init = 0;
     if (init) return;
     init = 1;
     libVES_init(VESMAIL_VERSION_SHORT);
     VESmail_arch_init();
     VESmail_tls_init();
+    if (logfile) VESmail_local_conf.log.filename = (char *) logfile;
 }
 
 VESmail_override *VESmail_local_ovrdfn(void *ovrdref) {
@@ -273,6 +285,7 @@ void VESmail_local_watchfn(VESmail_proc *proc, void *arg) {
 		strcpy(ust->login, proc->server->login);
 		ust->chain = NULL;
 		ust->profileurl = NULL;
+		ust->tag = ust->authcode = 0;
 		VESmail_local_stat_init(&ust->stat);
 		VESmail_local_ulen++;
 	    }
@@ -281,12 +294,18 @@ void VESmail_local_watchfn(VESmail_proc *proc, void *arg) {
 	switch (proc->server->authcode) {
 	    case 0:
 		setf = VESMAIL_LCST_PROC | VESMAIL_LCST_LOGINOK;
+		proc->server->authcode = VESMAIL_E_LCL_CHKD;
 		break;
 	    case VESMAIL_E_HOLD:
-		setf = VESMAIL_LCST_PROC;
+	    case VESMAIL_E_LCL_CHKD:
+		setf = 0;
 		break;
 	    default:
 		setf = VESMAIL_LCST_PROC | VESMAIL_LCST_LOGINERR;
+		ust->authcode = proc->server->authcode;
+		ust->subcode = proc->server->subcode;
+		ust->tag = proc->daemon->tag;
+		proc->server->authcode = VESMAIL_E_LCL_CHKD;
 		break;
 	}
 	st->stat |= setf;
@@ -347,8 +366,8 @@ void VESmail_local_getuser(const char **usr, int *st) {
 	VESmail_local_stat_collect(&ust->stat);
 	if (ust->stat.stat & VESMAIL_LCST_PROC) {
 	    ust->stat.stat &= ~(VESMAIL_LCST_LSTN | VESMAIL_LCST_LSTNERR);
-	    if (ust->stat.stat & VESMAIL_LCST_LOGINOK) ust->stat.stat |= VESMAIL_LCST_LSTN;
-	    if (ust->stat.stat & VESMAIL_LCST_LOGINERR) ust->stat.stat |= VESMAIL_LCST_LSTNERR;
+	    if (ust->stat.stat & VESMAIL_LCST_LOGINERR) ust->stat.stat |= VESMAIL_LCST_LSTNERR | VESMAIL_LCST_PROCERR;
+	    else if (ust->stat.stat & VESMAIL_LCST_LOGINOK) ust->stat.stat |= VESMAIL_LCST_LSTN;
 	}
 	*st = ust->stat.stat;
 	ust->stat.stat &= (VESMAIL_LCST_LSTN | VESMAIL_LCST_LSTNERR);
@@ -357,6 +376,39 @@ void VESmail_local_getuser(const char **usr, int *st) {
 
 const char *VESmail_local_getuserprofileurl(const char *ulogin) {
     return ulogin ? VESmail_local_login2user(ulogin)->profileurl : NULL;
+}
+
+int VESmail_local_getusererror(const char *ulogin, char *err) {
+    if (!ulogin) return 0;
+    const char *fmt;
+    struct VESmail_local_ustat *ust = VESmail_local_login2user(ulogin);
+    switch (ust->authcode) {
+	case VESMAIL_E_VES:
+	    switch (ust->subcode) {
+		case LIBVES_E_NOTFOUND:
+		case LIBVES_E_CRYPTO:
+		    break;
+		default:
+		    return 0;
+	    }
+	case VESMAIL_E_OVRD:
+	    fmt = "%s.XVES%d.%d";
+	    break;
+	case VESMAIL_E_CONF:
+	case VESMAIL_E_DENIED:
+	case VESMAIL_E_RESOLV:
+	case VESMAIL_E_CONN:
+	case VESMAIL_E_TLS:
+	case VESMAIL_E_SASL:
+	case VESMAIL_E_RELAY:
+	case VESMAIL_E_RAUTH:
+	    fmt = "%s.XVES%d";
+	    break;
+	default:
+	    return 0;
+    }
+    if (err) sprintf(err, fmt, VESmail_local_conf_daemon[ust->tag].type, ust->authcode, ust->subcode);
+    return ust->authcode;
 }
 
 int VESmail_local_getunull() {
@@ -383,3 +435,25 @@ const char *VESmail_local_getport(VESmail_daemon *daemon) {
     return daemon ? VESmail_local_conf_daemon[(unsigned) daemon->tag].port : NULL;
 }
 
+struct {
+    void (*fn)(void *);
+    void *arg;
+} VESmail_local_wake = {
+    .fn = NULL
+};
+
+void VESmail_local_wakefn(struct VESmail_conf *conf) {
+    if (!VESmail_local_wake.fn) return;
+    VESmail_arch_mutex_lock(&VESmail_local_conf.mutex);
+    if (VESmail_local_wake.fn) VESmail_local_wake.fn(VESmail_local_wake.arg);
+    VESmail_local_wake.fn = NULL;
+    VESmail_arch_mutex_unlock(&VESmail_local_conf.mutex);
+}
+
+void VESmail_local_sleep(void (* fn)(void *), void *arg) {
+    VESmail_arch_log("sleep");
+    VESmail_arch_mutex_lock(&VESmail_local_conf.mutex);
+    VESmail_local_wake.fn = fn;
+    VESmail_local_wake.arg = arg;
+    VESmail_arch_mutex_unlock(&VESmail_local_conf.mutex);
+}

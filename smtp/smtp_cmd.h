@@ -53,4 +53,4 @@ int VESmail_smtp_cmd_fwd(VESmail_server *srv, const char *cmd, int cmdlen);
 #define	VESmail_smtp_cmd_send(srv, cmd)	VESmail_smtp_cmd_fwd(srv, (cmd)->head, (cmd)->len)
 int VESmail_smtp_cmd_fwda(VESmail_server *srv, const char *cmd, int argc, ...);
 struct VESmail_smtp_cmd *VESmail_smtp_cmd_dup(const struct VESmail_smtp_cmd *cmd);
-#define VESmail_smtp_cmd_free(cmd)	free(cmd)
+void VESmail_smtp_cmd_free(struct VESmail_smtp_cmd *cmd);

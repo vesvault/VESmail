@@ -99,7 +99,12 @@ VESmail_server *VESmail_server_init(VESmail_server *srv, VESmail_optns *optns) {
     return srv;
 }
 
+#ifndef VESMAIL_DEBUG_DUMP
+#define VESMAIL_DEBUG_DUMP	0
+#endif
+#if VESMAIL_DEBUG_DUMP
 #define VESmail_server_dump(fd, src, len)	if ((fd) >= 0) VESmail_arch_write(fd, src, len)
+#endif
 
 #define	VESMAIL_SRV_OUTBUF	4096
 
@@ -132,7 +137,9 @@ int VESmail_server_fn_bio_out(VESmail_xform *xform, int final, const char *src, 
 	    }
 	}
 	xform->server->lastwrite = time(NULL);
+#if VESMAIL_DEBUG_DUMP
 	VESmail_server_dump(xform->server->dumpfd, src, w);
+#endif
 	if (!final) return *srclen = w;
 	*srclen += w;
 	srcl -= w;
@@ -164,10 +171,14 @@ int VESmail_server_bio_read(BIO *bio, VESmail_xform *chain, int nb) {
 	} else {
 	    return VESMAIL_E_IO;
 	}
+#if VESMAIL_DEBUG_DUMP
     } else {
 	VESmail_server_dump(chain->server->dumpfd, buf, rd);
+#endif
     }
-    return VESmail_xform_process(chain, !rd, buf, rd);
+    int r = VESmail_xform_process(chain, !rd, buf, rd);
+    VESmail_cleanse(buf, rd);
+    return r;
 }
 
 
@@ -271,6 +282,7 @@ int VESmail_server_logauth(VESmail_server *srv, int er, long usec) {
 
 int VESmail_server_auth(VESmail_server *srv, const char *user, const char *pwd, int pwlen) {
     srv->authcode = VESMAIL_E_HOLD;
+    srv->subcode = 0;
     free(srv->login);
     srv->login = VESmail_strndup(user, VESMAIL_SRV_MAXLOGIN);
     if (!VESmail_tls_server_allow_plain(srv)) {
@@ -297,6 +309,7 @@ int VESmail_server_auth(VESmail_server *srv, const char *user, const char *pwd, 
 	    int ok = vi && vi->value;
 	    libVES_VaultItem_free(vi);
 	    if (!vi) {
+		srv->subcode = srv->ves->error;
 		return VESmail_server_logauth(srv, VESMAIL_E_VES, 1000000);
 	    } else if (!ok) {
 		return VESmail_server_logauth(srv, VESMAIL_E_DENIED, 2000000);
@@ -340,7 +353,7 @@ int VESmail_server_auth(VESmail_server *srv, const char *user, const char *pwd, 
 	return srv->uconf ? rs : VESmail_server_logauth(srv, VESMAIL_E_CONF, 500000);
     } else {
 	int er;
-	switch (srv->ves->error) {
+	switch ((srv->subcode = srv->ves->error)) {
 	    case LIBVES_E_NOTFOUND:
 	    case LIBVES_E_CRYPTO:
 		er = VESMAIL_E_VES;
@@ -441,7 +454,7 @@ char *VESmail_server_errorStr(VESmail_server *srv, int err) {
 	    strcpy(d, " OK");
 	    break;
 	case VESMAIL_E_IO: {
-	    sprintf(d, ".%d I/O error: %.160s", errno, strerror(errno));
+	    sprintf(d, ".%d I/O error: %.160s", (srv->subcode = errno), strerror(errno));
 	    break;
 	}
 	case VESMAIL_E_VES: {
@@ -572,6 +585,7 @@ void VESmail_server_shutdown(VESmail_server *srv) {
 void VESmail_server_free(VESmail_server *srv) {
     if (srv) {
 	VESmail_server_shutdown(srv);
+	libVES_cleanseJVar(srv->uconf);
 	jVar_free(srv->uconf);
 	VESmail_override_free(srv->override);
 	free(srv->login);

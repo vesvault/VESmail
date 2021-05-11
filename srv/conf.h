@@ -55,6 +55,7 @@ typedef struct VESmail_conf {
     struct {
 	char *filename;
 	void *fh;
+	void (* wakefn)(struct VESmail_conf *);
     } log;
     struct {
 	char *manifest;

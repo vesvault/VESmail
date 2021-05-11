@@ -64,6 +64,10 @@
 #include "help.h"
 #include "vesmail.h"
 
+#ifndef VESMAIL_DEBUG_DUMP
+#define VESMAIL_DEBUG_DUMP	0
+#endif
+
 struct VESmail_conf conf = {
     .bannerPath = NULL,
     .banner = NULL,
@@ -75,7 +79,8 @@ struct VESmail_conf conf = {
     },
     .log = {
 	.filename = NULL,
-	.fh = NULL
+	.fh = NULL,
+	.wakefn = NULL
     },
     .now = {
 	.manifest = NULL,
@@ -365,9 +370,11 @@ int main(int argc, char **argv) {
 		    case o_input:
 			in.ptr = (void *) &params.input;
 			break;
+#if VESMAIL_DEBUG_DUMP
 		    case o_dumpfd:
 			in.ptr = (void *) &params.dumpfd;
 			break;
+#endif
 		    case o_tls:
 			conf.tls->persist = 1;
 			break;

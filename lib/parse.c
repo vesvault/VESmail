@@ -95,6 +95,7 @@ VESmail_parse *VESmail_parse_new(VESmail *mail, int (* hdrfn)(struct VESmail_par
     parse->injboundary = NULL;
     parse->nested = NULL;
     parse->in = NULL;
+    parse->error = mail->error & VESMAIL_PE_COLLECT;
     return parse;
 }
 
@@ -379,7 +380,7 @@ VESmail_xform *VESmail_parse_xform_null(VESmail_parse *parse) {
 
 void VESmail_parse_free(struct VESmail_parse *parse) {
     if (parse) {
-	parse->mail->error |= parse->error;
+	if (parse->error & VESMAIL_PE_COLLECT) parse->mail->error |= parse->error;
 	VESmail_header *h;
 	for (h = parse->hdrbuf; h;) {
 	    VESmail_header *hchain = h->chain;

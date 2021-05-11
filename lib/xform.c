@@ -55,8 +55,14 @@ VESmail_xform *VESmail_xform_new(int (* xformfn)(VESmail_xform *xform, int final
 
 void VESmail_xform_chkbuf(VESmail_xform *xform, int len) {
     if (len > xform->bufmax) {
-	xform->bufmax = len + 256;
-	xform->buf = realloc(xform->buf, xform->bufmax);
+	xform->bufmax += len + 256;
+	char *buf1 = malloc(xform->bufmax);
+	if (xform->buf && xform->buflen) {
+	    memcpy(buf1, xform->buf, xform->buflen);
+	    VESmail_cleanse(xform->buf, xform->buflen);
+	}
+	free(xform->buf);
+	xform->buf = buf1;
     }
 }
 
@@ -107,6 +113,7 @@ int VESmail_xform_process(VESmail_xform *xform, int final, const char *src, int 
 	if (len > 0) {
 	    memmove(xform->buf, xform->buf + len, xform->buflen - len);
 	    xform->buflen -= len;
+	    VESmail_cleanse(xform->buf + xform->buflen, len);
 	} else if (!dl) {
 	    break;
 	}
@@ -196,6 +203,7 @@ VESmail_xform *VESmail_xform_free_chain(VESmail_xform *xform, void *obj) {
 void VESmail_xform_free(VESmail_xform *xform) {
     if (xform) {
 	if (xform->freefn) xform->freefn(xform);
+	VESmail_cleanse(xform->buf, xform->buflen);
 	free(xform->buf);
     }
     free(xform);

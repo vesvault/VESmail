@@ -61,6 +61,7 @@ void VESmail_curlsh_init() {
     curl_share_setopt(VESmail_curlsh, CURLSHOPT_LOCKFUNC, &VESmail_curlsh_lockfn);
     curl_share_setopt(VESmail_curlsh, CURLSHOPT_UNLOCKFUNC, &VESmail_curlsh_unlockfn);
     curl_share_setopt(VESmail_curlsh, CURLSHOPT_SHARE, CURL_LOCK_DATA_DNS);
+    curl_share_setopt(VESmail_curlsh, CURLSHOPT_SHARE, CURL_LOCK_DATA_SSL_SESSION);
 }
 
 void VESmail_curlsh_apply(void *curl) {

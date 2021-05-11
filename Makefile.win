@@ -2,30 +2,35 @@ OPENSSL_PATH="c:\\Program Files (x86)\\OpenSSL-Win32"
 CURL_PATH=c:\\src\\curl32
 LIBVES_PATH="../libVES-c"
 
+LIBVES_LIB=$(LIBVES_PATH)\\lib\\libVES.lib
+LIBW_LIB=libvesmailw.lib
+VESMAIL_EXE=vesmail.exe
+
 CFLAGS=-I $(OPENSSL_PATH)\\include \
 -I $(CURL_PATH)\\include \
 -I $(LIBVES_PATH)/lib \
--DHAVE_CURL_CURL_H
+-DHAVE_CURL_CURL_H \
+-DVESMAIL_CURLSH
+
+LIBW_CFLAGS = -DVESMAIL_LOCAL \
+-DVESMAIL_STDPORTS \
+-DVESMAIL_APP_BUILD=win
 
 LDFLAGS=$(OPENSSL_PATH)\\lib\\VC\\libcrypto32MD.lib \
 $(OPENSSL_PATH)\\lib\\VC\\libssl32MD.lib \
 $(CURL_PATH)\\lib\\libcurl.dll.a \
-$(LIBVES_PATH)\\lib\\libVES.lib \
+$(LIBVES_LIB) \
 ws2_32.lib
 
 AR=lib
 LD=link
-
-LIBVES_LIB=lib\\libVES.lib
-VESMAIL_EXE=vesmail.exe
 
 EXTRA_OBJS=applink.obj
 
 COBJS=lib\\mail.obj lib\\optns.obj lib\\parse.obj lib\\header.obj lib\\xform.obj \
     lib\\multi.obj lib\\cte.obj lib\\ves.obj lib\\encrypt.obj lib\\decrypt.obj \
     lib\\banner.obj lib\\util.obj \
-    srv\\server.obj srv\\arch.obj srv\\tls.obj srv\\sasl.obj srv\\proc.obj \
-    srv\\daemon.obj srv\\conf.obj srv\\override.obj srv\\guard.obj \
+    srv\\server.obj srv\\arch.obj srv\\sasl.obj srv\\override.obj srv\\curlsh.obj \
     imap\\imap.obj imap\\imap_xform.obj imap\\imap_token.obj imap\\imap_track.obj \
     imap\\imap_start.obj imap\\imap_proxy.obj imap\\imap_msg.obj \
     imap\\imap_fetch.obj imap\\imap_result.obj imap\\imap_result_proc.obj \
@@ -33,19 +38,48 @@ COBJS=lib\\mail.obj lib\\optns.obj lib\\parse.obj lib\\header.obj lib\\xform.obj
     smtp\\smtp.obj smtp\\smtp_cmd.obj smtp\\smtp_reply.obj smtp\\smtp_track.obj \
     smtp\\smtp_start.obj smtp\\smtp_proxy.obj smtp\\smtp_xves.obj \
     now\\now.obj now\\now_store.obj now\\now_probe.obj \
-    cli\\vesmail.obj cli\\help.obj cli\\tty.obj \
     util\\jTree.obj
+
+CLI_OBJS = srv\\guard.obj srv\\proc.obj srv\\daemon.obj srv\\conf.obj srv\\tls.obj \
+    cli\\vesmail.obj cli\\help.obj cli\\tty.obj \
+
+LIBW_OBJS = srv\\local-libw.obj srv\\proc-libw.obj srv\\daemon-libw.obj \
+    srv\\conf-libw.obj srv\\tls-libw.obj
+
+LIBW_LINKED=$(LDFLAGS)
+
 
 all:	vesmail.exe
 
 .c.obj:
 	$(CC) $(CFLAGS) -Fo:$@ -c $<
 
+srv\\local-libw.obj:
+	$(CC) $(CFLAGS) $(LIBW_CFLAGS) -Fo:srv\\local-libw.obj -c srv\\local.c
+
+srv\\proc-libw.obj:
+	$(CC) $(CFLAGS) $(LIBW_CFLAGS) -Fo:srv\\proc-libw.obj -c srv\\proc.c
+
+srv\\daemon-libw.obj:
+	$(CC) $(CFLAGS) $(LIBW_CFLAGS) -Fo:srv\\daemon-libw.obj -c srv\\daemon.c
+
+srv\\conf-libw.obj:
+	$(CC) $(CFLAGS) $(LIBW_CFLAGS) -Fo:srv\\conf-libw.obj -c srv\\conf.c
+
+srv\\tls-libw.obj:
+	$(CC) $(CFLAGS) $(LIBW_CFLAGS) -Fo:srv\\tls-libw.obj -c srv\\tls.c
+
 applink.obj:
 	$(CC) $(CFLAGS) -Fo:$@ -c $(OPENSSL_PATH)\\include\\openssl\\applink.c
 
-vesmail.exe:	$(COBJS) $(EXTRA_OBJS)
-	$(LD) /OUT:$(VESMAIL_EXE) $(LDFLAGS) $(COBJS) $(EXTRA_OBJS)
+vesmail.exe:	$(COBJS) $(CLI_OBJS) $(EXTRA_OBJS)
+	$(LD) /OUT:$(VESMAIL_EXE) $(LDFLAGS) $(COBJS) $(CLI_OBJS) $(EXTRA_OBJS)
+
+$(LIBW_LIB):	$(COBJS) $(LIBW_OBJS)
+	$(AR) /OUT:$(LIBW_LIB) $(COBJS) $(LIBW_OBJS) $(LIBW_LINKED)
 
 clean:
 	del $(COBJS)
+	del $(CLI_OBJS)
+	del $(LIBW_OBJS)
+	del $(LIBW_LIB)

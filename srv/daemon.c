@@ -124,9 +124,9 @@ int VESmail_daemon_sock_listen(struct VESmail_daemon_sock *sk) {
 	int fd = socket(sk->ainfo->ai_family, sk->ainfo->ai_socktype, sk->ainfo->ai_protocol);
 	if (fd < 0) return VESMAIL_E_CONN;
 	int flg = 1;
-	setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &flg, sizeof(flg));
+	setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, (void *) &flg, sizeof(flg));
 #ifdef SO_REUSEPORT
-	setsockopt(fd, SOL_SOCKET, SO_REUSEPORT, &flg, sizeof(flg));
+	setsockopt(fd, SOL_SOCKET, SO_REUSEPORT, (void *) &flg, sizeof(flg));
 #endif
 	sk->sock = fd;
     }

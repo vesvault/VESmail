@@ -52,6 +52,7 @@ int VESmail_xform_fn_b64dec(VESmail_xform *xform, int final, const char *src, in
     int len = VESmail_b64decode(&buf, src, srclen, &e);
     if (e) xform->parse->error |= VESMAIL_PE_CTE;
     int r = VESmail_xform_process(xform->chain, final, buf, len);
+    VESmail_cleanse(buf, len);
     free(buf);
     return r;
 }
@@ -143,6 +144,7 @@ int VESmail_xform_fn_qpdec(VESmail_xform *xform, int final, const char *src, int
 	}
     }
     int r = VESmail_xform_process(xform->chain, final, dst, d - dst);
+    VESmail_cleanse(dst, d - dst);
     free(dst);
     return r;
 }
@@ -178,6 +180,7 @@ int VESmail_xform_fn_b64enc(VESmail_xform *xform, int final, const char *src, in
 	if (!l) break;
     }
     int r = VESmail_xform_process(xform->chain, final, dst, d - dst);
+    VESmail_cleanse(dst, d - dst);
     free(dst);
     return r;
 }
@@ -249,6 +252,7 @@ int VESmail_xform_fn_qpenc(VESmail_xform *xform, int final, const char *src, int
     }
     xform->offset = d - d0;
     int r = VESmail_xform_process(xform->chain, final, dst, d - dst);
+    VESmail_cleanse(dst, d - dst);
     free(dst);
     return r;
 }

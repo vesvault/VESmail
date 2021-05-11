@@ -35,6 +35,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <openssl/rand.h>
+#include <openssl/crypto.h>
 #include "util.h"
 
 int VESmail_b64decode(char **dst, const char *src, int *srclen, const char **error) {
@@ -133,4 +134,8 @@ char *VESmail_memsplice(char *str, int steml, unsigned long int *strl, int offs,
     }
     if (insl > 0) memcpy(str + steml + offs, ins, insl);
     return str;
+}
+
+void VESmail_cleanse(void *buf, unsigned long len) {
+    if (buf && len) OPENSSL_cleanse(buf, len);
 }

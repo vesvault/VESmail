@@ -67,6 +67,7 @@ char *VESmail_sasl_fn_cln_plain(VESmail_sasl *sasl, const char *token, int len) 
     saslt[ul + 1] = 0;
     if (pl > 0) memcpy(saslt + ul + 2, sasl->passwd, pl);
     char *b64 = VESmail_b64encode(saslt, l, NULL);
+    VESmail_cleanse(saslt, l);
     free(saslt);
     return b64;
 }
@@ -92,6 +93,7 @@ char *VESmail_sasl_fn_srv_plain(VESmail_sasl *sasl, const char *token, int len) 
 	    }
 	}
     }
+    VESmail_cleanse(buf, l);
     free(buf);
     return NULL;
 }
@@ -170,6 +172,7 @@ char *VESmail_sasl_fn_cln_xoauth2(VESmail_sasl *sasl, const char *token, int len
     char *saslt = malloc(strlen(sasl->user) + sasl->pwlen + 24);
     sprintf(saslt, "user=%s\x01auth=Bearer %.*s\x01\x01", sasl->user, sasl->pwlen, sasl->passwd);
     char *b64 = VESmail_b64encode(saslt, strlen(saslt), NULL);
+    VESmail_cleanse(saslt, strlen(saslt));
     free(saslt);
     return b64;
 }
@@ -226,7 +229,9 @@ char *VESmail_sasl_process(VESmail_sasl *sasl, const char *token, int len) {
 void VESmail_sasl_free(VESmail_sasl *sasl) {
     if (sasl) {
 	if (sasl->freefn) sasl->freefn(sasl);
+	if (sasl->user) VESmail_cleanse(sasl->user, strlen(sasl->user));
 	free(sasl->user);
+	VESmail_cleanse(sasl->passwd, sasl->pwlen);
 	free(sasl->passwd);
     }
     free(sasl);
