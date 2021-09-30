@@ -188,3 +188,37 @@ JNIEXPORT void JNICALL VESMAIL_JNI(sleep)(JNIEnv *env, jobject obj, jobject dst)
     wake->meth = (*env)->GetMethodID(env, cls, "wakeup", "()V");
     VESmail_local_sleep(&VESmail_jni_wakefn, wake);
 }
+
+JNIEXPORT jboolean JNICALL VESMAIL_JNI(snif)(JNIEnv *env, jobject obj, jstring cert, jstring pkey, jstring passphrase, jstring initurl) {
+    const char *c = (*env)->GetStringUTFChars(env, cert, NULL);
+    const char *k = (*env)->GetStringUTFChars(env, pkey, NULL);
+    const char *p = passphrase ? (*env)->GetStringUTFChars(env, passphrase, NULL) : NULL;
+    const char *u = initurl ? (*env)->GetStringUTFChars(env, initurl, NULL) : NULL;
+    jboolean rs = !!VESmail_local_snif(c, k, p, u);
+    (*env)->ReleaseStringUTFChars(env, cert, c);
+    (*env)->ReleaseStringUTFChars(env, pkey, k);
+    if (p) (*env)->ReleaseStringUTFChars(env, passphrase, p);
+    if (u) (*env)->ReleaseStringUTFChars(env, initurl, u);
+    return rs;
+}
+
+JNIEXPORT jint JNICALL VESMAIL_JNI(snifstat)(JNIEnv *env, jobject obj) {
+    return VESmail_local_snifstat();
+}
+
+JNIEXPORT jstring JNICALL VESMAIL_JNI(snifhost)(JNIEnv *env, jobject obj) {
+    return (*env)->NewStringUTF(env, VESmail_local_snifhost());
+}
+
+JNIEXPORT jstring JNICALL VESMAIL_JNI(snifauthurl)(JNIEnv *env, jobject obj) {
+    return (*env)->NewStringUTF(env, VESmail_local_snifauthurl());
+}
+
+JNIEXPORT void JNICALL VESMAIL_JNI(snifawake)(JNIEnv *env, jobject obj, jboolean awake) {
+    VESmail_local_snifawake(awake);
+}
+
+JNIEXPORT jstring JNICALL VESMAIL_JNI(feedback)(JNIEnv *env, jobject obj) {
+    VESmail_local_setfeedback(NULL);
+    return (*env)->NewStringUTF(env, VESmail_local_feedback);
+}

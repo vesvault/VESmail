@@ -30,13 +30,29 @@
  *
  ***************************************************************************/
 
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
+
 #include <sys/types.h>
 #include <stddef.h>
 #include <string.h>
 #include <stdlib.h>
 #include <stdio.h>
-
 #include "../VESmail.h"
+
+#ifdef HAVE_CURL_CURL_H
+#include <curl/curl.h>
+#include <jVar.h>
+#include "tls.h"
+#ifdef VESMAIL_X509STORE
+#include "x509store.h"
+#endif
+#ifdef VESMAIL_CURLSH
+#include "curlsh.h"
+#endif
+#endif
+
 #include "../lib/util.h"
 #include "arch.h"
 #include "sasl.h"
@@ -154,6 +170,77 @@ char *VESmail_sasl_fn_srv_login(VESmail_sasl *sasl, const char *token, int len) 
     return rsp ? strdup(rsp) : NULL;
 }
 
+#ifdef HAVE_CURL_CURL_H
+size_t VESmail_sasl_xoauth2_curlfn(void *ptr, size_t size, size_t nmemb, void *stream) {
+    int len = size * nmemb;
+#ifdef VESMAIL_DEBUG_OAUTH2
+    printf("<<<< %.*s\n", len, ptr);
+#endif
+    jVarParser **parser = stream;
+    if (!*parser) *parser = jVarParser_new(NULL);
+    *parser = jVarParser_parse(*parser, ptr, len);
+    return len;
+}
+#endif
+
+char *VESmail_sasl_xoauth2_mktoken(VESmail_sasl *sasl) {
+#ifdef HAVE_CURL_CURL_H
+    if (sasl->pwlen > 8 && !strncmp(sasl->passwd, "https://", 8)) {
+	char *post = memchr(sasl->passwd, '#', sasl->pwlen);
+	if (!post) return NULL;
+	*post++ = 0;
+	CURL *curl = curl_easy_init();
+#ifdef VESMAIL_DEBUG_OAUTH2
+	curl_easy_setopt(curl, CURLOPT_VERBOSE, 1);
+#endif
+	VESmail_tls_setcurlctx(curl);
+	curl_easy_setopt(curl, CURLOPT_URL, sasl->passwd);
+	struct curl_slist *hdrs = curl_slist_append(NULL, "Accept: application/json");
+	char buf[1024];
+	sprintf(buf, "User-Agent: VESmail SASL (https://vesmail.email) %s (%s)", VESMAIL_VERSION, curl_version());
+	hdrs = curl_slist_append(hdrs, buf);
+	int postl = sasl->pwlen - (post - sasl->passwd);
+	if (postl > 0) {
+	    hdrs = curl_slist_append(hdrs, (*post == '{' ? "Content-Type: application/json" : "Content-Type: application/x-www-form-urlencoded"));
+	    curl_easy_setopt(curl, CURLOPT_POSTFIELDS, post);
+	    curl_easy_setopt(curl, CURLOPT_POSTFIELDSIZE, postl);
+	}
+	curl_easy_setopt(curl, CURLOPT_HTTPHEADER, hdrs);
+	jVarParser *parser = NULL;
+	curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, &VESmail_sasl_xoauth2_curlfn);
+	curl_easy_setopt(curl, CURLOPT_WRITEDATA, &parser);
+	int curlerr = curl_easy_perform(curl);
+	long code = 0;
+	if (curlerr == CURLE_OK) curlerr = curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &code);
+	curl_slist_free_all(hdrs);
+	curl_easy_reset(curl);
+	jVar *rsp;
+	if (parser) {
+	    int cpl = jVarParser_isComplete(parser);
+	    rsp = jVarParser_done(parser);
+	    if (!cpl) {
+		jVar_free(rsp);
+		rsp = NULL;
+	    }
+	} else {
+	    rsp = NULL;
+	}
+	free(sasl->passwd);
+	sasl->passwd = (code == 200) ? jVar_getString0(jVar_get(rsp, "access_token")) : NULL;
+	sasl->pwlen = sasl->passwd ? strlen(sasl->passwd) : 0;
+	if (code != 200 || sasl->pwlen <= 0) {
+	    const char *e = jVar_getString0(jVar_get(rsp, "error"));
+	    VESmail_arch_log("sasl mech=%s curl=%ld pwlen=%d error=%s", VESmail_sasl_get_name(sasl), code, sasl->pwlen, (e ? e : ""));
+	}
+	jVar_free(rsp);
+	curl_easy_cleanup(curl);
+    }
+#else
+#pragma message ("Building without SASL XOAUTH2 refresh token support - need curl/curl.h")
+#endif
+    return sasl->passwd;
+}
+
 char *VESmail_sasl_fn_cln_xoauth2(VESmail_sasl *sasl, const char *token, int len) {
     if (!sasl->user) return NULL;
     if (sasl->state > 0) {
@@ -168,9 +255,10 @@ char *VESmail_sasl_fn_cln_xoauth2(VESmail_sasl *sasl, const char *token, int len
 	sasl->state++;
 	return strdup("");
     }
+    if (!VESmail_sasl_xoauth2_mktoken(sasl)) return NULL;
     sasl->state = 1;
     char *saslt = malloc(strlen(sasl->user) + sasl->pwlen + 24);
-    sprintf(saslt, "user=%s\x01auth=Bearer %.*s\x01\x01", sasl->user, sasl->pwlen, sasl->passwd);
+    sprintf(saslt, "user=%s" "\x01" "auth=Bearer %.*s" "\x01" "\x01", sasl->user, sasl->pwlen, sasl->passwd);
     char *b64 = VESmail_b64encode(saslt, strlen(saslt), NULL);
     VESmail_cleanse(saslt, strlen(saslt));
     free(saslt);

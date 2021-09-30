@@ -58,24 +58,22 @@ typedef struct VESmail_server {
     void (* logfn)(void *logref, const char *fmt, ...);
     int (* abusefn)(void *ref, void *key, int keylen, int val);
     struct VESmail_override * (* ovrdfn)(void *ref);
-    struct {
-	int unauthd;
-	int authd;
-	int data;
-    } tmout;
     union {
 	struct VESmail_proc *proc;
 	void *logref;
 	void *abuseref;
 	void *ovrdref;
+	void *ref;
     };
+    long tmout;
     short int flags;
     short int stat;
     char debug;
     unsigned char subcode;
     short int authcode;
-    int lastwrite;
     int dumpfd;
+    long cycles;
+    long long int lastwrite;
     long long int reqbytes;
     long long int rspbytes;
     char ctl[0];
@@ -107,11 +105,19 @@ typedef struct VESmail_server {
     (srv)->debugfn(srv, debug);\
 }
 
+#ifndef	VESMAIL_SRV_TMOUT
+#define	VESMAIL_SRV_TMOUT	30
+#endif
+
 struct VESmail_server *VESmail_server_init(struct VESmail_server *srv, struct VESmail_optns *optns);
+void VESmail_server_unset_fd(struct VESmail_server *srv);
+int VESmail_server_set_bio(struct VESmail_server *srv, void *bio_in, void *bio_out);
 int VESmail_server_set_fd(struct VESmail_server *srv, int in, int out);
 int VESmail_server_set_sock(struct VESmail_server *srv, int sock);
+void VESmail_server_set_keepalive(struct VESmail_server *srv);
 int VESmail_server_run(struct VESmail_server *srv, int flags);
 #define VESmail_server_set_tls(srv, _tls)	(srv->tls.server = _tls)
+int VESmail_server_connectsk(struct VESmail_server *srv, const char *host, const char *port);
 int VESmail_server_connect(struct VESmail_server *srv, struct jVar *conf, const char *dport);
 int VESmail_server_disconnect(struct VESmail_server *srv);
 #define VESmail_server_connected(srv)	((srv)->rsp_bio)

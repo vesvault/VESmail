@@ -61,6 +61,10 @@
 #include "curlsh.h"
 #endif
 
+#ifdef VESMAIL_X509STORE
+#include "x509store.h"
+#endif
+
 #include "tls.h"
 
 #if	(OPENSSL_VERSION_NUMBER < 0x10100000L)
@@ -81,6 +85,7 @@ char *VESmail_tls_caBundle = NULL;
 
 void VESmail_tls_applyCA(void *ctx) {
     if (VESmail_tls_caBundle) SSL_CTX_load_verify_locations(ctx, VESmail_tls_caBundle, NULL);
+    else SSL_CTX_set_default_verify_paths(ctx);
 }
 #endif
 
@@ -141,13 +146,17 @@ int VESmail_tls_client_start(VESmail_server *srv, int starttls) {
 #endif
     SSL_CTX *ctx = SSL_CTX_new(method);
     if (!ctx) return VESMAIL_E_TLS;
-    SSL_CTX_set_default_verify_paths(ctx);
     VESmail_tls_applyCA(ctx);
     SSL_CTX_set_verify(ctx, SSL_VERIFY_NONE, NULL);
     SSL_CTX_set_verify_depth(ctx, 8);
     if (srv->tls.client->level > VESMAIL_TLS_MEDIUM) {
-	SSL_CTX_set_options(ctx, SSL_OP_NO_SSLv3 | SSL_OP_NO_TLSv1 | SSL_OP_NO_TLSv1_1);
+	SSL_CTX_set_options(ctx, VESMAIL_TLS_HIGHOPTNS | VESMAIL_TLS_CLNOPTNS);
+    } else if (VESMAIL_TLS_CLNOPTNS) {
+	SSL_CTX_set_options(ctx, VESMAIL_TLS_CLNOPTNS);
     }
+#ifdef VESMAIL_TLS_CLNMODE
+    SSL_CTX_set_mode(ctx, VESMAIL_TLS_CLNMODE);
+#endif
     VESmail_arch_set_nb(BIO_get_fd(srv->rsp_bio, NULL), 0);
     SSL *ssl = SSL_new(ctx);
     SSL_set_tlsext_host_name(ssl, srv->tls.client->peer);
@@ -238,8 +247,13 @@ SSL_CTX *VESmail_tls_server_ctx(VESmail_server *srv, int force) {
 	return NULL;
     }
     if (srv->tls.server->level > VESMAIL_TLS_MEDIUM) {
-	SSL_CTX_set_options(ctx, SSL_OP_NO_SSLv3 | SSL_OP_NO_TLSv1 | SSL_OP_NO_TLSv1_1);
+	SSL_CTX_set_options(ctx, VESMAIL_TLS_HIGHOPTNS | VESMAIL_TLS_SRVOPTNS);
+    } else if (VESMAIL_TLS_SRVOPTNS) {
+	SSL_CTX_set_options(ctx, VESMAIL_TLS_SRVOPTNS);
     }
+#ifdef VESMAIL_TLS_SRVMODE
+    SSL_CTX_set_mode(ctx, VESMAIL_TLS_SRVMODE);
+#endif
     if (!force) srv->tls.server->ctx = ctx;
     return ctx;
 }
@@ -317,20 +331,59 @@ void VESmail_tls_server_free(VESmail_tls_server *tls) {
     free(tls);
 }
 
+
+void VESmail_tls_initclientctx(void *sslctx) {
+    SSL_CTX_set_options(sslctx, VESMAIL_TLS_HIGHOPTNS | VESMAIL_TLS_CLNOPTNS);
+#ifdef VESMAIL_TLS_CLNMODE
+    SSL_CTX_set_mode(sslctx, VESMAIL_TLS_CLNMODE);
+#endif
+}
+
 #ifndef VESMAIL_X509STORE
-void VESmail_tls_fn_veshttp(libVES *ves) {
 #ifdef HAVE_CURL_CURL_H
-    if (VESmail_tls_caBundle) curl_easy_setopt(ves->curl, CURLOPT_CAINFO, VESmail_tls_caBundle);
+CURLcode VESmail_tls_fn_curlctx(CURL *curl, void *sslctx, void *parm) {
+    VESmail_tls_initclientctx(sslctx);
+    return 0;
+}
+#endif
+
+void VESmail_tls_setcurlctx(void *curl) {
+#ifdef HAVE_CURL_CURL_H
+    curl_easy_setopt(curl, CURLOPT_SSL_CTX_FUNCTION, &VESmail_tls_fn_curlctx);
+    if (VESmail_tls_caBundle) curl_easy_setopt(curl, CURLOPT_CAINFO, VESmail_tls_caBundle);
 #else
 #pragma message ("Cannot set CA bundle for libVES - need curl/curl.h")
 #endif
 #ifdef VESMAIL_CURLSH
-    VESmail_curlsh_apply(ves->curl);
+    VESmail_curlsh_apply(curl);
 #endif
+}
+#endif
+
+static void VESmail_tls_fn_veshttp(libVES *ves) {
+    VESmail_tls_setcurlctx(ves->curl);
 }
 
 libVES *VESmail_tls_initVES(libVES *ves) {
     ves->httpInitFn = &VESmail_tls_fn_veshttp;
     return ves;
 }
+
+void VESmail_tls_done() {
+#ifdef VESMAIL_CURLSH
+    VESmail_curlsh_done();
 #endif
+#ifdef HAVE_CURL_CURL_H
+    curl_global_cleanup();
+#endif
+#ifdef VESMAIL_OPENSSL_LOCKFN
+    CRYPTO_set_locking_callback(NULL);
+    int n = CRYPTO_num_locks();
+    int i;
+    for (i = 0; i < n; i++) VESmail_arch_mutex_done(VESmail_tls_extLocks[i]);
+    free(VESmail_tls_extLocks);
+#endif
+#ifdef VESMAIL_X509STORE
+    VESmail_x509store_done();
+#endif
+}

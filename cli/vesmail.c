@@ -185,6 +185,7 @@ int do_convert(VESmail *mail, int in, int out) {
 int run_server(VESmail_server *srv, int in, int out) {
     srv->debug = params.debug;
     srv->logfn = &cli_logfn;
+    srv->ovrdfn = &cli_ovrdfn;
     if (params.sni && conf.tls->snifn) conf.tls->snifn(srv, params.sni);
     if (params.dumpfd) sscanf(params.dumpfd, "%d", &srv->dumpfd);
     if (conf.hostname) srv->host = conf.hostname;
@@ -532,5 +533,7 @@ int main(int argc, char **argv) {
     VESmail_optns_free(conf.optns);
     VESmail_tls_server_free(conf.tls);
     jVar_free(jconf);
+    VESmail_tls_done();
+    VESmail_arch_done();
     return rs;
 }

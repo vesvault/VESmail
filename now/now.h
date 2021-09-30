@@ -39,9 +39,17 @@ int VESmail_now_send(struct VESmail_server *srv, int final, const char *str);
 int VESmail_now_send_status(struct VESmail_server *srv, int code);
 int VESmail_now_sendhdrs(struct VESmail_server *srv);
 
+extern int (* VESmail_now_feedback_fn)(const char *fbk);
+
 
 #define	VESMAIL_MERR_NOW	0x0100
 
 #ifndef VESMAIL_NOW_REQ_SAFEBYTES
 #define	VESMAIL_NOW_REQ_SAFEBYTES	32767
 #endif
+
+#ifndef VESMAIL_NOW_TMOUT
+#define	VESMAIL_NOW_TMOUT	20
+#endif
+
+#define	VESMAIL_NOW_E2EURL	"https://my.vesmail.email/e2e"

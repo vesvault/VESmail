@@ -120,22 +120,24 @@ VESmail_override *VESmail_proc_ovrdfn(void *ovrdref) {
     return VESmail_override_new(VESmail_override_mode(((VESmail_proc *) ovrdref)->conf));
 }
 
-VESmail_proc *VESmail_proc_new(VESmail_daemon *daemon, int fd) {
-    static void *tid_mutex = NULL;
+static void *VESmail_proc_tid_mutex = NULL;
+
+VESmail_proc *VESmail_proc_init(VESmail_proc *proc, VESmail_daemon *daemon, int fd) {
     static short int tid = 1;
-    VESmail_proc *proc = malloc(sizeof(VESmail_proc));
+    if (!proc) proc = malloc(sizeof(VESmail_proc));
     proc->daemon = daemon;
     proc->conf = daemon->conf;
     proc->thread = NULL;
     proc->ctx = NULL;
     proc->ref = NULL;
     proc->collectfn = NULL;
+    proc->freefn = NULL;
     proc->fdesc = fd;
     proc->flags = 0;
-    VESmail_arch_mutex_lock(&tid_mutex);
+    VESmail_arch_mutex_lock(&VESmail_proc_tid_mutex);
     proc->tid = tid;
     if (++tid >= 10000) tid = 1;
-    VESmail_arch_mutex_unlock(&tid_mutex);
+    VESmail_arch_mutex_unlock(&VESmail_proc_tid_mutex);
     VESmail_server *srv = daemon->srvfn ? daemon->srvfn(daemon->conf->optns) : NULL;
     if ((proc->server = srv)) {
 	srv->proc = proc;
@@ -148,8 +150,10 @@ VESmail_proc *VESmail_proc_new(VESmail_daemon *daemon, int fd) {
 #ifndef VESMAIL_LOCAL
 	if (daemon->conf->abuseSense > 0) srv->abusefn = &VESmail_proc_abusefn;
 #endif
-	int r = VESmail_server_set_sock(srv, fd);
-	if (r < 0) VESmail_proc_shutdown(proc, r);
+	if (fd >= 0) {
+	    int r = VESmail_server_set_sock(srv, fd);
+	    if (r < 0) VESmail_proc_shutdown(proc, r);
+	}
     } else {
 	VESmail_proc_free(proc);
 	return NULL;
@@ -208,6 +212,7 @@ void VESmail_proc_free(VESmail_proc *proc) {
 #ifndef VESMAIL_LOCAL
 	VESmail_proc_ctx_free(proc->ctx);
 #endif
+	if (proc->freefn) proc->freefn(proc);
     }
     free(proc);
 }
@@ -251,11 +256,9 @@ void VESmail_proc_cleanup() {
     }
     jTree_collapse(&VESmail_proc_abuse_jtree);
     VESmail_arch_mutex_done(VESmail_proc_abuse_mutex);
-}
-
 #else
 
 void VESmail_proc_cleanup() {
-}
-
 #endif
+    VESmail_arch_mutex_done(VESmail_proc_tid_mutex);
+}

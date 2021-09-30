@@ -49,14 +49,26 @@
 #include "daemon.h"
 #include "proc.h"
 #include "override.h"
+#ifdef VESMAIL_LOCAL_SNIF
+#include "../snif/snif.h"
+#include "../snif/cert.h"
+#endif
+#ifdef VESMAIL_X509STORE
+#include "x509store.h"
+#endif
+#include "../now/now.h"
 #include "local.h"
 
 
 char *VESmail_local_cors[] = {
     "Access-Control-Allow-Headers: *",
-    "Access-Control-Allow-Methods: *",
+    "Access-Control-Allow-Methods: GET,POST,PUT,OPTIONS",
     "Access-Control-Allow-Origin: *",
     "Access-Control-Max-Age: 86400",
+#ifdef VESMAIL_LOCAL_SNIF
+    "Access-Control-Expose-Headers: X-VESmail-SNIF",
+    NULL, // for X-VESmail-SNIF:
+#endif
     NULL
 };
 
@@ -121,7 +133,11 @@ VESmail_conf VESmail_local_conf = {
     .mutex = NULL,
     .abuseSense = 0,
     .overrides = VESMAIL_OVRD_ALLOW,
+#ifdef VESMAIL_DEBUG_DUMP
+    .dumpfd = 2
+#else
     .dumpfd = -1
+#endif
 };
 
 struct VESmail_conf_daemon VESmail_local_conf_daemon[] = {
@@ -130,14 +146,14 @@ struct VESmail_conf_daemon VESmail_local_conf_daemon[] = {
 	.host = VESmail_local_host,
 	.port = "7143",
 	.conf = &VESmail_local_conf,
-	.debug = 0
+	.debug = VESMAIL_APP_DEBUG
     },
     {
 	.type = "smtp",
 	.host = VESmail_local_host,
 	.port = "7125",
 	.conf = &VESmail_local_conf,
-	.debug = 0
+	.debug = VESMAIL_APP_DEBUG
     },
 #ifdef VESMAIL_STDPORTS
     {
@@ -145,14 +161,14 @@ struct VESmail_conf_daemon VESmail_local_conf_daemon[] = {
 	.host = VESmail_local_host,
 	.port = "143",
 	.conf = &VESmail_local_conf,
-	.debug = 0
+	.debug = VESMAIL_APP_DEBUG
     },
     {
 	.type = "smtp",
 	.host = VESmail_local_host,
 	.port = "587",
 	.conf = &VESmail_local_conf,
-	.debug = 0
+	.debug = VESMAIL_APP_DEBUG
     },
 #endif
     {
@@ -160,7 +176,7 @@ struct VESmail_conf_daemon VESmail_local_conf_daemon[] = {
 	.host = VESmail_local_host,
 	.port = "7180",
 	.conf = &VESmail_local_conf,
-	.debug = 0
+	.debug = VESMAIL_APP_DEBUG
     },
     {
 	.type = NULL
@@ -197,6 +213,9 @@ struct VESmail_daemon **VESmail_local_daemons = NULL;
 void (*VESmail_local_wakecb)() = NULL;
 void *VESmail_local_wakemutex = NULL;
 
+char *VESmail_local_feedback = NULL;
+int (* VESmail_local_feedback_fn)(const char *fbk) = NULL;
+
 
 struct VESmail_local_ustat *VESmail_local_ustat_free(struct VESmail_local_ustat *ustat) {
     struct VESmail_local_ustat *next;
@@ -218,8 +237,19 @@ void VESmail_local_init(const char *logfile) {
     if (logfile) VESmail_local_conf.log.filename = (char *) logfile;
 }
 
-VESmail_override *VESmail_local_ovrdfn(void *ovrdref) {
-    return VESmail_override_new(VESmail_override_mode(&VESmail_local_conf));
+int VESmail_local_caBundle(const char *ca) {
+#ifdef VESMAIL_X509STORE
+    return ca ? VESmail_x509store_caBundle(ca) : VESMAIL_E_PARAM;
+#else
+    if (ca) VESmail_tls_caBundle = strdup(ca);
+    return 0;
+#endif
+}
+
+void VESmail_local_setcrt(const char *crt, const char *pkey) {
+    VESmail_local_tls.cert = strdup(crt);
+    VESmail_local_tls.key = strdup(pkey);
+    VESmail_local_tls.level = VESMAIL_TLS_OPTIONAL;
 }
 
 void VESmail_local_stat_init(struct VESmail_local_stat *st) {
@@ -251,12 +281,12 @@ VESmail_daemon **VESmail_local_start() {
 	int idx = 0;
 	for (cd = VESmail_local_conf_daemon; cd->type; cd++) cd->tag = idx++;
 	VESmail_local_daemons = VESmail_daemon_execute(VESmail_local_conf_daemon);
-	if (VESmail_local_daemons) {
-	    VESmail_daemon_launchall(VESmail_local_daemons);
-	}
-	struct VESmail_local_stat *st = VESmail_local_stat;
+	if (!VESmail_local_daemons) return NULL;
 	VESmail_daemon **dp = VESmail_local_daemons;
-	for (; st < VESmail_local_stat + sizeof(VESmail_local_stat) / sizeof(*VESmail_local_stat); st++) {
+	while (*dp) (*dp++)->flags |= VESMAIL_DMF_RECONNECT;
+	VESmail_daemon_launchall(VESmail_local_daemons);
+	struct VESmail_local_stat *st = VESmail_local_stat;
+	for (dp = VESmail_local_daemons; st < VESmail_local_stat + sizeof(VESmail_local_stat) / sizeof(*VESmail_local_stat); st++) {
 	    VESmail_local_stat_init(st);
 	    if (*dp) (*dp++)->ref = st;
 	}
@@ -332,17 +362,22 @@ int VESmail_local_watch() {
 	struct VESmail_local_stat *st = (*dp)->ref;
 	struct VESmail_daemon_sock *sk;
 	for (sk = (*dp)->sock; sk; sk = sk->chain) {
+	    if (!sk->ainfo) continue;
 	    st->stat |= (sk->sock >= 0 ? VESMAIL_LCST_LSTN : VESMAIL_LCST_LSTNERR);
 	}
 	VESmail_local_stat_collect(st);
     }
-    if (r <= 0) {
-	VESmail_daemon_freeall(VESmail_local_daemons);
-	VESmail_local_daemons = NULL;
-	VESmail_daemon_cleanup();
-	while (VESmail_local_ustat) VESmail_local_ustat = VESmail_local_ustat_free(VESmail_local_ustat);
-    }
     return r;
+}
+
+void VESmail_local_done() {
+    VESmail_daemon_freeall(VESmail_local_daemons);
+    VESmail_local_daemons = NULL;
+    VESmail_daemon_cleanup();
+    while (VESmail_local_ustat) VESmail_local_ustat = VESmail_local_ustat_free(VESmail_local_ustat);
+    VESmail_optns_free(VESmail_local_conf.optns);
+    VESmail_tls_done();
+    VESmail_arch_done();
 }
 
 int VESmail_local_getstat(int idx) {
@@ -456,4 +491,104 @@ void VESmail_local_sleep(void (* fn)(void *), void *arg) {
     VESmail_local_wake.fn = fn;
     VESmail_local_wake.arg = arg;
     VESmail_arch_mutex_unlock(&VESmail_local_conf.mutex);
+}
+
+#ifdef VESMAIL_LOCAL_SNIF
+
+snif_cert VESmail_local_snif_cert = {
+    .ou = "VESmail",
+    .passphrase = NULL,
+    .initurl = VESMAIL_SNIF_INITURL,
+    .biofn = NULL
+};
+VESmail_server *VESmail_local_snif_srv = NULL;
+
+struct VESmail_snif_port VESmail_local_snif_ports[] = {
+    { .port = "993", .sock = (void *)0},
+    { .port = "7193", .sock = (void *)0},
+    { .port = "17193", .sock = (void *)0},
+    { .port = "465", .sock = (void *)1},
+    { .port = "7165", .sock = (void *)1},
+    { .port = "17165", .sock = (void *)1},
+    { .port = "7183", .sock = (void *)(sizeof(VESmail_local_conf_daemon) / sizeof(*VESmail_local_conf_daemon) - 2)},
+    { .port = "17183", .sock = (void *)(sizeof(VESmail_local_conf_daemon) / sizeof(*VESmail_local_conf_daemon) - 2)},
+    { .port = NULL }
+};
+
+VESmail_server *VESmail_local_snif(const char *crt, const char *pkey, const char *passphrase, const char *initurl) {
+    if (VESmail_local_daemons && !VESmail_local_snif_srv) {
+	VESmail_snif_initcert(&VESmail_local_snif_cert);
+	VESmail_local_snif_cert.certfile = strdup(crt);
+	VESmail_local_snif_cert.pkeyfile = strdup(pkey);
+	if (passphrase) VESmail_local_snif_cert.passphrase = strdup(passphrase);
+	if (initurl) VESmail_local_snif_cert.initurl = strdup(initurl);
+	struct VESmail_snif_port *port;
+	for (port = VESmail_local_snif_ports; port->port; port++) {
+	    port->sock = VESmail_snif_daemonsock(VESmail_local_daemons[(long long)port->sock]);
+	}
+	VESmail_local_snif_srv = VESmail_snif_new(&VESmail_local_snif_cert, VESmail_local_snif_ports);
+    }
+    return VESmail_local_snif_srv;
+}
+
+#define	VESmail_local_snifhdr	VESmail_local_cors[sizeof(VESmail_local_cors) / sizeof(*VESmail_local_cors) - 2]
+
+const char *VESmail_local_snifhost() {
+    if (!VESmail_local_snifhdr && VESmail_local_snif_cert.hostname) {
+	sprintf((VESmail_local_snifhdr = malloc(strlen(VESmail_local_snif_cert.hostname) + 32)), "X-VESmail-SNIF: %s", VESmail_local_snif_cert.hostname);
+    }
+    return VESmail_local_snif_cert.hostname;
+}
+
+const char *VESmail_local_snifauthurl() {
+    return VESmail_local_snif_cert.authurl;
+}
+
+int VESmail_local_snifstat() {
+    return VESmail_local_snif_srv ? VESmail_snif_stat(VESmail_local_snif_srv) : 0;
+}
+
+void VESmail_local_snifawake(int awake) {
+    if (!VESmail_local_snif_srv) return;
+    VESmail_snif_awake(VESmail_local_snif_srv, awake);
+    VESmail_daemon **pd;
+    if (awake) for (pd = VESmail_local_daemons; *pd; pd++) (*pd)->flags |= VESMAIL_DMF_RECONNECT;
+}
+
+int VESmail_local_snifmsg(const char *msg) {
+    return VESmail_local_snif_srv ? VESmail_snif_msg(VESmail_local_snif_srv, msg) : VESMAIL_E_PARAM;
+}
+
+void VESmail_local_snifdone() {
+    VESmail_server_free(VESmail_local_snif_srv);
+    VESmail_local_snif_srv = NULL;
+    snif_cert_reset(&VESmail_local_snif_cert);
+    free(VESmail_local_snifhdr);
+}
+
+#endif
+
+void VESmail_local_killall() {
+    if (!VESmail_local_daemons) return;
+    VESmail_daemon **pd;
+    for (pd = VESmail_local_daemons; *pd; pd++) (*pd)->flags &= ~VESMAIL_DMF_RECONNECT;
+    VESmail_daemon_killall(VESmail_local_daemons);
+}
+
+int VESmail_local_feedbackfn(const char *fbk) {
+    if (!fbk) {
+	free(VESmail_local_feedback);
+	VESmail_local_feedback = NULL;
+	return 0;
+    }
+    if (strlen(fbk) > VESMAIL_LOCAL_FEEDBACKLEN) return VESMAIL_E_PARAM;
+    VESmail_now_feedback_fn = NULL;
+    if (!VESmail_local_feedback) memset((VESmail_local_feedback = malloc(VESMAIL_LOCAL_FEEDBACKLEN + 1)), 0, VESMAIL_LOCAL_FEEDBACKLEN + 1);
+    strcpy(VESmail_local_feedback, fbk);
+    return VESmail_local_feedback_fn ? VESmail_local_feedback_fn(VESmail_local_feedback) : 0;
+}
+
+void VESmail_local_setfeedback(int (* fbkfn)(const char *fbk)) {
+    VESmail_local_feedback_fn = fbkfn;
+    VESmail_now_feedback_fn = &VESmail_local_feedbackfn;
 }

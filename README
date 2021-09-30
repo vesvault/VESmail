@@ -53,6 +53,7 @@ smtp/: ESMTP proxy components
 now/: HTTP mini server for instant access to spooled encrypted emails
 cli/: Command line utility components
 app/: Components for local app builds
+snif/: SNIF VPN connector (https://snif.host)
 
 etc/vesmail/: Sample config and template files
 etc/xinetd.d/: A sample external daemonizer conf for IMAP & SMTP proxies

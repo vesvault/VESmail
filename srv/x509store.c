@@ -66,29 +66,91 @@ int VESmail_x509store_addcert(const unsigned char *der, int len) {
     return VESMAIL_E_TLS;
 }
 
+int VESmail_x509store_caBundle(const char *fname) {
+    if (!VESmail_x509store) {
+	VESmail_x509store = X509_STORE_new();
+    }
+    return X509_STORE_load_locations(VESmail_x509store, fname, NULL) > 0 ? 0 : VESMAIL_E_TLS;
+}
 
-CURLcode VESmail_x509store_fn_curlctx(CURL *curl, void *sslctx, void *parm) {
+static CURLcode VESmail_x509store_fn_curlctx(CURL *curl, void *sslctx, void *parm) {
     VESmail_tls_applyCA(sslctx);
+    VESmail_tls_initclientctx(sslctx);
     return 0;
 }
 
-void VESmail_x509store_fn_veshttp(libVES *ves) {
-    curl_easy_setopt(ves->curl, CURLOPT_SSL_CTX_FUNCTION, &VESmail_x509store_fn_curlctx);
-#ifdef VESMAIL_CURLSH
-    VESmail_curlsh_apply(ves->curl);
+
+// Compatibility with older openssl X509_STORE
+#ifndef VESMAIL_X509STORE_FIX
+#define VESMAIL_X509STORE_FIX	(OPENSSL_VERSION_NUMBER < 0x10002000L)
 #endif
+
+#if VESMAIL_X509STORE_FIX
+static struct VESmail_x509store_fix {
+    SSL_CTX *ctx;
+    struct VESmail_x509store_fix *chain;
+} *VESmail_x509store_fix = NULL;
+static void *VESmail_x509store_fixmutex = NULL;
+
+static void VESmail_x509store_fixflush() {
+    struct VESmail_x509store_fix **pfx, *fx;
+    VESmail_arch_mutex_lock(&VESmail_x509store_fixmutex);
+    for (pfx = &VESmail_x509store_fix; (fx = *pfx); ) {
+	if (fx->ctx->references <= 1) {
+	    fx->ctx->cert_store = NULL;
+	    SSL_CTX_free(fx->ctx);
+	    *pfx = fx->chain;
+	    free(fx);
+	} else {
+	    pfx = &fx->chain;
+	}
+    }
+    VESmail_arch_mutex_unlock(&VESmail_x509store_fixmutex);
 }
 
+static void VESmail_x509store_fixadd(SSL_CTX *ctx) {
+    CRYPTO_add(&ctx->references, 1, CRYPTO_LOCK_SSL_CTX);
+    VESmail_arch_mutex_lock(&VESmail_x509store_fixmutex);
+    struct VESmail_x509store_fix *fx = malloc(sizeof(*fx));
+    fx->ctx = ctx;
+    fx->chain = VESmail_x509store_fix;
+    VESmail_x509store_fix = fx;
+    VESmail_arch_mutex_unlock(&VESmail_x509store_fixmutex);
+}
+#endif
 
 // VESmail must be compiled with -DVESMAIL_X509STORE to avoid conflicts
 // with the functions defined in src/tls.c
 
 
-void VESmail_tls_applyCA(void *ctx) {
-    if (VESmail_x509store) SSL_CTX_set1_verify_cert_store(ctx, VESmail_x509store);
+void VESmail_tls_setcurlctx(void *curl) {
+    curl_easy_setopt(curl, CURLOPT_SSL_CTX_FUNCTION, &VESmail_x509store_fn_curlctx);
+#ifdef VESMAIL_X509STORE_CAINFO
+    curl_easy_setopt(curl, CURLOPT_CAINFO, VESMAIL_X509STORE_CAINFO);
+#endif
 }
 
-libVES *VESmail_tls_initVES(libVES *ves) {
-    ves->httpInitFn = &VESmail_x509store_fn_veshttp;
-    return ves;
+void VESmail_tls_applyCA(void *ctx) {
+    if (!VESmail_x509store) {
+	VESmail_x509store = X509_STORE_new();
+	X509_STORE_set_default_paths(VESmail_x509store);
+    }
+#if	(OPENSSL_VERSION_NUMBER >= 0x10002000L)
+    SSL_CTX_set1_verify_cert_store(ctx, VESmail_x509store);
+#else
+    SSL_CTX_set_cert_store(ctx, VESmail_x509store);
+#endif
+#if VESMAIL_X509STORE_FIX
+    VESmail_x509store_fixflush();
+    VESmail_x509store_fixadd(ctx);
+#endif
 }
+
+void VESmail_x509store_done() {
+#if VESMAIL_X509STORE_FIX
+    VESmail_x509store_fixflush();
+    VESmail_arch_mutex_done(VESmail_x509store_fixmutex);
+#endif
+    X509_STORE_free(VESmail_x509store);
+}
+

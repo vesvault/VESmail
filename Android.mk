@@ -23,8 +23,13 @@ LOCAL_CFLAGS += -I$(INC_OPENSSL) \
     -DVESMAIL_APP_BUILD=android \
     -DVESMAIL_CURLSH \
     -DVESMAIL_POLL_TMOUT=45 \
+    -DVESMAIL_LOCAL_SNIF \
     -DHAVE_POLL_H \
-    -DHAVE_CURL_CURL_H
+    -DHAVE_CURL_CURL_H \
+    -DVESMAIL_TLS_CLNMODE=SSL_MODE_RELEASE_BUFFERS \
+    -DVESMAIL_TLS_SRVMODE=SSL_MODE_RELEASE_BUFFERS \
+    -DVESMAIL_TLS_CLNOPTNS=SSL_OP_NO_COMPRESSION \
+    -DVESMAIL_TLS_SRVOPTNS=SSL_OP_NO_COMPRESSION
 
 LOCAL_ALLOW_UNDEFINED_SYMBOLS := true
 
@@ -43,6 +48,7 @@ LOCAL_SRC_FILES := lib/mail.c lib/optns.c lib/parse.c lib/header.c \
     smtp/smtp.c smtp/smtp_cmd.c smtp/smtp_reply.c smtp/smtp_track.c \
     smtp/smtp_start.c smtp/smtp_proxy.c smtp/smtp_xves.c \
     now/now.c now/now_store.c now/now_probe.c \
+    snif/snif.c snif/cert.c snif/conn.c \
     util/jTree.c \
     app/jni.c
 

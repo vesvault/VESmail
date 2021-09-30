@@ -1,3 +1,33 @@
+/***************************************************************************
+ *          ___       ___
+ *         /   \     /   \    VESvault
+ *         \__ /     \ __/    Encrypt Everything without fear of losing the Key
+ *            \\     //                   https://vesvault.com https://ves.host
+ *             \\   //
+ *     ___      \\_//
+ *    /   \     /   \         libVES:                      VESvault API library
+ *    \__ /     \ __/
+ *       \\     //            VES Utility:   A command line interface to libVES
+ *        \\   //
+ *         \\_//              - Key Management and Exchange
+ *         /   \              - Item Encryption and Sharing
+ *         \___/              - Stream Encryption
+ *
+ *
+ * (c) 2018 VESvault Corp
+ * Jim Zubov <jz@vesvault.com>
+ *
+ * GNU General Public License v3
+ * You may opt to use, copy, modify, merge, publish, distribute and/or sell
+ * copies of the Software, and permit persons to whom the Software is
+ * furnished to do so, under the terms of the COPYING file.
+ *
+ * This software is distributed on an "AS IS" basis, WITHOUT WARRANTY OF ANY
+ * KIND, either express or implied.
+ *
+ * jTree.c                    jTree: A binary tree
+ *
+ ***************************************************************************/
 #include <stddef.h>
 #include <stdlib.h>
 #include "jTree.h"
@@ -12,17 +42,16 @@ jTree *jTree_init(jTree *jtree) {
 
 #define JTREE_BAL_LVL	2
 
-#define	jTree_BAL1(jtree, r, a, b, ad, bd)	\
-    r = jtree->a;\
+#define	jTree_BAL1(jtree, r, a, b, ad, bd)	if ((r = jtree->a) && (r->data || (r = NULL))) {\
     r->back = jtree->back;\
     if ((jtree->a = r->b)) jtree->a->back = jtree;\
     jtree->ad = r->bd;\
     r->b = jtree;\
     jtree->back = r;\
-    r->bd = (jtree->ad > jtree->bd ? jtree->ad : jtree->bd) + 1;
+    r->bd = (jtree->ad > jtree->bd ? jtree->ad : jtree->bd) + 1;\
+}
 
-#define	jTree_BAL2(jtree, r, a, b, ad, bd)	\
-    r = jtree->a->b;\
+#define	jTree_BAL2(jtree, r, a, b, ad, bd)	if ((r = jtree->a->b) && (r->data || (r = NULL))) {\
     r->back = jtree->back;\
     if ((jtree->a->b = r->a)) jtree->a->b->back = jtree->a;\
     jtree->a->bd = r->ad;\
@@ -33,7 +62,8 @@ jTree *jTree_init(jTree *jtree) {
     jtree->ad = r->bd;\
     r->b = jtree;\
     r->b->back = r;\
-    r->bd = (jtree->ad > jtree->bd ? jtree->ad : jtree->bd) + 1;
+    r->bd = (jtree->ad > jtree->bd ? jtree->ad : jtree->bd) + 1;\
+}
 
 void **jTree_seek(jTree **ptree, void *term, void *arg, int (* cmpfn)(void *data, void *term, void *arg), unsigned char *depth) {
     jTree *jtree = *ptree;
@@ -59,7 +89,7 @@ void **jTree_seek(jTree **ptree, void *term, void *arg, int (* cmpfn)(void *data
 		} else {
 		    jTree_BAL1(jtree, r, right, left, rdepth, ldepth)
 		}
-		jtree = *ptree = r;
+		if (r) jtree = *ptree = r;
 	    }
 	}
     } else {
@@ -74,7 +104,7 @@ void **jTree_seek(jTree **ptree, void *term, void *arg, int (* cmpfn)(void *data
 		} else {
 		    jTree_BAL1(jtree, r, left, right, ldepth, rdepth)
 		}
-		jtree = *ptree = r;
+		if (r) jtree = *ptree = r;
 	    }
 	}
     }
@@ -116,6 +146,81 @@ void **jTree_prev(void **pdata) {
     return NULL;
 }
 
+void jTree_delete(jTree **ptree, void **pdata) {
+    if (!pdata) return;
+    jTree *jtree = (jTree *)(((char *) pdata) - offsetof(jTree, data));
+    jTree *jl, *jr, *jnew;
+    jTree *jback = jtree->back;
+    jtree->data = NULL;
+    jtree->ldepth = jtree->rdepth = 0;
+    jl = jtree->left;
+    jr = jtree->right;
+    if (jl && !jl->data) jl = NULL;
+    if (jr && !jr->data) jr = NULL;
+    if (jl) while (jl->right && jl->right->data) jl = jl->right;
+    if (jr) while (jr->left && jr->left->data) jr = jr->left;
+    jTree *jlnull = jl ? jl->right : jtree->left;
+    jTree *jrnull = jr ? jr->left : jtree->right;
+    jTree **pt;
+    if (jl) {
+	jnew = jl;
+	if (jl->left) jl->left->back = jl->back;
+	if (jl->back->right == jl) {
+	    jl->back->right = jl->left;
+	    jl->back->rdepth = jl->ldepth;
+	} else {
+	    jl->back->left = jl->left;
+	    jl->back->ldepth = jl->ldepth;
+	}
+	if (jr) {
+	    pt = &jr->left;
+	    jr->left = jtree;
+	    jtree->back = jr;
+	} else {
+	    pt = &jnew->right;
+	    jtree->right = jtree;
+	}
+    } else if (jr) {
+	jnew = jr;
+	if (jr->right) jr->right->back = jr->back;
+	if (jr->back->left == jr) {
+	    jr->back->left = jr->right;
+	    jr->back->ldepth = jr->rdepth;
+	} else {
+	    jr->back->right = jr->right;
+	    jr->back->rdepth = jr->rdepth;
+	}
+	if (jl) {
+	    pt = &jl->right;
+	    jl->right = jtree;
+	    jtree->back = jl;
+	} else {
+	    pt = &jnew->left;
+	    jtree->left = jtree;
+	}
+    } else return;
+    jTree *jd = jnew->back;
+    if ((jnew->left = jtree->left)) jnew->left->back = jnew;
+    if ((jnew->right = jtree->right)) jnew->right->back = jnew;
+    jnew->ldepth = jtree->ldepth;
+    jnew->rdepth = jtree->rdepth;
+    jnew->back = jback;
+    if (jback) {
+	if (jback->left == jtree) jback->left = jnew;
+	if (jback->right == jtree) jback->right = jnew;
+    } else {
+	*ptree = jnew;
+    }
+    if ((jtree->left = jlnull)) jlnull->back = jtree;
+    if ((jtree->right = jrnull)) jrnull->back = jtree;
+    jTree *jdn;
+    for (; (jdn = jd->back); jd = jdn) {
+	int d = jd->data ? ((jd->ldepth > jd->rdepth ? jd->ldepth : jd->rdepth) + 1) : 0;
+	if (jdn->left == jd) jdn->ldepth = d;
+	else jdn->rdepth = d;
+    }
+    jTree_collapse(pt);
+}
 
 unsigned char jTree_collapse(jTree **ptree) {
     jTree *jtree = *ptree;

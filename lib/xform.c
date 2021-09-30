@@ -55,7 +55,13 @@ VESmail_xform *VESmail_xform_new(int (* xformfn)(VESmail_xform *xform, int final
 
 void VESmail_xform_chkbuf(VESmail_xform *xform, int len) {
     if (len > xform->bufmax) {
-	xform->bufmax += len + 256;
+	int pad = len;
+	if (pad < VESMAIL_BUFMINPAD) pad = VESMAIL_BUFMINPAD;
+	else if (pad > VESMAIL_BUFMAXPAD) pad = VESMAIL_BUFMAXPAD;
+	xform->bufmax = len + pad;
+#ifdef VESMAIL_NOCLEANSE
+	xform->buf = realloc(xform->buf, xform->bufmax);
+#else
 	char *buf1 = malloc(xform->bufmax);
 	if (xform->buf && xform->buflen) {
 	    memcpy(buf1, xform->buf, xform->buflen);
@@ -63,6 +69,14 @@ void VESmail_xform_chkbuf(VESmail_xform *xform, int len) {
 	}
 	free(xform->buf);
 	xform->buf = buf1;
+#endif
+    } else {
+#ifdef VESMAIL_BUFTRIM
+	int l = (len > xform->buflen ? len : xform->buflen) + VESMAIL_BUFTRIM;
+	if (l < xform->bufmax) {
+	    xform->buf = realloc(xform->buf, (xform->bufmax = l));
+	}
+#endif
     }
 }
 

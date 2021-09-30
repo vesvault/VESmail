@@ -77,13 +77,16 @@ int VESmail_imap_start_ready(VESmail_server *srv) {
 }
 
 int VESmail_imap_start_login_fail(VESmail_server *srv, int er, const char *msg, VESmail_imap_token *relayed) {
+    VESmail_imap *imap = VESMAIL_IMAP(srv);
+    if (imap->state == VESMAIL_IMAP_S_FAIL) return 0;
+    imap->state = VESMAIL_IMAP_S_FAIL;
     VESmail_server_logauth(srv, er, 0);
     if (srv->req_out) {
 	VESmail_server_abuse_peer(srv, 2);
 	VESmail_server_abuse_user(srv, 2);
     }
-    VESmail_imap_token *tag = VESmail_imap_track_cp_tag(VESMAIL_IMAP(srv)->track);
-    VESmail_imap_track_done(&VESMAIL_IMAP(srv)->track);
+    VESmail_imap_token *tag = VESmail_imap_track_cp_tag(imap->track);
+    VESmail_imap_track_done(&imap->track);
     VESmail_imap_token *rsp = VESmail_imap_rsp_new(tag, "NO");
     if (msg) VESmail_imap_token_splice(rsp, -1, 0, 1, VESmail_imap_token_atom(msg));
     if (relayed) {
@@ -193,7 +196,7 @@ int VESmail_imap_start_check_cap(VESmail_imap_token *caps, int verb) {
 }
 
 int VESmail_imap_start_fn_u_conn(int verb, VESmail_imap_token *token, VESmail_server *srv) {
-    switch (verb) {
+    if (VESMAIL_IMAP(srv)->state == VESMAIL_IMAP_S_CONN) switch (verb) {
 	case VESMAIL_IMAP_V_OK: {
 	    VESmail_imap_token *caps = VESmail_imap_start_get_caps(token);
 	    if (VESmail_imap_start_check_cap(caps, VESMAIL_IMAP_V_XVES)) {
@@ -208,11 +211,17 @@ int VESmail_imap_start_fn_u_conn(int verb, VESmail_imap_token *token, VESmail_se
 		    ftls = VESmail_imap_start_check_cap(caps, VESMAIL_IMAP_V_STARTTLS);
 		}
 	    }
+	    VESMAIL_IMAP(srv)->state = VESMAIL_IMAP_S_LOGIN;
 	    return ftls ? VESmail_imap_fwd_starttls(srv) : VESmail_imap_fwd_login(srv);
 	}
 	case VESMAIL_IMAP_V_PREAUTH:
 	    VESmail_imap_proxy_init(srv);
 	    return 0;
+	default:
+	    break;
+    }
+    if (VESMAIL_IMAP(srv)->state == VESMAIL_IMAP_S_FAIL) return 0;
+    switch (verb) {
 	case VESMAIL_IMAP_V_BYE:
 	case VESMAIL_IMAP_V_NO:
 	case VESMAIL_IMAP_V_BAD:
@@ -233,9 +242,13 @@ int VESmail_imap_start_connect(VESmail_server *srv) {
 }
 
 int VESmail_imap_auth(VESmail_server *srv, const char *user, const char *pwd, int pwlen) {
+    VESMAIL_IMAP(srv)->state = VESMAIL_IMAP_S_START;
     int r = VESmail_server_auth(srv, user, pwd, pwlen);
     if (r >= 0) r = VESmail_server_connect(srv, (VESMAIL_IMAP(srv)->uconf = jVar_get(srv->uconf, "imap")), "imap");
-    if (r >= 0) VESmail_imap_start_connect(srv);
+    if (r >= 0) {
+	VESmail_server_set_keepalive(srv);
+	VESmail_imap_start_connect(srv);
+    }
     return r;
 }
 

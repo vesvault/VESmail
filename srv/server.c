@@ -92,10 +92,9 @@ VESmail_server *VESmail_server_init(VESmail_server *srv, VESmail_optns *optns) {
     srv->authcode = VESMAIL_E_HOLD;
     srv->stat = 0;
     srv->lastwrite = time(NULL);
+    srv->cycles = 0;
     srv->reqbytes = srv->rspbytes = 0;
-    srv->tmout.unauthd = 30;
-    srv->tmout.authd = 900;
-    srv->tmout.data = 900;
+    srv->tmout = VESMAIL_SRV_TMOUT;
     return srv;
 }
 
@@ -163,41 +162,60 @@ VESmail_xform *VESmail_server_xform_new_bio_out(VESmail_server *srv, BIO *bio) {
 int VESmail_server_bio_read(BIO *bio, VESmail_xform *chain, int nb) {
     if (!bio) return 0;
     if (VESmail_arch_set_nb(BIO_get_fd(bio, NULL), nb) < 0 && nb) return 0;
-    char buf[4096];
-    int rd = BIO_read(bio, &buf, sizeof(buf));
-    if (rd < 0) {
-	if (BIO_should_read(bio)) {
-	    return VESmail_xform_process(chain, 0, buf, 0);
-	} else {
-	    return VESMAIL_E_IO;
-	}
+    char buf[8192];
+    int rs = 0;
+    while (1) {
+	int rd = BIO_read(bio, &buf, sizeof(buf));
+	if (rd < 0) {
+	    if (BIO_should_read(bio)) {
+		int r = VESmail_xform_process(chain, 0, buf, 0);
+		return r < 0 ? r : rs + r;
+	    } else {
+		return VESMAIL_E_IO;
+	    }
 #if VESMAIL_DEBUG_DUMP
-    } else {
-	VESmail_server_dump(chain->server->dumpfd, buf, rd);
+	} else {
+	    VESmail_server_dump(chain->server->dumpfd, buf, rd);
 #endif
+	}
+	int r = VESmail_xform_process(chain, !rd, buf, rd);
+	VESmail_cleanse(buf, rd);
+	if (r < 0) return r;
+	rs += r;
+	if (rd < sizeof(buf)) break;
+	if (!nb && VESmail_arch_set_nb(BIO_get_fd(bio, NULL), (nb = 1)) < 0) break;
     }
-    int r = VESmail_xform_process(chain, !rd, buf, rd);
-    VESmail_cleanse(buf, rd);
-    return r;
+    return rs;
 }
 
+void VESmail_server_unset_fd(VESmail_server *srv) {
+    BIO_free_all(srv->req_bio);
+    VESmail_xform_free(srv->rsp_out);
+    srv->req_bio = NULL;
+    srv->rsp_out = NULL;
+}
+
+int VESmail_server_set_bio(VESmail_server *srv, void *bio_in, void *bio_out) {
+    if (!srv->req_in) return VESMAIL_E_PARAM;
+    VESmail_server_unset_fd(srv);
+    srv->rsp_out = VESmail_server_xform_new_bio_out(srv, bio_out);
+    srv->req_bio = bio_in;
+    return 0;
+}
 
 int VESmail_server_set_fd(VESmail_server *srv, int in, int out) {
-    if (srv->rsp_out || !srv->req_in) return VESMAIL_E_PARAM;
-    VESmail_xform_free(srv->rsp_out);
-    srv->rsp_out = VESmail_server_xform_new_bio_out(srv, BIO_new_fd(out, BIO_NOCLOSE));
-    BIO_free(srv->req_bio);
-    srv->req_bio = BIO_new_fd(in, BIO_NOCLOSE);
-    return VESmail_tls_server_start(srv, 0);
+    if (!srv->req_in) return VESMAIL_E_PARAM;
+    return VESmail_server_set_bio(srv, BIO_new_fd(in, BIO_NOCLOSE), BIO_new_fd(out, BIO_NOCLOSE));
 }
 
 int VESmail_server_set_sock(VESmail_server *srv, int sock) {
-    if (srv->rsp_out || !srv->req_in) return VESMAIL_E_PARAM;
-    VESmail_xform_free(srv->rsp_out);
-    srv->rsp_out = VESmail_server_xform_new_bio_out(srv, BIO_new_socket(sock, BIO_CLOSE));
-    BIO_free(srv->req_bio);
-    srv->req_bio = BIO_new_socket(sock, BIO_NOCLOSE);
-    return VESmail_tls_server_start(srv, 0);
+    if (!srv->req_in) return VESMAIL_E_PARAM;
+    return VESmail_server_set_bio(srv, BIO_new_socket(sock, BIO_NOCLOSE), BIO_new_socket(sock, BIO_CLOSE));
+}
+
+void VESmail_server_set_keepalive(VESmail_server *srv) {
+    if (srv->req_bio) VESmail_arch_keepalive(BIO_get_fd(srv->req_bio, NULL));
+    if (srv->rsp_bio) VESmail_arch_keepalive(BIO_get_fd(srv->rsp_bio, NULL));
 }
 
 void *VESmail_server_fn_th_rsp(void *srv) {
@@ -208,14 +226,16 @@ void *VESmail_server_fn_th_rsp(void *srv) {
 void VESmail_server_bytes(VESmail_server *srv, int done, int st) {
     long long int req = srv->reqbytes;
     long long int rsp = srv->rspbytes;
-    VESmail_server_log(srv, "bytes proto=%s exit=%d st=%d req=%llu rsp=%llu", srv->type, done, st, req, rsp);
+    VESmail_server_log(srv, "bytes proto=%s exit=%d st=%d req=%llu rsp=%llu cy=%lu", srv->type, done, st, req, rsp, srv->cycles);
     srv->reqbytes -= req;
     srv->rspbytes -= rsp;
 }
 
 int VESmail_server_run(VESmail_server *srv, int flags) {
-    int rs = 0;
+    int rs = VESmail_tls_server_start(srv, 0);
+    if (rs < 0) return rs;
     while (!(srv->flags & VESMAIL_SRVF_SHUTDOWN)) {
+	srv->cycles++;
 	if (!(flags & VESMAIL_SRVR_NOTHR) && (srv->flags & VESMAIL_SRVF_OVER)) {
 	    flags |= VESMAIL_SRVR_NOTHR;
 	    if (VESmail_arch_thread(srv, &VESmail_server_fn_th_rsp, NULL) >= 0) flags |= VESMAIL_SRVR_NORSP;
@@ -225,7 +245,12 @@ int VESmail_server_run(VESmail_server *srv, int flags) {
 	    if (rs < 0) break;
 	    srv->reqbytes += rs;
 	}
-	int pl = VESmail_arch_poll(2, BIO_get_fd(srv->req_bio, NULL), BIO_get_fd(srv->rsp_bio, NULL));
+	int pl = VESmail_arch_polltm(
+	    (srv->tmout > 1 ? srv->tmout : 1),
+	    (srv->rsp_bio ? 2 : 1),
+	    BIO_get_fd(srv->req_bio, NULL),
+	    (srv->rsp_bio ? BIO_get_fd(srv->rsp_bio, NULL) : -1)
+	);
 	VESMAIL_SRV_DEBUG(srv, 2, sprintf(debug, "[poll] %d", pl))
 	if (!(flags & VESMAIL_SRVR_NOREQ)) {
 	    rs = VESmail_server_bio_read(srv->req_bio, srv->req_in, pl >= 0 || (srv->flags & VESMAIL_SRVF_OVER));
@@ -241,7 +266,7 @@ int VESmail_server_run(VESmail_server *srv, int flags) {
 	    rs = srv->idlefn(srv, time(NULL) - srv->lastwrite);
 	    if (rs < 0) break;
 	    if (srv->flags & (VESMAIL_SRVF_TMOUT | VESMAIL_SRVF_KILL)) {
-		if (!(flags & VESMAIL_SRVR_NOLOG)) VESmail_server_log(srv, (srv->flags & VESMAIL_SRVF_TMOUT ? "timeout" : "shutdown"));
+		if (!(flags & VESMAIL_SRVR_NOLOG)) VESmail_server_log(srv, (srv->flags & VESMAIL_SRVF_TMOUT ? "timeout proto=%s" : "shutdown proto=%s"), srv->type);
 		rs = VESmail_xform_process(srv->req_in, 1, "", 0);
 		if (rs < 0) break;
 		rs = VESmail_xform_process(srv->req_out, 1, "", 0);
@@ -273,7 +298,7 @@ int VESmail_server_logauth(VESmail_server *srv, int er, long usec) {
 	    st = "FAIL";
 	    break;
     }
-    VESmail_server_log(srv, "auth %s(%d.%d) srv=%s peer=%s user=%s", st, er, srv->subcode, host, peer, (srv->login ? srv->login : ""));
+    VESmail_server_log(srv, "auth %s(%d.%d) proto=%s srv=%s peer=%s user=%s", st, er, srv->subcode, srv->type, host, peer, (srv->login ? srv->login : ""));
     free(peer);
     free(host);
     if (usec) VESmail_arch_usleep(usec);
@@ -377,10 +402,7 @@ VESmail_sasl *VESmail_server_sasl_client(int mech, jVar *uconf) {
     return sasl;
 }
 
-int VESmail_server_connect(VESmail_server *srv, jVar *conf, const char *dport) {
-    if (!conf) return VESMAIL_E_CONF;
-    char *host = jVar_getString(jVar_get(conf, "host"));
-    char *port = jVar_getString(jVar_get(conf, "port"));
+int VESmail_server_connectsk(VESmail_server *srv, const char *host, const char *port) {
     struct addrinfo hint = {
 	.ai_family = AF_UNSPEC,
 	.ai_socktype = SOCK_STREAM,
@@ -393,7 +415,7 @@ int VESmail_server_connect(VESmail_server *srv, jVar *conf, const char *dport) {
     };
     struct addrinfo *res = NULL;
     int rs = 0;
-    if (!getaddrinfo(host, (port ? port : dport), &hint, &res)) {
+    if (!getaddrinfo(host, port, &hint, &res)) {
 	struct addrinfo *r;
 	rs = VESMAIL_E_CONN;
 	for (r = res; r; r = r->ai_next) {
@@ -408,23 +430,34 @@ int VESmail_server_connect(VESmail_server *srv, jVar *conf, const char *dport) {
 	    int connr;
 	    if ((connr = connect(fd, r->ai_addr, r->ai_addrlen)) < 0) {
 		VESMAIL_SRV_DEBUG(srv, 1, sprintf(debug, "... failed (%d)", connr));
-		shutdown(fd, 2);
+		VESmail_arch_shutdown(fd);
 		continue;
 	    }
 	    VESMAIL_SRV_DEBUG(srv, 1, sprintf(debug, "... connected"))
-	    VESmail_xform_free(srv->req_out);
-	    srv->req_out = VESmail_server_xform_new_bio_out(srv, BIO_new_socket(fd, BIO_CLOSE));
-	    srv->rsp_bio = BIO_new_socket(fd, BIO_NOCLOSE);
-	    srv->tls.client = VESmail_tls_client_new(jVar_get(conf, "tls"), host);
-	    VESmail_sasl_free(srv->sasl);
-	    srv->sasl = VESmail_server_sasl_client(jVar_getEnum(jVar_get(conf, "sasl"), VESmail_sasl_mechs), conf);
-	    host = NULL;
-	    rs = VESmail_tls_client_start(srv, 0);
+	    rs = fd;
 	    break;
 	}
 	freeaddrinfo(res);
     } else {
 	rs = VESMAIL_E_RESOLV;
+    }
+    return rs;
+}
+
+int VESmail_server_connect(VESmail_server *srv, jVar *conf, const char *dport) {
+    if (!conf) return VESMAIL_E_CONF;
+    char *host = jVar_getString(jVar_get(conf, "host"));
+    char *port = jVar_getString(jVar_get(conf, "port"));
+    int rs = VESmail_server_connectsk(srv, host, (port ? port : dport));
+    if (rs >= 0) {
+	VESmail_xform_free(srv->req_out);
+	srv->req_out = VESmail_server_xform_new_bio_out(srv, BIO_new_socket(rs, BIO_CLOSE));
+	srv->rsp_bio = BIO_new_socket(rs, BIO_NOCLOSE);
+	srv->tls.client = VESmail_tls_client_new(jVar_get(conf, "tls"), host);
+	VESmail_sasl_free(srv->sasl);
+	srv->sasl = VESmail_server_sasl_client(jVar_getEnum(jVar_get(conf, "sasl"), VESmail_sasl_mechs), conf);
+	host = NULL;
+	rs = VESmail_tls_client_start(srv, 0);
     }
     free(port);
     free(host);
@@ -520,13 +553,13 @@ char *VESmail_server_errorStr(VESmail_server *srv, int err) {
 
 char *VESmail_server_sockname(VESmail_server *srv, int peer) {
     char *name;
-    struct sockaddr sa;
+    struct sockaddr_in6 sa;
     socklen_t l = sizeof(sa);
     int sk = BIO_get_fd(srv->req_bio, NULL);
-    if (sk >= 0 && (peer ? getpeername(sk, &sa, &l) : getsockname(sk, &sa, &l)) >= 0) {
+    if (sk >= 0 && (peer ? getpeername(sk, (struct sockaddr *)&sa, &l) : getsockname(sk, (struct sockaddr *)&sa, &l)) >= 0) {
 	char abuf[64];
 	char pbuf[16];
-	if (getnameinfo(&sa, l, abuf, sizeof(abuf), pbuf, sizeof(pbuf), NI_NUMERICHOST | NI_NUMERICSERV) >= 0) {
+	if (getnameinfo((struct sockaddr *)&sa, l, abuf, sizeof(abuf), pbuf, sizeof(pbuf), NI_NUMERICHOST | NI_NUMERICSERV) >= 0) {
 	    name = malloc(strlen(abuf) + strlen(pbuf) + 16);
 	    sprintf(name, "[%s]:%s", abuf, pbuf);
 	    return name;
@@ -546,10 +579,10 @@ char *VESmail_server_timestamp() {
 
 int VESmail_server_abuse_peer(VESmail_server *srv, int val) {
     if (!srv->abusefn) return 0;
-    struct sockaddr sa;
+    struct sockaddr_in6 sa;
     socklen_t l = sizeof(sa);
-    if (getpeername(BIO_get_fd(srv->req_bio, NULL), &sa, &l) < 0) return 0;
-    switch (sa.sa_family) {
+    if (getpeername(BIO_get_fd(srv->req_bio, NULL), (struct sockaddr *)&sa, &l) < 0) return 0;
+    switch (sa.sin6_family) {
 	case AF_INET:
 	    return srv->abusefn(srv->abuseref, &((struct sockaddr_in *) &sa)->sin_addr, sizeof(((struct sockaddr_in *) &sa)->sin_addr), val);
 	case AF_INET6:

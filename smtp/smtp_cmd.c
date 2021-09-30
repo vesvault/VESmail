@@ -38,6 +38,7 @@
 #include "../VESmail.h"
 #include "../lib/xform.h"
 #include "../lib/mail.h"
+#include "../lib/util.h"
 #include "../srv/server.h"
 #include "smtp.h"
 #include "smtp_start.h"

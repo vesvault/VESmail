@@ -44,6 +44,7 @@
 #include "../lib/header.h"
 #include "../lib/xform.h"
 #include "../lib/decrypt.h"
+#include "../lib/util.h"
 #include "imap_result.h"
 #include "imap_sect.h"
 #include "imap_fetch.h"
@@ -75,23 +76,27 @@ VESmail_imap_msg *VESmail_imap_msg_new_part(VESmail_imap_msg *parent) {
     return msg;
 }
 
+static union VESmail_imap_msg_page *VESmail_imap_msg_page_alloc(int pagesize) {
+    union VESmail_imap_msg_page *pg = malloc(pagesize * sizeof(*pg));
+    int i;
+    for (i = 0; i < pagesize; i++) pg[i].ptr = NULL;
+    return pg;
+}
+
 union VESmail_imap_msg_page *VESmail_imap_msg_page_ptr(VESmail_imap *imap, unsigned int idx, int depth) {
-    void *ptr0;
     if (depth <= 0) {
 	if (idx == 0) return &imap->msgs.page;
-	depth++;
+	void *p = imap->msgs.page.ptr;
+	if (p) {
+	    imap->msgs.page.page = VESmail_imap_msg_page_alloc(imap->msgs.pagesize);
+	    imap->msgs.page.page[0].ptr = p;
+	}
 	imap->msgs.depth++;
-	ptr0 = imap->msgs.page.ptr;
-	imap->msgs.page.ptr = NULL;
-    } else {
-	ptr0 = NULL;
+	depth = 1;
     }
     union VESmail_imap_msg_page *pp = VESmail_imap_msg_page_ptr(imap, (idx / imap->msgs.pagesize), depth - 1);
     if (!pp->ptr) {
-	pp->page = malloc(imap->msgs.pagesize * sizeof(*pp));
-	int i;
-	pp->page[0].ptr = ptr0;
-	for (i = 1; i < imap->msgs.pagesize; i++) pp->page[i].ptr = NULL;
+	pp->page = VESmail_imap_msg_page_alloc(imap->msgs.pagesize);
     }
     return &pp->page[idx % imap->msgs.pagesize];
 }
@@ -488,6 +493,11 @@ void VESmail_imap_msg_free(VESmail_imap_msg *msg) {
     if (msg == &VESmail_imap_msg_PASS) return;
     if (msg) {
 	if (msg->flags & VESMAIL_IMAP_MF_ROOT) {
+	    VESmail_imap_result *rslt;
+	    while ((rslt = msg->result)) {
+		msg->result = rslt->mchain;
+		VESmail_imap_result_free(rslt);
+	    }
 	    VESmail_clean(VESMAIL_IMAP_MAIL(msg));
 	} else {
 	    VESmail_imap_msg_free(msg->chain);

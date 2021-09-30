@@ -324,19 +324,32 @@ int VESmail_imap_rsp_fn(VESmail_server *srv, VESmail_imap_token *token) {
 
 void VESmail_imap_reset(VESmail_server *srv) {
     VESmail_imap *imap = VESMAIL_IMAP(srv);
+    while (imap->reqq) {
+	VESmail_imap_track *tr = imap->reqq;
+	imap->reqq = tr->queue;
+	tr->queue = NULL;
+	VESmail_imap_track_free(tr);
+    }
+    VESmail_imap_result_flush(imap);
     VESMAIL_SRV_DEBUG(srv, 2, sprintf(debug, "[reset] msgs.page.depth=%d", imap->msgs.depth))
     VESmail_imap_msg_page_free(&imap->msgs.page, imap->msgs.depth, imap->msgs.pagesize);
     imap->msgs.page.ptr = NULL;
     imap->msgs.depth = 0;
+    if (imap->results.curr) {
+	if (imap->results.curr->token == srv->rsp_in->imap->line) imap->results.curr->token = NULL;
+	VESmail_imap_result_free(imap->results.curr);
+    }
+    while (imap->results.track) VESmail_imap_track_done(&imap->results.track);
+    while (imap->results.queue) VESmail_imap_result_free(imap->results.queue);
 }
 
 int VESmail_imap_idle(VESmail_server *srv, int tmout) {
-    if (tmout < srv->tmout.unauthd) return 0;
-    if (srv->req_out && (tmout < srv->tmout.authd
-	|| ((srv->req_in->imap->state != VESMAIL_IMAP_X_INIT || srv->req_in->imap->state != VESMAIL_IMAP_X_INIT) && tmout < srv->tmout.data)
-	|| ((VESMAIL_IMAP(srv)->flags & VESMAIL_IMAP_F_CDATA) && tmout < srv->tmout.data)
-    )) return 0;
-    srv->flags |= VESMAIL_SRVF_TMOUT;
+    int t = srv->req_out ?
+	((srv->req_in->imap->state != VESMAIL_IMAP_X_INIT || srv->req_in->imap->state != VESMAIL_IMAP_X_INIT)
+	    ? VESMAIL_IMAP_TMOUT_DATA
+	    : ((VESMAIL_IMAP(srv)->flags & VESMAIL_IMAP_F_CDATA) ? VESMAIL_IMAP_TMOUT_IDLE : VESMAIL_IMAP_TMOUT_CMD)
+	) : VESMAIL_IMAP_TMOUT_LOGIN;
+    if ((srv->tmout = t - tmout) <= 0) srv->flags |= VESMAIL_SRVF_TMOUT;
     return 0;
 }
 
@@ -345,21 +358,9 @@ void VESmail_imap_fn_free(VESmail_server *srv) {
     VESmail_imap_reset(srv);
     VESmail_imap_chk_detached(srv);
     while (imap->track) VESmail_imap_track_done(&imap->track);
-    while (imap->results.track) VESmail_imap_track_done(&imap->results.track);
-    while (imap->reqq) {
-	VESmail_imap_track *tr = imap->reqq;
-	imap->reqq = tr->queue;
-	tr->queue = NULL;
-	VESmail_imap_track_free(tr);
-    }
-    if (imap->results.curr) {
-	if (imap->results.curr->token == srv->rsp_in->imap->line) imap->results.curr->token = NULL;
-	VESmail_imap_result_free(imap->results.curr);
-    }
     VESmail_imap_msg_free(imap->results.pass);
     VESmail_imap_token_free(imap->results.query);
     VESmail_imap_fetch_free(imap->results.filter);
-    while (imap->results.queue) VESmail_imap_result_free(imap->results.queue);
 }
 
 VESmail_server *VESmail_server_new_imap(VESmail_optns *optns) {
@@ -369,7 +370,6 @@ VESmail_server *VESmail_server_new_imap(VESmail_optns *optns) {
     srv->debugfn = &VESmail_imap_debug;
     srv->freefn = &VESmail_imap_fn_free;
     srv->idlefn = &VESmail_imap_idle;
-    srv->tmout.data = 1800;
     imap->untaggedfn = NULL;
     imap->state = VESMAIL_IMAP_S_HELLO;
     imap->flags = VESMAIL_IMAP_F_INIT;

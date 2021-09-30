@@ -45,10 +45,6 @@
 #include "arch.h"
 
 
-#ifndef VESMAIL_POLL_TMOUT
-#define VESMAIL_POLL_TMOUT 5
-#endif
-
 #ifdef _WIN32
 #include "arch_win.c"
 #else

@@ -196,7 +196,7 @@ int VESmail_imap_result_fn_rsp_resync(int verb, VESmail_imap_token *rsp, VESmail
     VESmail_imap_result *rslt = trk->ref;
     rslt->state = VESMAIL_IMAP_RE_DROP;
     VESmail_imap_track_free(trk);
-    if (rslt->msgptr && *rslt->msgptr != &VESmail_imap_msg_PASS) {
+    if (rslt->msgptr && *rslt->msgptr && *rslt->msgptr != &VESmail_imap_msg_PASS) {
 	VESmail_imap_result **ptr;
 	for (ptr = &(*(rslt->msgptr))->result; *ptr; ptr = &(*ptr)->mchain) {
 	    if (*ptr == rslt) {

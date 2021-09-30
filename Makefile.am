@@ -44,6 +44,10 @@ srv/proc.h \
 srv/override.h \
 srv/guard.h
 
+if VESMAIL_X509STORE
+SRV_CFILES += srv/x509store.c
+SRV_HFILES += srv/x509store.h
+endif
 if VESMAIL_CURLSH
 SRV_CFILES += srv/curlsh.c
 SRV_HFILES += srv/curlsh.h
@@ -123,6 +127,9 @@ endif
 
 vesmail_CFLAGS =
 
+if VESMAIL_X509STORE
+vesmail_CFLAGS += -DVESMAIL_X509STORE
+endif
 if VESMAIL_CURLSH
 vesmail_CFLAGS += -DVESMAIL_CURLSH
 endif

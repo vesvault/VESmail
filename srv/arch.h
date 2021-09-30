@@ -32,7 +32,12 @@
 
 extern const char *VESmail_arch_NAME;
 
+#ifndef VESMAIL_POLL_TMOUT
+#define VESMAIL_POLL_TMOUT 5
+#endif
+
 void VESmail_arch_init();
+void VESmail_arch_done();
 int VESmail_arch_sigaction(int sig, void (* sigfn)(int));
 int VESmail_arch_set_nb(int fd, int nb);
 int VESmail_arch_thread(void *arg, void *(* threadfn)(void *), void **pth);
@@ -41,7 +46,8 @@ int VESmail_arch_thread_kill(void *th);
 int VESmail_arch_mutex_lock(void **pmutex);
 int VESmail_arch_mutex_unlock(void **pmutex);
 void VESmail_arch_mutex_done(void *mutex);
-int VESmail_arch_poll(int len, ...);
+int VESmail_arch_polltm(long tmout, int len, ...);
+#define	VESmail_arch_poll(...)		VESmail_arch_polltm(VESMAIL_POLL_TMOUT, __VA_ARGS__)
 char *VESmail_arch_gethostname();
 int VESmail_arch_getpid();
 int VESmail_arch_creat(const char *path);
@@ -49,7 +55,9 @@ int VESmail_arch_openr(const char *path);
 int VESmail_arch_read(int fd, char *buf, int len);
 int VESmail_arch_write(int fd, const char *src, int len);
 int VESmail_arch_setlinebuf(void *file);
+int VESmail_arch_keepalive(int fd);
 int VESmail_arch_close(int fd);
+int VESmail_arch_shutdown(int fd);
 int VESmail_arch_log(const char *fmt, ...);
 #ifdef va_arg
 int VESmail_arch_vlog(const char *fmt, va_list va);

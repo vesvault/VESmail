@@ -40,6 +40,7 @@
 #include <libVES/User.h>
 #include <libVES/Ref.h>
 #include <libVES/VaultItem.h>
+#include <time.h>
 #include "../VESmail.h"
 #include "../srv/server.h"
 #include "../srv/tls.h"
@@ -124,7 +125,6 @@ int VESmail_now_probe(VESmail_server *srv, jVar *uconf, const char *token) {
 	VESmail_now_log(srv, "POST", 400, "probe", "", NULL);
 	return VESmail_now_error(srv, 400, "Unknown service to probe, expected imap | smtp\r\n");
     }
-    usrv->tmout.unauthd = usrv->tmout.authd = usrv->tmout.data = 15;
     usrv->rsp_out = srv->rsp_out;
     usrv->debug = 1;
     usrv->dumpfd = srv->dumpfd;
@@ -164,9 +164,11 @@ int VESmail_now_probe(VESmail_server *srv, jVar *uconf, const char *token) {
 	    break;
 	}
 	rs += r;
+	usrv->tmout = VESMAIL_NOW_PROBE_TMOUT;
 	r = VESmail_server_run(usrv, (VESMAIL_SRVR_NOTHR | VESMAIL_SRVR_NOREQ | VESMAIL_SRVR_NOLOG | VESMAIL_SRVR_NOLOOP));
 	if (r < 0) rs = r;
 	else rs += r;
+	if (time(NULL) - usrv->lastwrite >= VESMAIL_NOW_PROBE_TMOUT) break;
     }
     usrv->rsp_out = NULL;
     VESmail_server_free(usrv);

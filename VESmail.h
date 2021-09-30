@@ -42,7 +42,7 @@ struct libVES;
 #ifdef	PACKAGE_VERSION
 #define	VESMAIL_VERSION		PACKAGE_VERSION
 #else
-#define	VESMAIL_VERSION		"1.55"
+#define	VESMAIL_VERSION		"1.59"
 #endif
 
 #define	VESMAIL_SHORT_NAME	"VESmail"
@@ -71,8 +71,11 @@ struct libVES;
 
 #define VESMAIL_DEBUG_LIBVES	4
 
+#ifdef VESMAIL_MT
+#include "mt.h"
+#endif
+
 /*
 libVESmail interface calls to be defined here
 */
 
-void VESmail_cleanse(void *buf, unsigned long len);

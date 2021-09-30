@@ -49,6 +49,7 @@
 #include <jVar.h>
 #include <stdarg.h>
 #include <stdio.h>
+#include <errno.h>
 #include "../VESmail.h"
 #include "../imap/imap.h"
 #include "../smtp/smtp.h"
@@ -64,7 +65,7 @@
 
 VESmail_daemon *VESmail_daemon_new(struct VESmail_conf_daemon *cd) {
     struct addrinfo hint = {
-	.ai_family = AF_UNSPEC,
+	.ai_family = VESMAIL_DAEMON_AF,
 	.ai_socktype = SOCK_STREAM,
 	.ai_protocol = 0,
 	.ai_flags = AI_ADDRCONFIG | AI_PASSIVE,
@@ -102,7 +103,7 @@ VESmail_daemon *VESmail_daemon_new(struct VESmail_conf_daemon *cd) {
 	sk->ainfo = a;
 	sk->procs = NULL;
 	sk->thread = NULL;
-	sk->sock = -1;
+	sk->sock = VESMAIL_DMSK_NONE;
 	psk = &sk->chain;
     }
     *psk = NULL;
@@ -113,8 +114,8 @@ VESmail_daemon *VESmail_daemon_new(struct VESmail_conf_daemon *cd) {
 
 int VESmail_daemon_sock_error(struct VESmail_daemon_sock *sk) {
     if (sk->sock >= 0) {
-	shutdown(sk->sock, 2);
-	sk->sock = -2;
+	VESmail_arch_shutdown(sk->sock);
+	sk->sock = VESMAIL_DMSK_NONE;
     }
     return VESMAIL_E_CONN;
 }
@@ -163,7 +164,7 @@ int VESmail_daemon_sock_run(struct VESmail_daemon_sock *sk) {
 	VESmail_arch_usleep(15000000);
     }
     int fd;
-    while (sk->sock >= 0) {
+    while (sk->sock != VESMAIL_DMSK_DOWN) {
 	fd = accept(sk->sock, NULL, NULL);
 	if (fd >= 0) {
 	    VESmail_proc *p = VESmail_proc_new(sk->daemon, fd);
@@ -171,13 +172,20 @@ int VESmail_daemon_sock_run(struct VESmail_daemon_sock *sk) {
 		p->chain = sk->procs;
 		sk->procs = p;
 		if (p->flags & VESMAIL_PRF_SHUTDOWN) {
-		    shutdown(fd, 2);
+		    VESmail_arch_shutdown(fd);
 		} else {
 		    VESmail_proc_launch(p);
 		}
 	    }
 	} else {
 	    VESmail_arch_usleep(1000000);
+	    if ((sk->daemon->flags & VESMAIL_DMF_RECONNECT) && errno == EBADF) {
+		VESmail_daemon_sock_error(sk);
+		VESmail_arch_log("reconnect daemon=%s", sk->daemon->type);
+		while (VESmail_daemon_sock_listen(sk)) {
+		    VESmail_arch_usleep(5000000);
+		};
+	    }
 	}
     }
     return 0;
@@ -269,6 +277,7 @@ void VESmail_daemon_snifree(VESmail_daemon *daemon) {
 char VESmail_daemon_SIG = 0;
 
 void VESmail_daemon_sigfn(int sig) {
+    if (sig == VESMAIL_DAEMON_SIG_BRK) return;
     if (sig == VESMAIL_DAEMON_SIG_TERM || !VESmail_daemon_SIG) VESmail_daemon_SIG = sig;
 }
 
@@ -311,8 +320,8 @@ int VESmail_daemon_shutdown(VESmail_daemon *daemon) {
     struct VESmail_daemon_sock *sk;
     for (sk = daemon->sock; sk; sk = sk->chain) {
 	if (sk->sock >= 0) {
-	    if (!(daemon->flags & VESMAIL_DMF_KEEPSOCK)) shutdown(sk->sock, 2);
-	    sk->sock = -2;
+	    if (!(daemon->flags & VESMAIL_DMF_KEEPSOCK)) VESmail_arch_shutdown(sk->sock);
+	    sk->sock = VESMAIL_DMSK_DOWN;
 	    VESmail_arch_thread_kill(sk->thread);
 	    rs++;
 	}
@@ -348,8 +357,8 @@ void VESmail_daemon_free(VESmail_daemon *daemon) {
  ****************************************************************/
 VESmail_daemon **VESmail_daemon_execute(struct VESmail_conf_daemon *cds) {
     if (!cds) return NULL;
+    VESmail_arch_sigaction(VESMAIL_DAEMON_SIG_BRK, &VESmail_daemon_sigfn);
     VESmail_arch_sigaction(VESMAIL_DAEMON_SIG_DOWN, &VESmail_daemon_sigfn);
-    if (VESMAIL_DAEMON_SIG_DOWN2) VESmail_arch_sigaction(VESMAIL_DAEMON_SIG_DOWN2, &VESmail_daemon_sigfn);
     VESmail_arch_sigaction(VESMAIL_DAEMON_SIG_TERM, &VESmail_daemon_sigfn);
     struct VESmail_conf_daemon *cdp;
     int i = 1;
@@ -385,6 +394,20 @@ int VESmail_daemon_watchall(VESmail_daemon **daemons, void (* watchfn)(VESmail_p
     }
     if (watchfn) watchfn(NULL, arg);
     return rs;
+}
+
+void VESmail_daemon_killall(VESmail_daemon **daemons) {
+    VESmail_daemon **pd;
+    for (pd = daemons; *pd; pd++) {
+	struct VESmail_daemon_sock *sk;
+	for (sk = (*pd)->sock; sk; sk = sk->chain) {
+	    VESmail_daemon_sock_error(sk);
+	    VESmail_proc *proc;
+	    for (proc = sk->procs; proc; proc = proc->chain) {
+		VESmail_proc_kill(proc);
+	    }
+	}
+    }
 }
 
 void VESmail_daemon_freeall(VESmail_daemon **daemons) {

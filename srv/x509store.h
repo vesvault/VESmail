@@ -37,3 +37,7 @@
 extern void *VESmail_x509store;
 
 int VESmail_x509store_addcert(const unsigned char *der, int len);
+int VESmail_x509store_caBundle(const char *fname);
+void VESmail_x509store_done();
+
+void VESmail_x509store_setcurlctx(void *curl);

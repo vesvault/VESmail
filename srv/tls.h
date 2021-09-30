@@ -68,6 +68,16 @@ typedef struct VESmail_tls_server {
 
 struct VESmail_server;
 
+#ifndef	VESMAIL_TLS_HIGHOPTNS
+#define	VESMAIL_TLS_HIGHOPTNS	(SSL_OP_NO_SSLv3 | SSL_OP_NO_TLSv1 | SSL_OP_NO_TLSv1_1)
+#endif
+#ifndef	VESMAIL_TLS_CLNOPTNS
+#define	VESMAIL_TLS_CLNOPTNS	0
+#endif
+#ifndef	VESMAIL_TLS_SRVOPTNS
+#define	VESMAIL_TLS_SRVOPTNS	0
+#endif
+
 extern const char *VESmail_tls_levels[];
 
 int VESmail_tls_init();
@@ -90,4 +100,8 @@ void VESmail_tls_server_ctxreset(struct VESmail_tls_server *tls);
 void VESmail_tls_server_done(struct VESmail_server *srv);
 void VESmail_tls_server_free(struct VESmail_tls_server *tls);
 
+void VESmail_tls_initclientctx(void *sslctx);
+void VESmail_tls_setcurlctx(void *curl);
 struct libVES *VESmail_tls_initVES(struct libVES *ves);
+
+void VESmail_tls_done();

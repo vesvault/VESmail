@@ -17,8 +17,17 @@
  *                   > | /   |                              https://vesvault.com
  *                   > |/____|                                  https://ves.host
  *
- * (c) 2020 VESvault Corp
- * Jim Zubov <jz@vesvault.com>
+ *
+ *     _________
+ *    /````````_\                  S N I F ~ e2e TLS trust for IoT
+ *   /\     , / O\      ___
+ *  | |     | \__|_____/  o\       e2e TLS SNI Forwarder
+ *  | |     |  ``/`````\___/       e2e TLS CA Proxy
+ *  | |     | . | <"""""""~~
+ *  |  \___/ ``  \________/        https://snif.host
+ *   \  '''  ``` /````````         (C) 2021 VESvault Corp
+ *    \_________/                  Jim Zubov <jz@vesvault.com>
+ *
  *
  * GNU General Public License v3
  * You may opt to use, copy, modify, merge, publish, distribute and/or sell
@@ -30,40 +39,16 @@
  *
  ***************************************************************************/
 
-typedef struct VESmail_proc {
-    struct VESmail_daemon *daemon;
-    struct VESmail_conf *conf;
-    struct VESmail_proc *chain;
-    void *thread;
-    struct VESmail_server *server;
-    struct VESmail_proc_ctx {
-	struct VESmail_conf *conf;
-	struct jVar *jconf;
-	int refct;
-    } *ctx;
-    void (* collectfn)(struct VESmail_proc *);
-    void (* freefn)(struct VESmail_proc *);
-    void *ref;
-    int fdesc;
-    short int tid;
-    char flags;
-    char exitcode;
-    void *ctl[0];
-} VESmail_proc;
 
-#define	VESMAIL_PRF_SHUTDOWN	0x01
-#define	VESMAIL_PRF_DONE	0x02
+typedef struct VESmail_tunl_proc {
+    int fd[2];
+    struct snifl_sock *sock;
+    char outcg;
+} VESmail_tunl_proc;
 
-struct VESmail_proc *VESmail_proc_init(struct VESmail_proc *proc, struct VESmail_daemon *daemon, int fd);
-#define	VESmail_proc_new(daemon, fd)	VESmail_proc_init(NULL, daemon, fd)
-int VESmail_proc_launch(struct VESmail_proc *proc);
-int VESmail_proc_watch(struct VESmail_proc *proc, void (* watchfn)(struct VESmail_proc *, void *), void *arg);
-int VESmail_proc_shutdown(struct VESmail_proc *proc, int e);
-void VESmail_proc_kill(struct VESmail_proc *proc);
-void VESmail_proc_done(struct VESmail_proc *proc);
-void VESmail_proc_free(struct VESmail_proc *proc);
+void VESmail_tunl_init(struct VESmail_server *snifsrv, const char *dnsaddr);
+void VESmail_tunl_conf(int mtu, void (* outfn)(const void *buf, int len));
+int VESmail_tunl_pktin(const void *pkt, int len);
 
-struct VESmail_proc_ctx *VESmail_proc_ctx_new(struct VESmail_proc *proc, struct jVar *jconf);
-void VESmail_proc_ctx_apply(struct VESmail_proc_ctx *ctx, struct VESmail_proc *proc);
-void VESmail_proc_ctx_free(struct VESmail_proc_ctx *ctx);
-void VESmail_proc_cleanup();
+extern char VESmail_tunl_dnsaddr_v4[];
+const char *VESmail_tunl_get_dnsaddr_v4();

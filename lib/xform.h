@@ -59,6 +59,12 @@ typedef struct VESmail_xform {
     };
 } VESmail_xform;
 
+#ifndef VESMAIL_BUFMINPAD
+#define	VESMAIL_BUFMINPAD	256
+#endif
+#ifndef VESMAIL_BUFMAXPAD
+#define	VESMAIL_BUFMAXPAD	1048576
+#endif
 
 struct VESmail_parse;
 

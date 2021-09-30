@@ -64,6 +64,9 @@ struct VESmail_parse;
 #define	VESMAIL_O_VRFY_TKN	0x0010
 #define	VESMAIL_O_HDR_REFS	0x0020
 
+#ifndef VESMAIL_OPTNSMAXBUF
+#define	VESMAIL_OPTNSMAXBUF	1048576
+#endif
 
 extern struct VESmail_optns VESmail_optns_default;
 struct VESmail_optns *VESmail_optns_new();

@@ -136,6 +136,8 @@ char *VESmail_memsplice(char *str, int steml, unsigned long int *strl, int offs,
     return str;
 }
 
+#ifndef VESMAIL_NOCLEANSE
 void VESmail_cleanse(void *buf, unsigned long len) {
     if (buf && len) OPENSSL_cleanse(buf, len);
 }
+#endif

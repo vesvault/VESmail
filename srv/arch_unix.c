@@ -51,9 +51,16 @@ const char *VESmail_arch_NAME = "Unix";
 void VESmail_arch_sa_h_alrm(int sig) {
 }
 
+static pthread_mutex_t VESmail_arch_mutex_master;
+
 void VESmail_arch_init() {
-    signal(SIGPIPE, SIG_IGN);
+    VESmail_arch_sigaction(SIGPIPE, SIG_IGN);
     VESmail_arch_sigaction(SIGALRM, &VESmail_arch_sa_h_alrm);
+    pthread_mutex_init(&VESmail_arch_mutex_master, NULL);
+}
+
+void VESmail_arch_done() {
+    pthread_mutex_destroy(&VESmail_arch_mutex_master);
 }
 
 int VESmail_arch_sigaction(int sig, void (* sigfn)(int)) {
@@ -104,8 +111,12 @@ void VESmail_arch_thread_done(void *th) {
 
 int VESmail_arch_mutex_lock(void **pmutex) {
     if (!*pmutex) {
-	*pmutex = malloc(sizeof(pthread_mutex_t));
-	pthread_mutex_init(*pmutex, NULL);
+	pthread_mutex_lock(&VESmail_arch_mutex_master);
+	if (!*pmutex) {
+	    *pmutex = malloc(sizeof(pthread_mutex_t));
+	    pthread_mutex_init(*pmutex, NULL);
+	}
+	pthread_mutex_unlock(&VESmail_arch_mutex_master);
     }
     return pthread_mutex_lock(*pmutex);
 }
@@ -119,9 +130,7 @@ void VESmail_arch_mutex_done(void *mutex) {
     free(mutex);
 }
 
-
-
-int VESmail_arch_poll(int len, ...) {
+int VESmail_arch_polltm(long tmout, int len, ...) {
     int r, i;
 #ifdef HAVE_POLL_H
     struct pollfd pl[4];
@@ -130,14 +139,14 @@ int VESmail_arch_poll(int len, ...) {
     if (len > sizeof(pl) / sizeof(*pl)) len = sizeof(pl) / sizeof(*pl);
     for (i = 0; i < len; i++) {
 	pl[i].fd = va_arg(va, int);
-	pl[i].events = POLLIN;
+	pl[i].events = POLLIN | POLLHUP | POLLERR | POLLNVAL;
     }
     va_end(va);
-    r = poll(pl, len, VESMAIL_POLL_TMOUT * 1000);
+    r = poll(pl, len, tmout * 1000);
 #else
     fd_set rd;
     struct timeval tmout = {
-	.tv_sec = VESMAIL_POLL_TMOUT,
+	.tv_sec = tmout,
 	.tv_usec = 0
     };
     FD_ZERO(&rd);
@@ -199,7 +208,18 @@ int VESmail_arch_setlinebuf(void *file) {
     return setlinebuf(file), 0;
 }
 
+int VESmail_arch_keepalive(int fd) {
+    long flg = 1;
+    setsockopt(fd, SOL_SOCKET, SO_KEEPALIVE, (void *)&flg, sizeof(flg));
+    return 0;
+}
+
 int VESmail_arch_close(int fd) {
+    return close(fd);
+}
+
+int VESmail_arch_shutdown(int fd) {
+    shutdown(fd, SHUT_RDWR);
     return close(fd);
 }
 

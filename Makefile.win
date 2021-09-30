@@ -10,11 +10,19 @@ CFLAGS=-I $(OPENSSL_PATH)\\include \
 -I $(CURL_PATH)\\include \
 -I $(LIBVES_PATH)/lib \
 -DHAVE_CURL_CURL_H \
--DVESMAIL_CURLSH
+-DVESMAIL_CURLSH \
+-DWIN32_LEAN_AND_MEAN
 
 LIBW_CFLAGS = -DVESMAIL_LOCAL \
+-DVESMAIL_LOCAL_SNIF \
 -DVESMAIL_STDPORTS \
--DVESMAIL_APP_BUILD=win
+-DVESMAIL_APP_BUILD=win \
+-DVESMAIL_X509STORE \
+-DVESMAIL_TLS_CLNMODE=SSL_MODE_RELEASE_BUFFERS \
+-DVESMAIL_TLS_SRVMODE=SSL_MODE_RELEASE_BUFFERS \
+-DVESMAIL_TLS_CLNOPTNS=SSL_OP_NO_COMPRESSION \
+-DVESMAIL_TLS_SRVOPTNS=SSL_OP_NO_COMPRESSION
+
 
 LDFLAGS=$(OPENSSL_PATH)\\lib\\VC\\libcrypto32MD.lib \
 $(OPENSSL_PATH)\\lib\\VC\\libssl32MD.lib \
@@ -43,8 +51,9 @@ COBJS=lib\\mail.obj lib\\optns.obj lib\\parse.obj lib\\header.obj lib\\xform.obj
 CLI_OBJS = srv\\guard.obj srv\\proc.obj srv\\daemon.obj srv\\conf.obj srv\\tls.obj \
     cli\\vesmail.obj cli\\help.obj cli\\tty.obj \
 
-LIBW_OBJS = srv\\local-libw.obj srv\\proc-libw.obj srv\\daemon-libw.obj \
-    srv\\conf-libw.obj srv\\tls-libw.obj
+LIBW_OBJS = srv\\local.wbj srv\\proc.wbj srv\\daemon.wbj \
+    srv\\conf.wbj srv\\tls.wbj srv\\x509store.wbj \
+    snif\\snif.wbj snif\\cert.wbj snif\\conn.wbj
 
 LIBW_LINKED=$(LDFLAGS)
 
@@ -54,20 +63,8 @@ all:	vesmail.exe
 .c.obj:
 	$(CC) $(CFLAGS) -Fo:$@ -c $<
 
-srv\\local-libw.obj:
-	$(CC) $(CFLAGS) $(LIBW_CFLAGS) -Fo:srv\\local-libw.obj -c srv\\local.c
-
-srv\\proc-libw.obj:
-	$(CC) $(CFLAGS) $(LIBW_CFLAGS) -Fo:srv\\proc-libw.obj -c srv\\proc.c
-
-srv\\daemon-libw.obj:
-	$(CC) $(CFLAGS) $(LIBW_CFLAGS) -Fo:srv\\daemon-libw.obj -c srv\\daemon.c
-
-srv\\conf-libw.obj:
-	$(CC) $(CFLAGS) $(LIBW_CFLAGS) -Fo:srv\\conf-libw.obj -c srv\\conf.c
-
-srv\\tls-libw.obj:
-	$(CC) $(CFLAGS) $(LIBW_CFLAGS) -Fo:srv\\tls-libw.obj -c srv\\tls.c
+.c.wbj:
+	$(CC) $(CFLAGS) $(LIBW_CFLAGS) -Fo:$@ -c $<
 
 applink.obj:
 	$(CC) $(CFLAGS) -Fo:$@ -c $(OPENSSL_PATH)\\include\\openssl\\applink.c

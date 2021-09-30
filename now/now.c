@@ -54,6 +54,8 @@
 #include "now_probe.h"
 #include "now.h"
 
+int (* VESmail_now_feedback_fn)(const char *fbk) = NULL;
+
 int VESmail_now_send(VESmail_server *srv, int final, const char *str) {
     return VESmail_xform_process(srv->rsp_out, final, str, strlen(str));
 }
@@ -87,6 +89,12 @@ int VESmail_now_send_status(VESmail_server *srv, int code) {
 	    break;
 	case 201:
 	    m = "Created";
+	    break;
+	case 202:
+	    m = "Accepted";
+	    break;
+	case 302:
+	    m = "Found";
 	    break;
 	case 400:
 	    m = "Bad Request";
@@ -136,7 +144,8 @@ int VESmail_now_sendcl(VESmail_server *srv, const char *body) {
 }
 
 int VESmail_now_sendhdrs(VESmail_server *srv) {
-    char **h = srv->optns->ref ? ((VESmail_conf *) srv->optns->ref)->now.headers : NULL;
+    VESmail_conf *conf = srv->optns->ref;
+    char **h = conf ? conf->now.headers : NULL;
     int rs = 0;
     if (h) while (*h) {
 	int r = VESmail_now_send(srv, 0, *h);
@@ -278,10 +287,23 @@ int VESmail_now_xform_fn_post(VESmail_xform *xform, int final, const char *src, 
 	free(fname);
 	libVES_VaultItem_free(vi);
     } else {
+	if (VESmail_now_feedback_fn) {
+	    jVar *fbk = jVar_get(req, "feedback");
+	    if (fbk) {
+		const char *fbks = jVar_getStringP(fbk);
+		static void *mutex = NULL;
+		VESmail_arch_mutex_lock(&mutex);
+		rs = VESmail_now_feedback_fn ? VESmail_now_feedback_fn(fbks) : VESMAIL_E_PARAM;
+		VESmail_arch_mutex_unlock(&mutex);
+		e = rs >= 0 ? 202 : 502;
+		VESmail_now_log(srv, "POST", e, "feedback", fbks, NULL);
+		return VESmail_now_error(srv, e, (rs >= 0 ? NULL : "Feedback not accepted"));
+	    }
+	}
 	er = "Required: messageId | probe\r\n";
     }
     libVES_free(ves);
-    VESmail_now_log(srv, "POST", e, "msgid", msgid);
+    VESmail_now_log(srv, "POST", e, "msgid", msgid, NULL);
     libVES_cleanseJVar(req);
     jVar_free(req);
     return e == 200 ? rs : VESmail_now_error(srv, e, er);
@@ -319,17 +341,29 @@ int VESmail_now_xform_fn_get(VESmail_xform *xform, int final, const char *src, i
     }
 }
 
+int VESmail_now_process_chain(VESmail_xform *xform, int final, const char *src, int srclen) {
+    if (xform->offset < 0) {
+	xform->offset += srclen;
+	if (xform->offset >= -1) {
+	    xform->server->flags |= VESMAIL_SRVF_SHUTDOWN;
+	    final = 1;
+	}
+    }
+    return VESmail_xform_process(xform->chain, final, src, srclen);
+}
+
 int VESmail_now_xform_fn_req(VESmail_xform *xform, int final, const char *src, int *srclen) {
     if (!src) return 0;
     if (final && !(xform->server->flags & VESMAIL_SRVF_SHUTDOWN)) {
 	if (xform->server->flags & VESMAIL_SRVF_TMOUT) VESmail_now_send_status(xform->server, 408);
 	xform->server->flags |= VESMAIL_SRVF_SHUTDOWN;
     }
-    if (xform->chain) return VESmail_xform_process(xform->chain, final, src, *srclen);
+    if (xform->chain) return VESmail_now_process_chain(xform, final, src, *srclen);
     const char *s = src;
     const char *tail = s + *srclen;
     const char *s2;
     char fcont = 0;
+    int clen = -1;
     while (s < tail && (s2 = memchr(s, '\n', tail - s))) {
 	if (s2 - s > VESMAIL_NOW_REQ_SAFEBYTES) return VESMAIL_E_BUF;
 	switch (s2 - s) {
@@ -348,19 +382,52 @@ int VESmail_now_xform_fn_req(VESmail_xform *xform, int final, const char *src, i
 		    }
 		}
 		*d = 0;
+		const char *url = s;
 		s = s2 + 1;
 		if (!strcmp(vbuf, "POST")) {
 		    if (fcont) VESmail_now_cont(xform->server);
 		    xform->chain = VESmail_xform_new(&VESmail_now_xform_fn_post, NULL, xform->server);
 		    xform->chain->freefn = &VESmail_now_xform_fn_post_free;
-		    return VESmail_xform_process(xform->chain, final, s, tail - s);
+		    return VESmail_now_process_chain(xform, final, s, tail - s);
 		} else if (!strcmp(vbuf, "GET")) {
+		    const char *u = url;
+		    const char *utail = memchr(url, ' ', tail - url);
+		    if (utail) {
+			while ((u = memchr(u, '/', utail - u))) {
+			    if (u < utail - 5 && !memcmp(u + 1, "e2e/", 4)) {
+				u += 4;
+				char *q = memchr(u, '?', utail - u);
+				int rs = VESmail_now_send_status(xform->server, 302);
+				if (rs < 0) return rs;
+				int r = VESmail_now_send(xform->server, 0, "Location: " VESMAIL_NOW_E2EURL);
+				if (r < 0) return r;
+				rs += r;
+				if (q) {
+				    r = VESmail_xform_process(xform->server->rsp_out, 0, u, q - u);
+				    if (r < 0) return r;
+				    rs += r;
+				    r = VESmail_now_send(xform->server, 0, "#");
+				    if (r < 0) return r;
+				    rs += r;
+				    u = q + 1;
+				}
+				r = VESmail_xform_process(xform->server->rsp_out, 0, u, utail - u);
+				if (r < 0) return r;
+				rs += r;
+				r = VESmail_now_send(xform->server, 1, "\r\n\r\n");
+				if (r < 0) return r;
+				xform->server->flags |= VESMAIL_SRVF_SHUTDOWN;
+				return rs + r;
+			    }
+			    u++;
+			}
+		    }
 		    xform->chain = VESmail_xform_new(&VESmail_now_xform_fn_get, NULL, xform->server);
-		    return VESmail_xform_process(xform->chain, 1, s, 0);
+		    return VESmail_xform_process(xform->chain, 1, "", 0);
 		} else if (!strcmp(vbuf, "PUT")) {
 		    if ((xform->chain = VESmail_now_store_put(xform->server))) {
 			if (fcont) VESmail_now_cont(xform->server);
-			return VESmail_xform_process(xform->chain, final, s, tail - s);
+			return VESmail_now_process_chain(xform, final, s, tail - s);
 		    }
 		} else if (!strcmp(vbuf, "OPTIONS")) {
 		    VESmail_now_log(xform->server, "OPTIONS", 200, NULL);
@@ -403,6 +470,8 @@ int VESmail_now_xform_fn_req(VESmail_xform *xform, int final, const char *src, i
 		    *d = 0;
 		    if (!strcmp(buf, "expect:100-continue")) {
 			fcont = 1;
+		    } else if (sscanf(buf, "content-length:%d", &clen) == 1 && clen >= 0) {
+			xform->offset = -1 - clen;
 		    }
 		}
 		break;
@@ -414,8 +483,7 @@ int VESmail_now_xform_fn_req(VESmail_xform *xform, int final, const char *src, i
 }
 
 int VESmail_now_idle(VESmail_server *srv, int tmout) {
-    if (tmout < 20) return 0;
-    srv->flags |= VESMAIL_SRVF_TMOUT;
+    if ((srv->tmout = VESMAIL_NOW_TMOUT - tmout) <= 0) srv->flags |= VESMAIL_SRVF_TMOUT;
     return 0;
 }
 

@@ -45,7 +45,7 @@ enum VESmail_imap_state {
     VESMAIL_IMAP_S_CONN,
     VESMAIL_IMAP_S_LOGIN,
     VESMAIL_IMAP_S_PROXY,
-    VESMAIL_IMAP_S_SHUTDOWN
+    VESMAIL_IMAP_S_FAIL
 };
 
 typedef struct VESmail_imap {
@@ -161,5 +161,18 @@ struct VESmail_imap_token *VESmail_imap_caps(struct VESmail_server *srv, struct 
 	if (err >= 0) return err;\
     }\
 }
+
+#ifndef VESMAIL_IMAP_TMOUT_LOGIN
+#define	VESMAIL_IMAP_TMOUT_LOGIN	30
+#endif
+#ifndef VESMAIL_IMAP_TMOUT_CMD
+#define	VESMAIL_IMAP_TMOUT_CMD		900
+#endif
+#ifndef VESMAIL_IMAP_TMOUT_IDLE
+#define	VESMAIL_IMAP_TMOUT_IDLE		1800
+#endif
+#ifndef VESMAIL_IMAP_TMOUT_DATA
+#define	VESMAIL_IMAP_TMOUT_DATA		1800
+#endif
 
 void VESmail_imap_reset(struct VESmail_server *srv);

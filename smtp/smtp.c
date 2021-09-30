@@ -79,9 +79,10 @@ int VESmail_smtp_debug_flush(VESmail_server *srv, int code, int dsn) {
 }
 
 int VESmail_smtp_idle(VESmail_server *srv, int tmout) {
-    if (tmout < srv->tmout.unauthd) return 0;
-    if (srv->req_out && (tmout < srv->tmout.authd || (VESMAIL_SMTP(srv)->state >= VESMAIL_SMTP_S_DATA && tmout < srv->tmout.data))) return 0;
-    srv->flags |= VESMAIL_SRVF_TMOUT;
+    int t = srv->req_out ?
+	(VESMAIL_SMTP(srv)->state >= VESMAIL_SMTP_S_DATA ? VESMAIL_SMTP_TMOUT_DATA : VESMAIL_SMTP_TMOUT_CMD)
+	: VESMAIL_SMTP_TMOUT_LOGIN;
+    if ((srv->tmout = t - tmout) <= 0) srv->flags |= VESMAIL_SRVF_TMOUT;
     return 0;
 }
 

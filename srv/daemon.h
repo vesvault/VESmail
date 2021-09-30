@@ -58,11 +58,25 @@ typedef struct VESmail_daemon {
 
 
 #define	VESMAIL_DMF_KEEPSOCK		0x01
+#define	VESMAIL_DMF_RECONNECT		0x02
 
-// SIGHUP, SIGINT
+#define	VESMAIL_DMSK_NONE		-1
+#define	VESMAIL_DMSK_DOWN		-2
+
+
+#ifndef VESMAIL_DAEMON_AF
+#define	VESMAIL_DAEMON_AF	AF_UNSPEC
+#endif
+
+
+// SIGHUP
+#ifndef VESMAIL_DAEMON_SIG_BRK
+#define VESMAIL_DAEMON_SIG_BRK		1
+#endif
+
+// SIGINT
 #ifndef VESMAIL_DAEMON_SIG_DOWN
-#define VESMAIL_DAEMON_SIG_DOWN		1
-#define VESMAIL_DAEMON_SIG_DOWN2	2
+#define VESMAIL_DAEMON_SIG_DOWN		2
 #endif
 
 // SIGTERM
@@ -83,5 +97,6 @@ int VESmail_daemon_shutdown(struct VESmail_daemon *daemon);
 struct VESmail_daemon **VESmail_daemon_execute(struct VESmail_conf_daemon *cds);
 int VESmail_daemon_launchall(struct VESmail_daemon **daemons);
 int VESmail_daemon_watchall(struct VESmail_daemon **daemons, void (* watchfn)(struct VESmail_proc *proc, void *arg), void *arg);
+void VESmail_daemon_killall(struct VESmail_daemon **daemons);
 void VESmail_daemon_freeall(struct VESmail_daemon **daemons);
 #define	VESmail_daemon_cleanup()	VESmail_proc_cleanup()

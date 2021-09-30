@@ -108,6 +108,16 @@ enum VESmail_smtp_verb { VESMAIL_SMTP_VERBS() VESMAIL_SMTP_V__END };
 extern const char *VESmail_smtp_verbs[];
 extern const char *VESmail_smtp_modes[];
 
+#ifndef VESMAIL_SMTP_TMOUT_LOGIN
+#define	VESMAIL_SMTP_TMOUT_LOGIN	30
+#endif
+#ifndef VESMAIL_SMTP_TMOUT_CMD
+#define	VESMAIL_SMTP_TMOUT_CMD		120
+#endif
+#ifndef VESMAIL_SMTP_TMOUT_DATA
+#define	VESMAIL_SMTP_TMOUT_DATA		900
+#endif
+
 struct VESmail_server *VESmail_server_new_smtp(struct VESmail_optns *optns);
 int VESmail_smtp_debug_flush(struct VESmail_server *srv, int code, int dsn);
 #define VESmail_smtp_get_bcc(srv)	(srv->optns->bcc)

@@ -76,11 +76,14 @@ POST_INSTALL = :
 NORMAL_UNINSTALL = :
 PRE_UNINSTALL = :
 POST_UNINSTALL = :
-@VESMAIL_CURLSH_TRUE@am__append_1 = srv/curlsh.c
-@VESMAIL_CURLSH_TRUE@am__append_2 = srv/curlsh.h
+@VESMAIL_X509STORE_TRUE@am__append_1 = srv/x509store.c
+@VESMAIL_X509STORE_TRUE@am__append_2 = srv/x509store.h
+@VESMAIL_CURLSH_TRUE@am__append_3 = srv/curlsh.c
+@VESMAIL_CURLSH_TRUE@am__append_4 = srv/curlsh.h
 bin_PROGRAMS = vesmail$(EXEEXT)
-@HAVE_PTHREAD_H_TRUE@am__append_3 = -lpthread
-@VESMAIL_CURLSH_TRUE@am__append_4 = -DVESMAIL_CURLSH
+@HAVE_PTHREAD_H_TRUE@am__append_5 = -lpthread
+@VESMAIL_X509STORE_TRUE@am__append_6 = -DVESMAIL_X509STORE
+@VESMAIL_CURLSH_TRUE@am__append_7 = -DVESMAIL_CURLSH
 subdir = .
 DIST_COMMON = INSTALL NEWS README AUTHORS ChangeLog \
 	$(srcdir)/Makefile.in $(srcdir)/Makefile.am \
@@ -107,19 +110,20 @@ am__vesmail_SOURCES_DIST = lib/mail.c lib/optns.c lib/parse.c \
 	lib/encrypt.c lib/decrypt.c lib/banner.c lib/util.c \
 	srv/server.c srv/arch.c srv/tls.c srv/sasl.c srv/conf.c \
 	srv/daemon.c srv/proc.c srv/override.c srv/guard.c \
-	srv/curlsh.c imap/imap.c imap/imap_xform.c imap/imap_token.c \
-	imap/imap_track.c imap/imap_start.c imap/imap_proxy.c \
-	imap/imap_msg.c imap/imap_fetch.c imap/imap_result.c \
-	imap/imap_result_proc.c imap/imap_sect.c imap/imap_append.c \
-	imap/imap_xves.c smtp/smtp.c smtp/smtp_cmd.c smtp/smtp_reply.c \
-	smtp/smtp_track.c smtp/smtp_start.c smtp/smtp_proxy.c \
-	smtp/smtp_xves.c now/now.c now/now_store.c now/now_probe.c \
-	cli/vesmail.c cli/help.c cli/tty.c lib/mail.h lib/optns.h \
-	lib/parse.h lib/header.h lib/xform.h lib/multi.h lib/cte.h \
-	lib/ves.h lib/encrypt.h lib/decrypt.h lib/banner.h lib/util.h \
-	srv/server.h srv/arch.h srv/tls.h srv/sasl.h srv/conf.h \
-	srv/daemon.h srv/proc.h srv/override.h srv/guard.h \
-	srv/curlsh.h imap/imap.h imap/imap_xform.h imap/imap_token.h \
+	srv/x509store.c srv/curlsh.c imap/imap.c imap/imap_xform.c \
+	imap/imap_token.c imap/imap_track.c imap/imap_start.c \
+	imap/imap_proxy.c imap/imap_msg.c imap/imap_fetch.c \
+	imap/imap_result.c imap/imap_result_proc.c imap/imap_sect.c \
+	imap/imap_append.c imap/imap_xves.c smtp/smtp.c \
+	smtp/smtp_cmd.c smtp/smtp_reply.c smtp/smtp_track.c \
+	smtp/smtp_start.c smtp/smtp_proxy.c smtp/smtp_xves.c now/now.c \
+	now/now_store.c now/now_probe.c cli/vesmail.c cli/help.c \
+	cli/tty.c lib/mail.h lib/optns.h lib/parse.h lib/header.h \
+	lib/xform.h lib/multi.h lib/cte.h lib/ves.h lib/encrypt.h \
+	lib/decrypt.h lib/banner.h lib/util.h srv/server.h srv/arch.h \
+	srv/tls.h srv/sasl.h srv/conf.h srv/daemon.h srv/proc.h \
+	srv/override.h srv/guard.h srv/x509store.h srv/curlsh.h \
+	imap/imap.h imap/imap_xform.h imap/imap_token.h \
 	imap/imap_track.h imap/imap_start.h imap/imap_proxy.h \
 	imap/imap_msg.h imap/imap_fetch.h imap/imap_result.h \
 	imap/imap_sect.h imap/imap_append.h imap/imap_xves.h \
@@ -135,14 +139,16 @@ am__objects_1 = lib/vesmail-mail.$(OBJEXT) lib/vesmail-optns.$(OBJEXT) \
 	lib/vesmail-cte.$(OBJEXT) lib/vesmail-ves.$(OBJEXT) \
 	lib/vesmail-encrypt.$(OBJEXT) lib/vesmail-decrypt.$(OBJEXT) \
 	lib/vesmail-banner.$(OBJEXT) lib/vesmail-util.$(OBJEXT)
-@VESMAIL_CURLSH_TRUE@am__objects_2 = srv/vesmail-curlsh.$(OBJEXT)
-am__objects_3 = srv/vesmail-server.$(OBJEXT) \
+@VESMAIL_X509STORE_TRUE@am__objects_2 =  \
+@VESMAIL_X509STORE_TRUE@	srv/vesmail-x509store.$(OBJEXT)
+@VESMAIL_CURLSH_TRUE@am__objects_3 = srv/vesmail-curlsh.$(OBJEXT)
+am__objects_4 = srv/vesmail-server.$(OBJEXT) \
 	srv/vesmail-arch.$(OBJEXT) srv/vesmail-tls.$(OBJEXT) \
 	srv/vesmail-sasl.$(OBJEXT) srv/vesmail-conf.$(OBJEXT) \
 	srv/vesmail-daemon.$(OBJEXT) srv/vesmail-proc.$(OBJEXT) \
 	srv/vesmail-override.$(OBJEXT) srv/vesmail-guard.$(OBJEXT) \
-	$(am__objects_2)
-am__objects_4 = imap/vesmail-imap.$(OBJEXT) \
+	$(am__objects_2) $(am__objects_3)
+am__objects_5 = imap/vesmail-imap.$(OBJEXT) \
 	imap/vesmail-imap_xform.$(OBJEXT) \
 	imap/vesmail-imap_token.$(OBJEXT) \
 	imap/vesmail-imap_track.$(OBJEXT) \
@@ -155,27 +161,27 @@ am__objects_4 = imap/vesmail-imap.$(OBJEXT) \
 	imap/vesmail-imap_sect.$(OBJEXT) \
 	imap/vesmail-imap_append.$(OBJEXT) \
 	imap/vesmail-imap_xves.$(OBJEXT)
-am__objects_5 = smtp/vesmail-smtp.$(OBJEXT) \
+am__objects_6 = smtp/vesmail-smtp.$(OBJEXT) \
 	smtp/vesmail-smtp_cmd.$(OBJEXT) \
 	smtp/vesmail-smtp_reply.$(OBJEXT) \
 	smtp/vesmail-smtp_track.$(OBJEXT) \
 	smtp/vesmail-smtp_start.$(OBJEXT) \
 	smtp/vesmail-smtp_proxy.$(OBJEXT) \
 	smtp/vesmail-smtp_xves.$(OBJEXT)
-am__objects_6 = now/vesmail-now.$(OBJEXT) \
+am__objects_7 = now/vesmail-now.$(OBJEXT) \
 	now/vesmail-now_store.$(OBJEXT) \
 	now/vesmail-now_probe.$(OBJEXT)
-am__objects_7 = cli/vesmail-vesmail.$(OBJEXT) \
+am__objects_8 = cli/vesmail-vesmail.$(OBJEXT) \
 	cli/vesmail-help.$(OBJEXT) cli/vesmail-tty.$(OBJEXT)
-am__objects_8 =
-am__objects_9 = $(am__objects_8)
-am__objects_10 = util/vesmail-jTree.$(OBJEXT)
-am_vesmail_OBJECTS = $(am__objects_1) $(am__objects_3) \
-	$(am__objects_4) $(am__objects_5) $(am__objects_6) \
-	$(am__objects_7) $(am__objects_8) $(am__objects_9) \
-	$(am__objects_8) $(am__objects_8) $(am__objects_8) \
-	$(am__objects_8) $(am__objects_10) $(am__objects_8) \
-	$(am__objects_8)
+am__objects_9 =
+am__objects_10 = $(am__objects_9) $(am__objects_9)
+am__objects_11 = util/vesmail-jTree.$(OBJEXT)
+am_vesmail_OBJECTS = $(am__objects_1) $(am__objects_4) \
+	$(am__objects_5) $(am__objects_6) $(am__objects_7) \
+	$(am__objects_8) $(am__objects_9) $(am__objects_10) \
+	$(am__objects_9) $(am__objects_9) $(am__objects_9) \
+	$(am__objects_9) $(am__objects_11) $(am__objects_9) \
+	$(am__objects_9)
 vesmail_OBJECTS = $(am_vesmail_OBJECTS)
 am__DEPENDENCIES_1 =
 vesmail_DEPENDENCIES = $(am__DEPENDENCIES_1)
@@ -375,10 +381,10 @@ lib/util.h
 
 SRV_CFILES = srv/server.c srv/arch.c srv/tls.c srv/sasl.c srv/conf.c \
 	srv/daemon.c srv/proc.c srv/override.c srv/guard.c \
-	$(am__append_1)
+	$(am__append_1) $(am__append_3)
 SRV_HFILES = srv/server.h srv/arch.h srv/tls.h srv/sasl.h srv/conf.h \
 	srv/daemon.h srv/proc.h srv/override.h srv/guard.h \
-	$(am__append_2)
+	$(am__append_2) $(am__append_4)
 IMAP_CFILES = imap/imap.c \
 imap/imap_xform.c \
 imap/imap_token.c \
@@ -441,8 +447,8 @@ cli/tty.h
 UTIL_CFILES = util/jTree.c
 UTIL_HFILES = util/jTree.h
 VESMAIL_HFILES = VESmail.h
-vesmail_LDADD = -lVES -lcrypto -lcurl -lssl $(am__append_3)
-vesmail_CFLAGS = $(am__append_4)
+vesmail_LDADD = -lVES -lcrypto -lcurl -lssl $(am__append_5)
+vesmail_CFLAGS = $(am__append_6) $(am__append_7)
 vesmail_SOURCES = $(LIB_CFILES) $(SRV_CFILES) $(IMAP_CFILES) $(SMTP_CFILES) $(NOW_CFILES) $(CLI_CFILES) \
 $(LIB_HFILES) $(SRV_HFILES) $(IMAP_HFILES) $(SMTP_HFILES) $(NOW_HFILES) $(CLI_HFILES) $(UTIL_CFILES) $(UTIL_HFILES) \
 $(VESMAIL_HFILES)
@@ -597,6 +603,8 @@ srv/vesmail-override.$(OBJEXT): srv/$(am__dirstamp) \
 	srv/$(DEPDIR)/$(am__dirstamp)
 srv/vesmail-guard.$(OBJEXT): srv/$(am__dirstamp) \
 	srv/$(DEPDIR)/$(am__dirstamp)
+srv/vesmail-x509store.$(OBJEXT): srv/$(am__dirstamp) \
+	srv/$(DEPDIR)/$(am__dirstamp)
 srv/vesmail-curlsh.$(OBJEXT): srv/$(am__dirstamp) \
 	srv/$(DEPDIR)/$(am__dirstamp)
 imap/$(am__dirstamp):
@@ -749,6 +757,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@srv/$(DEPDIR)/vesmail-sasl.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@srv/$(DEPDIR)/vesmail-server.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@srv/$(DEPDIR)/vesmail-tls.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@srv/$(DEPDIR)/vesmail-x509store.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@util/$(DEPDIR)/vesmail-jTree.Po@am__quote@
 
 .c.o:
@@ -1060,6 +1069,20 @@ srv/vesmail-guard.obj: srv/guard.c
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='srv/guard.c' object='srv/vesmail-guard.obj' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(vesmail_CFLAGS) $(CFLAGS) -c -o srv/vesmail-guard.obj `if test -f 'srv/guard.c'; then $(CYGPATH_W) 'srv/guard.c'; else $(CYGPATH_W) '$(srcdir)/srv/guard.c'; fi`
+
+srv/vesmail-x509store.o: srv/x509store.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(vesmail_CFLAGS) $(CFLAGS) -MT srv/vesmail-x509store.o -MD -MP -MF srv/$(DEPDIR)/vesmail-x509store.Tpo -c -o srv/vesmail-x509store.o `test -f 'srv/x509store.c' || echo '$(srcdir)/'`srv/x509store.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) srv/$(DEPDIR)/vesmail-x509store.Tpo srv/$(DEPDIR)/vesmail-x509store.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='srv/x509store.c' object='srv/vesmail-x509store.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(vesmail_CFLAGS) $(CFLAGS) -c -o srv/vesmail-x509store.o `test -f 'srv/x509store.c' || echo '$(srcdir)/'`srv/x509store.c
+
+srv/vesmail-x509store.obj: srv/x509store.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(vesmail_CFLAGS) $(CFLAGS) -MT srv/vesmail-x509store.obj -MD -MP -MF srv/$(DEPDIR)/vesmail-x509store.Tpo -c -o srv/vesmail-x509store.obj `if test -f 'srv/x509store.c'; then $(CYGPATH_W) 'srv/x509store.c'; else $(CYGPATH_W) '$(srcdir)/srv/x509store.c'; fi`
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) srv/$(DEPDIR)/vesmail-x509store.Tpo srv/$(DEPDIR)/vesmail-x509store.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='srv/x509store.c' object='srv/vesmail-x509store.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(vesmail_CFLAGS) $(CFLAGS) -c -o srv/vesmail-x509store.obj `if test -f 'srv/x509store.c'; then $(CYGPATH_W) 'srv/x509store.c'; else $(CYGPATH_W) '$(srcdir)/srv/x509store.c'; fi`
 
 srv/vesmail-curlsh.o: srv/curlsh.c
 @am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(vesmail_CFLAGS) $(CFLAGS) -MT srv/vesmail-curlsh.o -MD -MP -MF srv/$(DEPDIR)/vesmail-curlsh.Tpo -c -o srv/vesmail-curlsh.o `test -f 'srv/curlsh.c' || echo '$(srcdir)/'`srv/curlsh.c

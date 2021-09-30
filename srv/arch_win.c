@@ -42,8 +42,15 @@
 const char *VESmail_arch_NAME = "Win32";
 WSADATA VESmail_arch_win_WSAdata;
 
+static void *VESmail_arch_mutex_master;
+
 void VESmail_arch_init() {
     WSAStartup(MAKEWORD(2, 2), &VESmail_arch_win_WSAdata);
+    VESmail_arch_mutex_master = CreateMutex(NULL, 0, NULL);
+}
+
+void VESmail_arch_done() {
+    CloseHandle(VESmail_arch_mutex_master);
 }
 
 int VESmail_arch_sigaction(int sig, void (* sigfn)(int)) {
@@ -98,7 +105,10 @@ void VESmail_arch_thread_done(void *th) {
 
 int VESmail_arch_mutex_lock(void **pmutex) {
     if (!*pmutex) {
-	*pmutex = CreateMutex(NULL, 0, NULL);
+	if (WaitForSingleObject(VESmail_arch_mutex_master, INFINITE) == WAIT_OBJECT_0 && !*pmutex) {
+	    *pmutex = CreateMutex(NULL, 0, NULL);
+	     ReleaseMutex(VESmail_arch_mutex_master);
+	}
 	if (!*pmutex) return VESMAIL_E_IO;
     }
     DWORD r = WaitForSingleObject(*pmutex, INFINITE);
@@ -115,7 +125,7 @@ void VESmail_arch_mutex_done(void *mutex) {
 }
 
 
-int VESmail_arch_poll(int len, ...) {
+int VESmail_arch_polltm(long tmout, int len, ...) {
     int r, i;
     WSAPOLLFD pl[4];
     va_list va;
@@ -126,7 +136,7 @@ int VESmail_arch_poll(int len, ...) {
 	pl[i].events = POLLIN;
     }
     va_end(va);
-    r = WSAPoll(pl, len, VESMAIL_POLL_TMOUT * 1000);
+    r = WSAPoll(pl, len, tmout * 1000);
     return r < 0 ? VESMAIL_E_IO : 0;
 }
 
@@ -162,8 +172,19 @@ int VESmail_arch_setlinebuf(void *file) {
     return setvbuf(file, NULL, _IONBF, 0);
 }
 
+int VESmail_arch_keepalive(int fd) {
+    long flg = 1;
+    setsockopt(fd, SOL_SOCKET, SO_KEEPALIVE, (void *)&flg, sizeof(flg));
+    return 0;
+}
+
 int VESmail_arch_close(int fd) {
     return close(fd);
+}
+
+int VESmail_arch_shutdown(int fd) {
+    shutdown(fd, SD_BOTH);
+    return closesocket(fd);
 }
 
 int VESmail_arch_vlog(const char *fmt, va_list va) {
