@@ -152,6 +152,13 @@ snifl_lstn VESmail_tunl_tcpfuncs[] = {
 	.arg = &VESmail_tunl_acpt
     },
     {
+	.func = &snifl_tcp_accept,
+	.lport = 587,
+	.rport = 0,
+	.addr = NULL,
+	.arg = &VESmail_tunl_acpt
+    },
+    {
 	.func = &snifl_tcp_reset,
 	.lport = 0,
 	.rport = 0,
@@ -207,6 +214,14 @@ VESmail_tls_server VESmail_tunl_tls = {
     .level = VESMAIL_TLS_HIGH,
     .persist = 1,
     .snifn = NULL
+};
+VESmail_tls_server VESmail_tunl_starttls = {
+    .ctx = NULL,
+    .level = VESMAIL_TLS_HIGH,
+    .persist = 0,
+    .snifn = NULL,
+    .cert = "",
+    .key = ""
 };
 
 char VESmail_tunl_dnsaddr_v4[16] = "";
@@ -288,8 +303,9 @@ int VESmail_tunl_accept(snifl_sock *sock, const snifl_accept *ac) {
 	    if (!strcmp(dsock->daemon->type, "now")) {
 		proc->server->optns = VESmail_snif_mftconf(snif, dsock->daemon->conf)->optns;
 	    }
-	    VESmail_tunl_tls.ctx = snif->tls->ctx;
-	    proc->server->tls.server = &VESmail_tunl_tls;
+	    VESmail_tls_server *tls = tp->snifport->tls ? &VESmail_tunl_tls : &VESmail_tunl_starttls;
+	    tls->ctx = snif->tls->ctx;
+	    proc->server->tls.server = tls;
 	    proc->chain = dsock->procs;
 	    dsock->procs = proc;
 	} else connr = VESMAIL_E_TLS;

@@ -307,6 +307,14 @@ int VESmail_imap_result_commit(VESmail_imap_result *rslt) {
 		rs += r;
 	    }
 	    default:
+		if (rr->token && rr->token->hold) {
+		    VESmail_imap_token *lst = rr->token->list[3]->list[0];
+		    int i;
+		    for (i = 0; i < lst->len; i++) if (lst->list[i] == rr->token->hold) break;
+		    VESmail_imap_token_splice(lst, i + 1, lst->len, 0);
+		    int r = VESmail_imap_result_send(rr);
+		    if (r < 0) return r;
+		}
 		VESmail_imap_result_free(rr);
 		break;
 	}

@@ -58,13 +58,13 @@ int VESmail_imap_rsp_send_hello(VESmail_server *srv) {
 	    VESmail_imap_token_atom(VESmail_server_ERRCODE(VESMAIL_E_ABUSE) " Too many login attempts, try again later.")
 	);
 	srv->flags |= VESMAIL_SRVF_SHUTDOWN;
-    } else {
+    } else if (!(srv->flags & VESMAIL_SRVF_QUIET)) {
 	rsp = VESmail_imap_rsp_new(NULL, "OK");
 	VESmail_imap_token_splice(rsp, -1, 0, 2,
 	    VESmail_imap_token_lset(VESmail_imap_caps(srv, VESmail_imap_token_index(1, VESmail_imap_token_atom("CAPABILITY")), 1)),
 	    VESmail_imap_token_atom(VESMAIL_SHORT_NAME " ready.")
 	);
-    }
+    } else return 0;
     int rs = VESmail_imap_rsp_send(srv, rsp);
     VESmail_imap_token_free(rsp);
     return rs;

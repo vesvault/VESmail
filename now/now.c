@@ -493,7 +493,8 @@ void VESmail_now_debug(VESmail_server *srv, const char *msg) {
     VESmail_now_send(srv, 0, "\r\n\r\n");
 }
 
-void VESmail_now_fn_free(VESmail_server *srv) {
+void VESmail_now_fn_free(VESmail_server *srv, int final) {
+    if (!final) return;
     VESmail_xform_free(srv->req_in->chain);
 }
 

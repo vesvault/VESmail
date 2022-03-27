@@ -115,6 +115,7 @@ VESmail_imap_token *VESmail_imap_token_splice(VESmail_imap_token *list, int offs
     int l = (list->len - dlen + ilen) & ~0x0f;
     if (!list->list || l > (list->len & ~0x0f)) list->list = realloc(list->list, (l + 16) * sizeof(*(list->list)));
     if (offs < 0) offs += list->len + 1;
+    if (offs + dlen > list->len) dlen = list->len - offs;
     int i;
     for (i = 0; i < dlen; i++) VESmail_imap_token_free(list->list[offs + i]);
     int mvl = list->len - offs - dlen;

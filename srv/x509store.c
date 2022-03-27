@@ -70,7 +70,10 @@ int VESmail_x509store_caBundle(const char *fname) {
     if (!VESmail_x509store) {
 	VESmail_x509store = X509_STORE_new();
     }
-    return X509_STORE_load_locations(VESmail_x509store, fname, NULL) > 0 ? 0 : VESMAIL_E_TLS;
+    return (fname
+	? X509_STORE_load_locations(VESmail_x509store, fname, NULL)
+	: X509_STORE_set_default_paths(VESmail_x509store)
+    ) > 0 ? 0 : VESMAIL_E_TLS;
 }
 
 static CURLcode VESmail_x509store_fn_curlctx(CURL *curl, void *sslctx, void *parm) {

@@ -160,6 +160,7 @@ int VESmail_snif_xform_fn(VESmail_xform *xform, int final, const char *src, int 
 		snif_conn_forward(&p, sizeof(buf), conn);
 		VESmail_proc *proc = VESmail_proc_init(malloc(sizeof(VESmail_proc) + sizeof(struct VESmail_snif_proc)), sock->daemon, fd);
 		if (proc) {
+		    if (!port->tls) proc->server->flags |= VESMAIL_SRVF_QUIET;
 		    int w = VESmail_xform_process(proc->server->rsp_out, 0, buf, p - buf);
 		    int lck = snif->mutex ? VESmail_arch_mutex_lock(&snif->mutex) : -1;
 		    if (w >= 0 && VESmail_snif_tlsctx(snif)) {
@@ -319,7 +320,8 @@ int VESmail_snif_msg(VESmail_server *srv, const char *msg) {
     return l;
 }
 
-void VESmail_snif_fn_free(VESmail_server *srv) {
+void VESmail_snif_fn_free(VESmail_server *srv, int final) {
+    if (!final) return;
     VESmail_snif *snif = (VESmail_snif *)&srv->ctl;
     srv->flags |= VESMAIL_SRVF_KILL;
     VESmail_arch_thread_kill(snif->thread);

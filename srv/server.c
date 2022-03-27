@@ -137,6 +137,7 @@ int VESmail_server_fn_bio_out(VESmail_xform *xform, int final, const char *src, 
 	}
 	xform->server->lastwrite = time(NULL);
 #if VESMAIL_DEBUG_DUMP
+	VESmail_server_dump(xform->server->dumpfd, "\n\n~~~~>>>>VESmail-dump\n", 23);
 	VESmail_server_dump(xform->server->dumpfd, src, w);
 #endif
 	if (!final) return *srclen = w;
@@ -175,6 +176,7 @@ int VESmail_server_bio_read(BIO *bio, VESmail_xform *chain, int nb) {
 	    }
 #if VESMAIL_DEBUG_DUMP
 	} else {
+	    VESmail_server_dump(chain->server->dumpfd, "\n\n~~~~<<<<VESmail-dump\n", 23);
 	    VESmail_server_dump(chain->server->dumpfd, buf, rd);
 #endif
 	}
@@ -600,8 +602,9 @@ int VESmail_server_abuse_user(VESmail_server *srv, int val) {
 
 void VESmail_server_shutdown(VESmail_server *srv) {
     if (!srv || (srv->flags & VESMAIL_SRVF_DONE)) return;
+    if (srv->freefn) srv->freefn(srv, 0);
     VESmail_server_disconnect(srv);
-    if (srv->freefn) srv->freefn(srv);
+    if (srv->freefn) srv->freefn(srv, 1);
     VESmail_tls_server_done(srv);
     BIO_free_all(srv->req_bio);
     srv->req_bio = NULL;

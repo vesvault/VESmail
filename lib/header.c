@@ -123,15 +123,18 @@ int VESmail_header_keys_values(const char *str, int len, void (* cb)(void *arg, 
     int ct = 0;
     char q = 0;
     while (s < tail) {
-	char c = *s++;
+	unsigned char c = *s++;
 	if (c == '\\') {
 	    *d++ = c;
 	    if (s >= tail) break;
 	    c = *s++;
+	    if (c >= ' ') *d++ = c;
+	    continue;
 	}
 	if (q) {
 	    if (c == q) q = 0;
-	    else *d++ = c;
+	    else if (c == 9) *d++ = ' ';
+	    else if (c >= ' ') *d++ = c;
 	} else switch (c) {
 	    case ' ': case 9: case 10: case 13:
 		break;
@@ -152,6 +155,7 @@ int VESmail_header_keys_values(const char *str, int len, void (* cb)(void *arg, 
 		val = d;
 		break;
 	    default:
+		if (c < ' ') break;
 		*d++ = (!val && c >= 'A' && c <= 'Z') ? c + 0x20 : c;
 		break;
 	}

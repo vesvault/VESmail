@@ -63,7 +63,7 @@ int VESmail_smtp_start_ready(VESmail_server *srv) {
     if (VESmail_server_abuse_peer(srv, 0) < 0) {
 	VESMAIL_SMTP_SENDLN(srv, 421, 0, VESMAIL_SMTP_RF_FINAL, VESmail_server_ERRCODE(VESMAIL_E_ABUSE) " Too many login attempts, try later", rs)
 	srv->flags |= VESMAIL_SRVF_SHUTDOWN;
-    } else {
+    } else if (!(srv->flags & VESMAIL_SRVF_QUIET)) {
 	VESMAIL_SMTP_SENDLN(srv, 220, 0, VESMAIL_SMTP_RF_FINAL | VESMAIL_SMTP_RF_NOEOL, srv->host, rs)
 	VESMAIL_SMTP_SENDLN(srv, 0, 0, 0, " ESMTP VESmail ready.", rs)
     }

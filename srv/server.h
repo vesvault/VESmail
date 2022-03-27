@@ -43,7 +43,7 @@ typedef struct VESmail_server {
     struct VESmail_xform *rsp_out;
     int (*idlefn)(struct VESmail_server *, int);
     void (* debugfn)(struct VESmail_server *, const char *);
-    void (* freefn)(struct VESmail_server *);
+    void (* freefn)(struct VESmail_server *, int final);
     struct libVES *ves;
     struct VESmail_optns *optns;
     struct jVar *uconf;
@@ -96,6 +96,8 @@ typedef struct VESmail_server {
 
 #define	VESMAIL_SRVF_TLSS	0x0100
 #define	VESMAIL_SRVF_TLSC	0x0200
+
+#define	VESMAIL_SRVF_QUIET	0x0800
 
 #define	VESMAIL_SRVF_DONE	0x8000
 

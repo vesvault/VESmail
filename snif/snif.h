@@ -45,6 +45,7 @@ typedef struct VESmail_snif {
     struct VESmail_snif_port {
 	const char *port;
 	struct VESmail_daemon_sock *sock;
+	int tls;
     } *ports;
     struct VESmail_tls_server *tls;
     void *thread;

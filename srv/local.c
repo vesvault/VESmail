@@ -239,7 +239,7 @@ void VESmail_local_init(const char *logfile) {
 
 int VESmail_local_caBundle(const char *ca) {
 #ifdef VESMAIL_X509STORE
-    return ca ? VESmail_x509store_caBundle(ca) : VESMAIL_E_PARAM;
+    return VESmail_x509store_caBundle(ca);
 #else
     if (ca) VESmail_tls_caBundle = strdup(ca);
     return 0;
@@ -504,14 +504,15 @@ snif_cert VESmail_local_snif_cert = {
 VESmail_server *VESmail_local_snif_srv = NULL;
 
 struct VESmail_snif_port VESmail_local_snif_ports[] = {
-    { .port = "993", .sock = (void *)0},
-    { .port = "7193", .sock = (void *)0},
-    { .port = "17193", .sock = (void *)0},
-    { .port = "465", .sock = (void *)1},
-    { .port = "7165", .sock = (void *)1},
-    { .port = "17165", .sock = (void *)1},
-    { .port = "7183", .sock = (void *)(sizeof(VESmail_local_conf_daemon) / sizeof(*VESmail_local_conf_daemon) - 2)},
-    { .port = "17183", .sock = (void *)(sizeof(VESmail_local_conf_daemon) / sizeof(*VESmail_local_conf_daemon) - 2)},
+    { .port = "993", .sock = (void *)0, .tls = 1},
+    { .port = "7193", .sock = (void *)0, .tls = 1},
+    { .port = "17193", .sock = (void *)0, .tls = 1},
+    { .port = "465", .sock = (void *)1, .tls = 1},
+    { .port = "7165", .sock = (void *)1, .tls = 1},
+    { .port = "17165", .sock = (void *)1, .tls = 1},
+    { .port = "587", .sock = (void *)1, .tls = 0},
+    { .port = "7183", .sock = (void *)(sizeof(VESmail_local_conf_daemon) / sizeof(*VESmail_local_conf_daemon) - 2), .tls = 1},
+    { .port = "17183", .sock = (void *)(sizeof(VESmail_local_conf_daemon) / sizeof(*VESmail_local_conf_daemon) - 2), .tls = 1},
     { .port = NULL }
 };
 

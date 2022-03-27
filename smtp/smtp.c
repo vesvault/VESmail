@@ -87,15 +87,18 @@ int VESmail_smtp_idle(VESmail_server *srv, int tmout) {
 }
 
 
-void VESmail_smtp_fn_free(VESmail_server *srv) {
+void VESmail_smtp_fn_free(VESmail_server *srv, int final) {
     VESmail_smtp *smtp = VESMAIL_SMTP(srv);
+    if (!final) {
+	VESmail_free(smtp->mail);
+	return;
+    }
     free(smtp->helo);
     VESmail_smtp_track *trk, *next;
     for (trk = smtp->track; trk; trk = next) {
 	next = trk->chain;
 	VESmail_smtp_track_free(trk);
     }
-    VESmail_free(smtp->mail);
     VESmail_smtp_debug_flush(srv, 0, 0);
 }
 

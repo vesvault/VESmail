@@ -178,8 +178,9 @@ int VESmail_daemon_sock_run(struct VESmail_daemon_sock *sk) {
 		}
 	    }
 	} else {
+	    int er = errno;
 	    VESmail_arch_usleep(1000000);
-	    if ((sk->daemon->flags & VESMAIL_DMF_RECONNECT) && errno == EBADF) {
+	    if ((sk->daemon->flags & VESMAIL_DMF_RECONNECT) && er == EBADF) {
 		VESmail_daemon_sock_error(sk);
 		VESmail_arch_log("reconnect daemon=%s", sk->daemon->type);
 		while (VESmail_daemon_sock_listen(sk)) {

@@ -353,7 +353,8 @@ int VESmail_imap_idle(VESmail_server *srv, int tmout) {
     return 0;
 }
 
-void VESmail_imap_fn_free(VESmail_server *srv) {
+void VESmail_imap_fn_free(VESmail_server *srv, int final) {
+    if (!final) return;
     VESmail_imap *imap = VESMAIL_IMAP(srv);
     VESmail_imap_reset(srv);
     VESmail_imap_chk_detached(srv);
