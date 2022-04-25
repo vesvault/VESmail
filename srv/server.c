@@ -325,7 +325,10 @@ int VESmail_server_auth(VESmail_server *srv, const char *user, const char *pwd, 
     } else {
 	libVES_Ref *ref = libVES_External_new(srv->optns->vesDomain, user);
 	ref->externalId[tail - user] = 0;
-	srv->ves = libVES_fromRef(ref);
+	if (!(srv->ves = libVES_fromRef(ref))) {
+	    libVES_Ref_free(ref);
+	    return VESMAIL_E_AUTH;
+	}
     }
     VESmail_tls_initVES(srv->ves);
     if (srv->debug > VESMAIL_DEBUG_LIBVES) srv->ves->debug = srv->debug - VESMAIL_DEBUG_LIBVES;

@@ -123,10 +123,12 @@ VESmail_conf *VESmail_snif_mftconf(VESmail_snif *snif, VESmail_conf *conf) {
 
 void *VESmail_snif_tlsctx(VESmail_snif *snif) {
     void *ctx = snif->tls->ctx = snif_cert_ctx(snif->cert);
-    SSL_CTX_set_options(ctx, VESMAIL_TLS_HIGHOPTNS | VESMAIL_TLS_SRVOPTNS);
+    if (ctx) {
+	SSL_CTX_set_options(ctx, VESMAIL_TLS_HIGHOPTNS | VESMAIL_TLS_SRVOPTNS);
 #ifdef VESMAIL_TLS_SRVMODE
-    SSL_CTX_set_mode(ctx, VESMAIL_TLS_SRVMODE);
+	SSL_CTX_set_mode(ctx, VESMAIL_TLS_SRVMODE);
 #endif
+    }
     return ctx;
 }
 

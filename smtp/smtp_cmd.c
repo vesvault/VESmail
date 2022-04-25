@@ -53,7 +53,7 @@ int VESmail_smtp_cmd_match_verb(const char **cmd, const char *tail, const char *
     char *d = buf;
     char sp = 0;
     for (s = *cmd; s < tail; s++) {
-	if (d >= buf + sizeof(buf)) return VESMAIL_E_UNKNOWN;
+	if (d >= buf + sizeof(buf) - 1) return VESMAIL_E_UNKNOWN;
 	char c = *s;
 	switch (c) {
 	    case ':':

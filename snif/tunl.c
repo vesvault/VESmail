@@ -278,10 +278,12 @@ int VESmail_tunl_accept(snifl_sock *sock, const snifl_accept *ac) {
 	}
     }
     if (!dsock) return VESMAIL_E_PARAM;
+    VESmail_arch_mutex_unlock(&VESmail_tunl_mutex);
     VESmail_proc *proc = VESmail_proc_init(malloc(sizeof(VESmail_proc) + sizeof(struct VESmail_tunl_proc)), dsock->daemon, -1);
     VESmail_tunl_proc *tproc = (VESmail_tunl_proc *)&proc->ctl;
     if (pipe(tproc->fd) < 0) {
 	VESmail_proc_free(proc);
+	VESmail_arch_mutex_lock(&VESmail_tunl_mutex);
 	return VESMAIL_E_IO;
     }
     tproc->sock = sock;
@@ -312,18 +314,21 @@ int VESmail_tunl_accept(snifl_sock *sock, const snifl_accept *ac) {
 	VESmail_arch_mutex_unlock(&snif->mutex);
 	if (connr >= 0) {
 	    VESmail_proc_launch(proc);
+	    VESmail_arch_mutex_lock(&VESmail_tunl_mutex);
 	    return snifl_mgr_accept(sock, ac);
-	} else sock->arg = NULL;
-    } else {
-	VESmail_arch_close(tproc->fd[0]);
-	VESmail_arch_close(tproc->fd[1]);
+	}
     }
+    VESmail_arch_close(tproc->fd[0]);
+    VESmail_arch_close(tproc->fd[1]);
+    sock->arg = NULL;
     VESmail_proc_free(proc);
+    VESmail_arch_mutex_lock(&VESmail_tunl_mutex);
     return connr;
 }
 
 int VESmail_tunl_recv(snifl_sock *sock, const void *buf, int len) {
     VESmail_tunl_proc *tproc = sock->arg;
+    if (!tproc) return 0;
     if (!buf) {
 	VESmail_arch_close(tproc->fd[1]);
 	tproc->fd[1] = -1;
