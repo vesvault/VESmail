@@ -60,8 +60,12 @@ typedef struct VESmail_conf {
     struct {
 	char *manifest;
 	char **headers;
+	void *reqStack;
+	void *postStack;
+	int (* feedbackFn)(const char *fbk);
 	long long int maxSize;
     } now;
+    struct VESmail_now_oauth *oauth;
     int abuseSense;
     int dumpfd;
     char overrides;

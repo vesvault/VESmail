@@ -366,6 +366,9 @@ static void VESmail_tls_fn_veshttp(libVES *ves) {
 
 libVES *VESmail_tls_initVES(libVES *ves) {
     ves->httpInitFn = &VESmail_tls_fn_veshttp;
+#ifdef LIBVES_SESS_TMOUT
+    ves->sessionTimeout = LIBVES_SESS_TMOUT;
+#endif
     return ves;
 }
 

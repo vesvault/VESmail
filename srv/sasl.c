@@ -53,21 +53,29 @@
 #endif
 #endif
 
+#ifdef VESMAIL_NOW_OAUTH
+#include "../now/now_oauth.h"
+#endif
+
 #include "../lib/util.h"
+#include "../lib/optns.h"
 #include "arch.h"
+#include "server.h"
+#include "conf.h"
 #include "sasl.h"
 
 #define VESMAIL_VERB(verb)	#verb,
 const char *VESmail_sasl_mechs[] = { VESMAIL_SASL_MECHS() NULL };
 #undef VESMAIL_VERB
 
-VESmail_sasl *VESmail_sasl_init(VESmail_sasl *sasl, int mech, char *(*tokenfn)(VESmail_sasl *, const char *, int)) {
+VESmail_sasl *VESmail_sasl_init(VESmail_sasl *sasl, int mech, char *(*tokenfn)(VESmail_sasl *, const char *, int), VESmail_server *srv) {
     sasl->mech = mech;
     sasl->user = sasl->passwd = NULL;
     sasl->pwlen = 0;
     sasl->state = 0;
     sasl->tokenfn = tokenfn;
     sasl->freefn = NULL;
+    sasl->srv = srv;
     return sasl;
 }
 
@@ -265,25 +273,58 @@ char *VESmail_sasl_fn_cln_xoauth2(VESmail_sasl *sasl, const char *token, int len
     return b64;
 }
 
+char *VESmail_sasl_fn_srv_xoauth2(VESmail_sasl *sasl, const char *token, int len) {
+    if (!token) return strdup("");
+    char *buf = NULL;
+    const char *er = NULL;
+    int l = VESmail_b64decode(&buf, token, &len, &er);
+    if (!er && l > 20) {
+	char *utail = memchr(buf, 1, l);
+	if (utail && utail >= buf + 5 && !memcmp(buf, "user=", 5)) {
+	    char *tbuf = utail + 1;
+	    char *ttail = memchr(tbuf, 1, l - (tbuf - buf));
+	    if (ttail && ttail >= tbuf + 12 && !memcmp(tbuf, "auth=Bearer ", 12)) {
+		free(sasl->user);
+		free(sasl->passwd);
+		sasl->passwd = NULL;
+#ifdef VESMAIL_NOW_OAUTH
+		if (sasl->srv) {
+		    VESmail_conf *conf = sasl->srv->optns->ref;
+		    if (conf && conf->oauth) sasl->pwlen = VESmail_now_oauth_decrypt(conf->oauth, &sasl->passwd, tbuf + 12, ttail - tbuf - 12);
+		}
+#endif
+		if (sasl->passwd) {
+		    sasl->user = VESmail_strndup(buf + 5, utail - buf - 5);
+		} else sasl->user = NULL;
+	    }
+	}
+    }
+    VESmail_cleanse(buf, l);
+    free(buf);
+    return NULL;
+}
+
 VESmail_sasl *VESmail_sasl_new_client(int mech) {
     switch (mech) {
 	case VESMAIL_SASL_M_PLAIN:
-	    return VESmail_sasl_init(malloc(sizeof(VESmail_sasl)), VESMAIL_SASL_M_PLAIN, &VESmail_sasl_fn_cln_plain);
+	    return VESmail_sasl_init(malloc(sizeof(VESmail_sasl)), VESMAIL_SASL_M_PLAIN, &VESmail_sasl_fn_cln_plain, NULL);
 	case VESMAIL_SASL_M_LOGIN:
-	    return VESmail_sasl_init(malloc(sizeof(VESmail_sasl)), VESMAIL_SASL_M_LOGIN, &VESmail_sasl_fn_cln_login);
+	    return VESmail_sasl_init(malloc(sizeof(VESmail_sasl)), VESMAIL_SASL_M_LOGIN, &VESmail_sasl_fn_cln_login, NULL);
 	case VESMAIL_SASL_M_XOAUTH2:
-	    return VESmail_sasl_init(malloc(sizeof(VESmail_sasl)), VESMAIL_SASL_M_XOAUTH2, &VESmail_sasl_fn_cln_xoauth2);
+	    return VESmail_sasl_init(malloc(sizeof(VESmail_sasl)), VESMAIL_SASL_M_XOAUTH2, &VESmail_sasl_fn_cln_xoauth2, NULL);
 	default:
 	    return NULL;
     }
 }
 
-VESmail_sasl *VESmail_sasl_new_server(int mech) {
+VESmail_sasl *VESmail_sasl_new_server(int mech, VESmail_server *srv) {
     switch (mech) {
 	case VESMAIL_SASL_M_PLAIN:
-	    return VESmail_sasl_init(malloc(sizeof(VESmail_sasl)), VESMAIL_SASL_M_PLAIN, &VESmail_sasl_fn_srv_plain);
+	    return VESmail_sasl_init(malloc(sizeof(VESmail_sasl)), VESMAIL_SASL_M_PLAIN, &VESmail_sasl_fn_srv_plain, srv);
 	case VESMAIL_SASL_M_LOGIN:
-	    return VESmail_sasl_init(malloc(sizeof(VESmail_sasl)), VESMAIL_SASL_M_LOGIN, &VESmail_sasl_fn_srv_login);
+	    return VESmail_sasl_init(malloc(sizeof(VESmail_sasl)), VESMAIL_SASL_M_LOGIN, &VESmail_sasl_fn_srv_login, srv);
+	case VESMAIL_SASL_M_XOAUTH2:
+	    return VESmail_sasl_init(malloc(sizeof(VESmail_sasl)), VESMAIL_SASL_M_XOAUTH2, &VESmail_sasl_fn_srv_xoauth2, srv);
 	default:
 	    return NULL;
     }

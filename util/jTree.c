@@ -32,59 +32,62 @@
 #include <stdlib.h>
 #include "jTree.h"
 
-jTree *jTree_init(jTree *jtree) {
-    if (!jtree) jtree = malloc(sizeof(jTree));
-    jtree->left = jtree->right = jtree->back = NULL;
-    jtree->data = NULL;
-    jtree->ldepth = jtree->rdepth = 0;
+jTree_SYM(jTree_p) jTree_SYM(jTree_init)(jTree_SYM(jTree_p) jtree jTree_REFARG) {
+    if (!jtree) jtree = jTree_alloc(sizeof(jTree_SYM(jTree)) jTree_REF);
+    if (!jtree) return jTree_NULL;
+    jTree_FLD(jtree, left) = jTree_FLD(jtree, right) = jTree_FLD(jtree, back) = jTree_NULL;
+    jTree_FLD(jtree, data) = jTree_data_NULL;
+    jTree_FLD(jtree, ldepth) = jTree_FLD(jtree, rdepth) = 0;
     return jtree;
 }
 
 #define JTREE_BAL_LVL	2
 
-#define	jTree_BAL1(jtree, r, a, b, ad, bd)	if ((r = jtree->a) && (r->data || (r = NULL))) {\
-    r->back = jtree->back;\
-    if ((jtree->a = r->b)) jtree->a->back = jtree;\
-    jtree->ad = r->bd;\
-    r->b = jtree;\
-    jtree->back = r;\
-    r->bd = (jtree->ad > jtree->bd ? jtree->ad : jtree->bd) + 1;\
+#define	jTree_BAL1(jtree, r, a, b, ad, bd)	if ((r = jTree_FLD(jtree, a)) && (jTree_FLD(r, data) || (r = jTree_NULL))) {\
+    jTree_FLD(r, back) = jTree_FLD(jtree, back);\
+    if ((jTree_FLD(jtree, a) = jTree_FLD(r, b))) jTree_FLD(jTree_FLD(jtree, a), back) = jtree;\
+    jTree_FLD(jtree, ad) = jTree_FLD(r, bd);\
+    jTree_FLD(r, b) = jtree;\
+    jTree_FLD(jtree, back) = r;\
+    jTree_FLD(r, bd) = (jTree_FLD(jtree, ad) > jTree_FLD(jtree, bd) ? jTree_FLD(jtree, ad) : jTree_FLD(jtree, bd)) + 1;\
 }
 
-#define	jTree_BAL2(jtree, r, a, b, ad, bd)	if ((r = jtree->a->b) && (r->data || (r = NULL))) {\
-    r->back = jtree->back;\
-    if ((jtree->a->b = r->a)) jtree->a->b->back = jtree->a;\
-    jtree->a->bd = r->ad;\
-    r->ad = (jtree->a->ad > r->ad ? jtree->a->ad : r->ad) + 1;\
-    r->a = jtree->a;\
-    r->a->back = r;\
-    if ((jtree->a = r->b)) jtree->a->back = jtree;\
-    jtree->ad = r->bd;\
-    r->b = jtree;\
-    r->b->back = r;\
-    r->bd = (jtree->ad > jtree->bd ? jtree->ad : jtree->bd) + 1;\
+#define	jTree_BAL2(jtree, r, a, b, ad, bd)	if ((r = jTree_FLD(jTree_FLD(jtree, a), b)) && (jTree_FLD(r, data) || (r = jTree_NULL))) {\
+    jTree_FLD(r, back) = jTree_FLD(jtree, back);\
+    if ((jTree_FLD(jTree_FLD(jtree, a), b) = jTree_FLD(r, a))) jTree_FLD(jTree_FLD(jTree_FLD(jtree, a), b), back) = jTree_FLD(jtree, a);\
+    jTree_FLD(jTree_FLD(jtree, a), bd) = jTree_FLD(r, ad);\
+    jTree_FLD(r, ad) = (jTree_FLD(jTree_FLD(jtree, a), ad) > jTree_FLD(r, ad) ? jTree_FLD(jTree_FLD(jtree, a), ad) : jTree_FLD(r, ad)) + 1;\
+    jTree_FLD(r, a) = jTree_FLD(jtree, a);\
+    jTree_FLD(jTree_FLD(r, a), back) = r;\
+    if ((jTree_FLD(jtree, a) = jTree_FLD(r, b))) jTree_FLD(jTree_FLD(jtree, a), back) = jtree;\
+    jTree_FLD(jtree, ad) = jTree_FLD(r, bd);\
+    jTree_FLD(r, b) = jtree;\
+    jTree_FLD(jTree_FLD(r, b), back) = r;\
+    jTree_FLD(r, bd) = (jTree_FLD(jtree, ad) > jTree_FLD(jtree, bd) ? jTree_FLD(jtree, ad) : jTree_FLD(jtree, bd)) + 1;\
 }
 
-void **jTree_seek(jTree **ptree, void *term, void *arg, int (* cmpfn)(void *data, void *term, void *arg), unsigned char *depth) {
-    jTree *jtree = *ptree;
+jTree_SYM(jTree_data_t) *jTree_SYM(jTree_seek)(jTree_SYM(jTree_p) *ptree, jTree_SYM(jTree_data_t) term, jTree_SYM(jTree_arg_t) arg, int (* cmpfn)(jTree_SYM(jTree_data_t) data, jTree_SYM(jTree_data_t) term, jTree_SYM(jTree_arg_t) arg), unsigned char *depth) {
+    int c;
+    jTree_SYM(jTree_p) jtree = *ptree;
+    jTree_SYM(jTree_data_t) *rs;
     if (!jtree) {
 	if (!depth) return NULL;
-	jtree = *ptree = jTree_init(NULL);
+	jtree = *ptree = jTree_SYM(jTree_init)(jTree_NULL jTree_REF);
+	if (!jtree) return NULL;
 	*depth = 1;
-	return &jtree->data;
+	return &jTree_FLD(jtree, data);
     }
-    void **rs;
-    int c = jtree->data ? cmpfn(jtree->data, term, arg) : 0;
+    c = jTree_FLD(jtree, data) ? cmpfn(jTree_FLD(jtree, data), term, arg) : 0;
     if (!c) {
-	rs = &jtree->data;
+	rs = &jTree_FLD(jtree, data);
     } else if (c < 0) {
-	rs = jTree_seek(&jtree->right, term, arg, cmpfn, depth);
-	if (depth) {
-	    jtree->right->back = jtree;
-	    jtree->rdepth = *depth;
-	    if (jtree->rdepth > jtree->ldepth + JTREE_BAL_LVL) {
-		jTree *r;
-		if (jtree->right->ldepth > jtree->ldepth) {
+	rs = jTree_SYM(jTree_seek)(&jTree_FLD(jtree, right), term, arg, cmpfn, depth);
+	if (depth && rs) {
+	    jTree_FLD(jTree_FLD(jtree, right), back) = jtree;
+	    jTree_FLD(jtree, rdepth) = *depth;
+	    if (jTree_FLD(jtree, rdepth) > jTree_FLD(jtree, ldepth) + JTREE_BAL_LVL) {
+		jTree_SYM(jTree_p) r;
+		if (jTree_FLD(jTree_FLD(jtree, right), ldepth) > jTree_FLD(jtree, ldepth)) {
 		    jTree_BAL2(jtree, r, right, left, rdepth, ldepth)
 		} else {
 		    jTree_BAL1(jtree, r, right, left, rdepth, ldepth)
@@ -93,13 +96,13 @@ void **jTree_seek(jTree **ptree, void *term, void *arg, int (* cmpfn)(void *data
 	    }
 	}
     } else {
-	rs = jTree_seek(&jtree->left, term, arg, cmpfn, depth);
-	if (depth) {
-	    jtree->left->back = jtree;
-	    jtree->ldepth = *depth;
-	    if (jtree->ldepth > jtree->rdepth + JTREE_BAL_LVL) {
-		jTree *r;
-		if (jtree->left->rdepth > jtree->rdepth) {
+	rs = jTree_SYM(jTree_seek)(&jTree_FLD(jtree, left), term, arg, cmpfn, depth);
+	if (depth && rs) {
+	    jTree_FLD(jTree_FLD(jtree, left), back) = jtree;
+	    jTree_FLD(jtree, ldepth) = *depth;
+	    if (jTree_FLD(jtree, ldepth) > jTree_FLD(jtree, rdepth) + JTREE_BAL_LVL) {
+		jTree_SYM(jTree_p) r;
+		if (jTree_FLD(jTree_FLD(jtree, left), rdepth) > jTree_FLD(jtree, rdepth)) {
 		    jTree_BAL2(jtree, r, left, right, ldepth, rdepth)
 		} else {
 		    jTree_BAL1(jtree, r, left, right, ldepth, rdepth)
@@ -108,129 +111,127 @@ void **jTree_seek(jTree **ptree, void *term, void *arg, int (* cmpfn)(void *data
 	    }
 	}
     }
-    if (depth) *depth = (jtree->ldepth > jtree->rdepth ? jtree->ldepth : jtree->rdepth) + 1;
+    if (depth) *depth = (jTree_FLD(jtree, ldepth) > jTree_FLD(jtree, rdepth) ? jTree_FLD(jtree, ldepth) : jTree_FLD(jtree, rdepth)) + 1;
     return rs;
 }
 
-void **jTree_first(jTree *jtree) {
+jTree_SYM(jTree_data_t) *jTree_SYM(jTree_first)(jTree_SYM(jTree_p) jtree jTree_REFARG) {
     if (!jtree) return NULL;
-    while (jtree->left) jtree = jtree->left;
-    return &jtree->data;
+    while (jTree_FLD(jtree, left)) jtree = jTree_FLD(jtree, left);
+    return &jTree_FLD(jtree, data);
 }
 
-void **jTree_last(jTree *jtree) {
+jTree_SYM(jTree_data_t) *jTree_SYM(jTree_last)(jTree_SYM(jTree_p) jtree jTree_REFARG) {
     if (!jtree) return NULL;
-    while (jtree->right) jtree = jtree->right;
-    return &jtree->data;
+    while (jTree_FLD(jtree, right)) jtree = jTree_FLD(jtree, right);
+    return &jTree_FLD(jtree, data);
 }
 
-void **jTree_next(void **pdata) {
+jTree_SYM(jTree_data_t) *jTree_SYM(jTree_next)(jTree_SYM(jTree_data_t) *pdata jTree_REFARG) {
+    jTree_SYM(jTree_p) jtree = jTree_DATA2P(pdata);
+    jTree_SYM(jTree_p) bk;
     if (!pdata) return NULL;
-    jTree *jtree = (jTree *)(((char *) pdata) - offsetof(jTree, data));
-    if (jtree->right) return jTree_first(jtree->right);
-    jTree *bk;
-    for (bk = jtree->back; bk; jtree = bk, bk = bk->back) {
-	if (bk->left == jtree) return &bk->data;
+    if (jTree_FLD(jtree, right)) return jTree_SYM(jTree_first)(jTree_FLD(jtree, right) jTree_REF);
+    for (bk = jTree_FLD(jtree, back); bk; jtree = bk, bk = jTree_FLD(bk, back)) {
+	if (jTree_FLD(bk, left) == jtree) return &jTree_FLD(bk, data);
     }
     return NULL;
 }
 
-void **jTree_prev(void **pdata) {
+jTree_SYM(jTree_data_t) *jTree_SYM(jTree_prev)(jTree_SYM(jTree_data_t) *pdata jTree_REFARG) {
+    jTree_SYM(jTree_p) jtree = jTree_DATA2P(pdata);
+    jTree_SYM(jTree_p) bk;
     if (!pdata) return NULL;
-    jTree *jtree = (jTree *)(((char *) pdata) - offsetof(jTree, data));
-    if (jtree->left) return jTree_last(jtree->left);
-    jTree *bk;
-    for (bk = jtree->back; bk; jtree = bk, bk = bk->back) {
-	if (bk->right == jtree) return &bk->data;
+    if (jTree_FLD(jtree, left)) return jTree_SYM(jTree_last)(jTree_FLD(jtree, left) jTree_REF);
+    for (bk = jTree_FLD(jtree, back); bk; jtree = bk, bk = jTree_FLD(bk, back)) {
+	if (jTree_FLD(bk, right) == jtree) return &jTree_FLD(bk, data);
     }
     return NULL;
 }
 
-void jTree_delete(jTree **ptree, void **pdata) {
+void jTree_SYM(jTree_delete)(jTree_SYM(jTree_p) *ptree, jTree_SYM(jTree_data_t) *pdata jTree_REFARG) {
+    jTree_SYM(jTree_p) jtree, jl, jr, jnew, jback, jlnull, jrnull, *pt, jd, jdn;
     if (!pdata) return;
-    jTree *jtree = (jTree *)(((char *) pdata) - offsetof(jTree, data));
-    jTree *jl, *jr, *jnew;
-    jTree *jback = jtree->back;
-    jtree->data = NULL;
-    jtree->ldepth = jtree->rdepth = 0;
-    jl = jtree->left;
-    jr = jtree->right;
-    if (jl && !jl->data) jl = NULL;
-    if (jr && !jr->data) jr = NULL;
-    if (jl) while (jl->right && jl->right->data) jl = jl->right;
-    if (jr) while (jr->left && jr->left->data) jr = jr->left;
-    jTree *jlnull = jl ? jl->right : jtree->left;
-    jTree *jrnull = jr ? jr->left : jtree->right;
-    jTree **pt;
+    jtree = jTree_DATA2P(pdata);
+    jback = jTree_FLD(jtree, back);
+    jTree_FLD(jtree, data) = jTree_data_NULL;
+    jTree_FLD(jtree, ldepth) = jTree_FLD(jtree, rdepth) = 0;
+    jl = jTree_FLD(jtree, left);
+    jr = jTree_FLD(jtree, right);
+    if (jl && !jTree_FLD(jl, data)) jl = jTree_NULL;
+    if (jr && !jTree_FLD(jr, data)) jr = jTree_NULL;
+    if (jl) while (jTree_FLD(jl, right) && jTree_FLD(jTree_FLD(jl, right), data)) jl = jTree_FLD(jl, right);
+    if (jr) while (jTree_FLD(jr, left) && jTree_FLD(jTree_FLD(jr, left), data)) jr = jTree_FLD(jr, left);
+    jlnull = jl ? jTree_FLD(jl, right) : jTree_FLD(jtree, left);
+    jrnull = jr ? jTree_FLD(jr, left) : jTree_FLD(jtree, right);
     if (jl) {
 	jnew = jl;
-	if (jl->left) jl->left->back = jl->back;
-	if (jl->back->right == jl) {
-	    jl->back->right = jl->left;
-	    jl->back->rdepth = jl->ldepth;
+	if (jTree_FLD(jl, left)) jTree_FLD(jTree_FLD(jl, left), back) = jTree_FLD(jl, back);
+	if (jTree_FLD(jTree_FLD(jl, back), right) == jl) {
+	    jTree_FLD(jTree_FLD(jl, back), right) = jTree_FLD(jl, left);
+	    jTree_FLD(jTree_FLD(jl, back), rdepth) = jTree_FLD(jl, ldepth);
 	} else {
-	    jl->back->left = jl->left;
-	    jl->back->ldepth = jl->ldepth;
+	    jTree_FLD(jTree_FLD(jl, back), left) = jTree_FLD(jl, left);
+	    jTree_FLD(jTree_FLD(jl, back), ldepth) = jTree_FLD(jl, ldepth);
 	}
 	if (jr) {
-	    pt = &jr->left;
-	    jr->left = jtree;
-	    jtree->back = jr;
+	    pt = &jTree_FLD(jr, left);
+	    jTree_FLD(jr, left) = jtree;
+	    jTree_FLD(jtree, back) = jr;
 	} else {
-	    pt = &jnew->right;
-	    jtree->right = jtree;
+	    pt = &jTree_FLD(jnew, right);
+	    jTree_FLD(jtree, right) = jtree;
 	}
     } else if (jr) {
 	jnew = jr;
-	if (jr->right) jr->right->back = jr->back;
-	if (jr->back->left == jr) {
-	    jr->back->left = jr->right;
-	    jr->back->ldepth = jr->rdepth;
+	if (jTree_FLD(jr, right)) jTree_FLD(jTree_FLD(jr, right), back) = jTree_FLD(jr, back);
+	if (jTree_FLD(jTree_FLD(jr, back), left) == jr) {
+	    jTree_FLD(jTree_FLD(jr, back), left) = jTree_FLD(jr, right);
+	    jTree_FLD(jTree_FLD(jr, back), ldepth) = jTree_FLD(jr, rdepth);
 	} else {
-	    jr->back->right = jr->right;
-	    jr->back->rdepth = jr->rdepth;
+	    jTree_FLD(jTree_FLD(jr, back), right) = jTree_FLD(jr, right);
+	    jTree_FLD(jTree_FLD(jr, back), rdepth) = jTree_FLD(jr, rdepth);
 	}
 	if (jl) {
-	    pt = &jl->right;
-	    jl->right = jtree;
-	    jtree->back = jl;
+	    pt = &jTree_FLD(jl, right);
+	    jTree_FLD(jl, right) = jtree;
+	    jTree_FLD(jtree, back) = jl;
 	} else {
-	    pt = &jnew->left;
-	    jtree->left = jtree;
+	    pt = &jTree_FLD(jnew, left);
+	    jTree_FLD(jtree, left) = jtree;
 	}
     } else return;
-    jTree *jd = jnew->back;
-    if ((jnew->left = jtree->left)) jnew->left->back = jnew;
-    if ((jnew->right = jtree->right)) jnew->right->back = jnew;
-    jnew->ldepth = jtree->ldepth;
-    jnew->rdepth = jtree->rdepth;
-    jnew->back = jback;
+    jd = jTree_FLD(jnew, back);
+    if ((jTree_FLD(jnew, left) = jTree_FLD(jtree, left))) jTree_FLD(jTree_FLD(jnew, left), back) = jnew;
+    if ((jTree_FLD(jnew, right) = jTree_FLD(jtree, right))) jTree_FLD(jTree_FLD(jnew, right), back) = jnew;
+    jTree_FLD(jnew, ldepth) = jTree_FLD(jtree, ldepth);
+    jTree_FLD(jnew, rdepth) = jTree_FLD(jtree, rdepth);
+    jTree_FLD(jnew, back) = jback;
     if (jback) {
-	if (jback->left == jtree) jback->left = jnew;
-	if (jback->right == jtree) jback->right = jnew;
+	if (jTree_FLD(jback, left) == jtree) jTree_FLD(jback, left) = jnew;
+	if (jTree_FLD(jback, right) == jtree) jTree_FLD(jback, right) = jnew;
     } else {
 	*ptree = jnew;
     }
-    if ((jtree->left = jlnull)) jlnull->back = jtree;
-    if ((jtree->right = jrnull)) jrnull->back = jtree;
-    jTree *jdn;
-    for (; (jdn = jd->back); jd = jdn) {
-	int d = jd->data ? ((jd->ldepth > jd->rdepth ? jd->ldepth : jd->rdepth) + 1) : 0;
-	if (jdn->left == jd) jdn->ldepth = d;
-	else jdn->rdepth = d;
+    if ((jTree_FLD(jtree, left) = jlnull)) jTree_FLD(jlnull, back) = jtree;
+    if ((jTree_FLD(jtree, right) = jrnull)) jTree_FLD(jrnull, back) = jtree;
+    for (; (jdn = jTree_FLD(jd, back)); jd = jdn) {
+	int d = jTree_FLD(jd, data) ? ((jTree_FLD(jd, ldepth) > jTree_FLD(jd, rdepth) ? jTree_FLD(jd, ldepth) : jTree_FLD(jd, rdepth)) + 1) : 0;
+	if (jTree_FLD(jdn, left) == jd) jTree_FLD(jdn, ldepth) = d;
+	else jTree_FLD(jdn, rdepth) = d;
     }
-    jTree_collapse(pt);
+    jTree_SYM(jTree_collapse)(pt jTree_REF);
 }
 
-unsigned char jTree_collapse(jTree **ptree) {
-    jTree *jtree = *ptree;
+unsigned char jTree_SYM(jTree_collapse)(jTree_SYM(jTree_p) *ptree jTree_REFARG) {
+    jTree_SYM(jTree_p) jtree = *ptree;
     if (!jtree) return 0;
-    jtree->ldepth = jTree_collapse(&jtree->left);
-    jtree->rdepth = jTree_collapse(&jtree->right);
-    if (!jtree->data && !jtree->left && !jtree->right) {
-	free(jtree);
-	*ptree = NULL;
+    jTree_FLD(jtree, ldepth) = jTree_SYM(jTree_collapse)(&jTree_FLD(jtree, left) jTree_REF);
+    jTree_FLD(jtree, rdepth) = jTree_SYM(jTree_collapse)(&jTree_FLD(jtree, right) jTree_REF);
+    if (!jTree_FLD(jtree, data) && !jTree_FLD(jtree, left) && !jTree_FLD(jtree, right)) {
+	jTree_free(jtree);
+	*ptree = jTree_NULL;
 	return 0;
     }
-    return (jtree->ldepth > jtree->rdepth ? jtree->ldepth : jtree->ldepth) + 1;
+    return (jTree_FLD(jtree, ldepth) > jTree_FLD(jtree, rdepth) ? jTree_FLD(jtree, ldepth) : jTree_FLD(jtree, ldepth)) + 1;
 }

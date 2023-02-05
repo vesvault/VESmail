@@ -34,6 +34,7 @@ struct VESmail_server;
 struct jVar;
 
 int VESmail_now_probe(struct VESmail_server *srv, struct jVar *uconf, const char *token);
+int VESmail_now_probe_postStack(struct VESmail_server *srv, struct jVar *req);
 
 #ifndef VESMAIL_NOW_PROBE_TMOUT
 #define	VESMAIL_NOW_PROBE_TMOUT		15

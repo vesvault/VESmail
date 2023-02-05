@@ -356,7 +356,7 @@ int VESmail_smtp_start_cmd(VESmail_server *srv, VESmail_smtp_cmd *cmd) {
 	    const char *tail = cmd->head + cmd->len;
 	    VESmail_sasl_free(srv->sasl);
 	    srv->sasl = NULL;
-	    if (!auth || !(srv->sasl = VESmail_sasl_new_server(VESmail_smtp_cmd_match_verb(&auth, tail, VESmail_sasl_mechs)))) {
+	    if (!auth || !(srv->sasl = VESmail_sasl_new_server(VESmail_smtp_cmd_match_verb(&auth, tail, VESmail_sasl_mechs), srv))) {
 		return VESmail_smtp_reply_sendln(srv, 501, 0, VESMAIL_SMTP_RF_FINAL, "Unknown SASL mechanism");
 	    }
 	    int authl = auth ? VESmail_smtp_cmd_get_eol(cmd) - auth : 0;

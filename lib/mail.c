@@ -221,7 +221,7 @@ int VESmail_add_rcpt(VESmail *mail, const char *rcpt, int update_only) {
     const char *r;
     int rs = 0;
     if (!rcpt) return 0;
-    for (r = rcpt; *r; (*r && r++)) {
+    for (r = rcpt; *r; (void)(*r && r++)) {
 	libVES_User *u = libVES_User_fromPath(&r);
 	char email[256];
 	if (!u) continue;

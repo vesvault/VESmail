@@ -98,17 +98,29 @@ smtp/smtp_xves.h
 
 NOW_CFILES = now/now.c \
 now/now_store.c \
-now/now_probe.c
+now/now_probe.c \
+now/now_post.c \
+now/now_manifest.c
 
 NOW_HFILES = now/now.h \
 now/now_store.h \
-now/now_probe.h
+now/now_probe.h \
+now/now_post.h \
+now/now_manifest.h
+
+if VESMAIL_NOW_OAUTH
+NOW_CFILES += now/now_oauth.c
+NOW_HFILES += now/now_oauth.h
+endif
+
 
 CLI_CFILES = cli/vesmail.c \
+cli/cli.c \
 cli/help.c \
 cli/tty.c
 
 CLI_HFILES = cli/vesmail.h \
+cli/cli.h \
 cli/help.h \
 cli/tty.h
 
@@ -132,6 +144,9 @@ vesmail_CFLAGS += -DVESMAIL_X509STORE
 endif
 if VESMAIL_CURLSH
 vesmail_CFLAGS += -DVESMAIL_CURLSH
+endif
+if VESMAIL_NOW_OAUTH
+vesmail_CFLAGS += -DVESMAIL_NOW_OAUTH
 endif
 
 vesmail_SOURCES = $(LIB_CFILES) $(SRV_CFILES) $(IMAP_CFILES) $(SMTP_CFILES) $(NOW_CFILES) $(CLI_CFILES) \

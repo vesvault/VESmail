@@ -376,7 +376,7 @@ int VESmail_imap_start_req_fn(VESmail_server *srv, VESmail_imap_token *token) {
 	    case VESMAIL_IMAP_V_AUTHENTICATE: {
 		if (token->len >= 3) {
 		    VESmail_sasl_free(srv->sasl);
-		    srv->sasl = VESmail_sasl_new_server(VESmail_imap_get_verb(token->list[2], VESmail_sasl_mechs));
+		    srv->sasl = VESmail_sasl_new_server(VESmail_imap_get_verb(token->list[2], VESmail_sasl_mechs), srv);
 		    if (srv->sasl) {
 			VESmail_imap_token *ir;
 			if (token->len > 3) {

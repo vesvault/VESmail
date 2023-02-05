@@ -57,6 +57,14 @@
 #include "x509store.h"
 #endif
 #include "../now/now.h"
+#include "../now/now_post.h"
+#include "../now/now_manifest.h"
+#include "../now/now_e2e.h"
+#include "../now/now_probe.h"
+#include "../now/now_feedback.h"
+#ifdef VESMAIL_NOW_OAUTH
+#include "../now/now_oauth.h"
+#endif
 #include "local.h"
 
 
@@ -83,6 +91,23 @@ char VESmail_local_nowurl[] = "https://my.vesmail.email/now?msgid=\0";
 char *VESmail_local_bcc[] = { "my@now.vesmail.email", NULL };
 
 void VESmail_local_wakefn(struct VESmail_conf *conf);
+
+int (* VESmail_local_reqStack[])(VESmail_now_req *) = {
+    &VESmail_now_post_reqStack,
+    &VESmail_now_manifest_reqStack,
+    &VESmail_now_e2e_reqStack,
+#ifdef VESMAIL_NOW_OAUTH
+    &VESmail_now_oauth_reqStack,
+#endif
+    NULL
+};
+
+int (* VESmail_local_postStack[])(VESmail_server *, jVar *) = {
+    &VESmail_now_probe_postStack,
+    &VESmail_now_feedback_postStack,
+    NULL
+};
+
 
 VESmail_conf VESmail_local_conf = {
     .hostname = VESmail_local_host,
@@ -127,12 +152,18 @@ VESmail_conf VESmail_local_conf = {
 		"}"
 	    "]"
 	"}",
-	.headers = VESmail_local_cors
+	.headers = VESmail_local_cors,
+	.reqStack = VESmail_local_reqStack,
+	.postStack = VESmail_local_postStack,
+	.feedbackFn = NULL
     },
     .tls = &VESmail_local_tls,
     .mutex = NULL,
     .abuseSense = 0,
     .overrides = VESMAIL_OVRD_ALLOW,
+#ifdef VESMAIL_NOW_OAUTH
+    .oauth = NULL,
+#endif
 #ifdef VESMAIL_DEBUG_DUMP
     .dumpfd = 2
 #else
@@ -215,7 +246,6 @@ void *VESmail_local_wakemutex = NULL;
 
 char *VESmail_local_feedback = NULL;
 int (* VESmail_local_feedback_fn)(const char *fbk) = NULL;
-
 
 struct VESmail_local_ustat *VESmail_local_ustat_free(struct VESmail_local_ustat *ustat) {
     struct VESmail_local_ustat *next;
@@ -376,6 +406,9 @@ void VESmail_local_done() {
     VESmail_daemon_cleanup();
     while (VESmail_local_ustat) VESmail_local_ustat = VESmail_local_ustat_free(VESmail_local_ustat);
     VESmail_optns_free(VESmail_local_conf.optns);
+#ifdef VESMAIL_NOW_OAUTH
+    VESmail_now_oauth_free(VESmail_local_conf.oauth);
+#endif
     VESmail_tls_done();
     VESmail_arch_done();
 }
@@ -583,7 +616,6 @@ int VESmail_local_feedbackfn(const char *fbk) {
 	return 0;
     }
     if (strlen(fbk) > VESMAIL_LOCAL_FEEDBACKLEN) return VESMAIL_E_PARAM;
-    VESmail_now_feedback_fn = NULL;
     if (!VESmail_local_feedback) memset((VESmail_local_feedback = malloc(VESMAIL_LOCAL_FEEDBACKLEN + 1)), 0, VESMAIL_LOCAL_FEEDBACKLEN + 1);
     strcpy(VESmail_local_feedback, fbk);
     return VESmail_local_feedback_fn ? VESmail_local_feedback_fn(VESmail_local_feedback) : 0;
@@ -591,5 +623,13 @@ int VESmail_local_feedbackfn(const char *fbk) {
 
 void VESmail_local_setfeedback(int (* fbkfn)(const char *fbk)) {
     VESmail_local_feedback_fn = fbkfn;
-    VESmail_now_feedback_fn = &VESmail_local_feedbackfn;
+    VESmail_local_conf.now.feedbackFn = &VESmail_local_feedbackfn;
 }
+
+#ifdef VESMAIL_NOW_OAUTH
+void *VESmail_local_setoauth(const char *keyfile, const char *passwd) {
+    VESmail_now_oauth_free(VESmail_local_conf.oauth);
+    return VESmail_local_conf.oauth = VESmail_now_oauth_new(keyfile, passwd, NULL);
+}
+#endif
+

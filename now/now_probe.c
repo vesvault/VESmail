@@ -61,11 +61,11 @@ int VESmail_now_probe(VESmail_server *srv, jVar *uconf, const char *token) {
     int abuse = VESmail_server_abuse_peer(srv, 0);
     if (abuse < VESMAIL_NOW_ABUSE_ADJUST) {
 	VESmail_now_log(srv, "POST", 503, NULL);
-	return VESmail_now_error(srv, 503, "Too many attempts from the IP address, try later");
+	return VESmail_now_error(srv, 503, "Too many attempts from the IP address, try later\r\n");
     }
     if (!token) {
 	VESmail_now_log(srv, "POST", 401, NULL);
-	return VESmail_now_error(srv, 401, "VES token required");
+	return VESmail_now_error(srv, 401, "VES token required\r\n");
     }
     libVES_free(srv->ves);
     srv->ves = libVES_new(NULL);
@@ -81,7 +81,7 @@ int VESmail_now_probe(VESmail_server *srv, jVar *uconf, const char *token) {
 	if (vi) {
 	    if (l <= 0) {
 		VESmail_now_log(srv, "POST", 403, "user", libVES_User_getEmail(me), NULL);
-		return VESmail_now_error(srv, 403, "Not on the ACL");
+		return VESmail_now_error(srv, 403, "Not on the ACL\r\n");
 	    }
 	} else {
 	    me = NULL;
@@ -97,7 +97,7 @@ int VESmail_now_probe(VESmail_server *srv, jVar *uconf, const char *token) {
     int abuse_u = VESmail_server_abuse_user(srv, 0);
     if (abuse_u < VESMAIL_NOW_ABUSE_ADJUST) {
 	VESmail_now_log(srv, "POST", 503, "user", libVES_User_getEmail(me), NULL);
-	return VESmail_now_error(srv, 503, "Too many attempts from the VES user, try later");
+	return VESmail_now_error(srv, 503, "Too many attempts from the VES user, try later\r\n");
     } else if (abuse_u < abuse) {
 	abuse = abuse_u;
     }
@@ -181,3 +181,11 @@ int VESmail_now_probe(VESmail_server *srv, jVar *uconf, const char *token) {
     return rs;
 }
 
+int VESmail_now_probe_postStack(VESmail_server *srv, jVar *req) {
+    jVar *conn = jVar_get(req, "probe");
+    if (!conn) return VESMAIL_E_HOLD;
+    int r = VESmail_now_probe(srv, conn, jVar_getStringP(jVar_get(req, "token")));
+    libVES_cleanseJVar(req);
+    jVar_free(req);
+    return r;
+}

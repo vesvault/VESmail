@@ -115,6 +115,7 @@ void VESmail_header_cb_boundary(void *parse, const char *key, const char *val) {
 }
 
 int VESmail_header_keys_values(const char *str, int len, void (* cb)(void *arg, const char *key, const char *val), void *arg) {
+    if (!str) return 0;
     const char *s = str;
     const char *tail = str + len;
     char *buf = malloc(len);
@@ -174,6 +175,7 @@ char *VESmail_header_get_val(const VESmail_header *hdr, char *val, const char **
     const char *tail = s ? hdr->key + hdr->len : NULL;
     if (!val) val = malloc(tail - s + 1);
     char *d = val;
+    if (extra) *extra = NULL;
     while (s < tail) {
 	char c = *s++;
 	switch (c) {

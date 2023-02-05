@@ -60,6 +60,7 @@ void VESmail_local_snifawake(int awake);
 int VESmail_local_snifmsg(const char *msg);
 void VESmail_local_snifdone();
 void VESmail_local_setfeedback(int (* fbkfn)(const char *fbk));
+void *VESmail_local_setoauth(const char *keyfile, const char *passwd);
 void VESmail_local_killall();
 void VESmail_local_done();
 

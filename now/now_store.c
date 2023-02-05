@@ -39,6 +39,8 @@
 #include <libVES/User.h>
 #include <libVES/VaultItem.h>
 #include <libVES/File.h>
+#include <libVES/Ref.h>
+#include <jVar.h>
 #include "../VESmail.h"
 #include "../lib/mail.h"
 #include "../lib/optns.h"
@@ -236,14 +238,13 @@ int VESmail_now_store_put_xform_fn(VESmail_xform *xform, int final, const char *
     }
     if (final) {
 	VESmail_now_log(srv, "PUT", 201, "msgid", mail->msgid, NULL);
-	VESmail_now_send_status(srv, 201) >= 0 && VESmail_now_send(srv, 1, "\r\n");
+	if (VESmail_now_send_status(srv, 201) >= 0) VESmail_now_send(srv, 1, "\r\n");
     }
     return rs;
 }
 
 void VESmail_now_store_put_free_fn(VESmail_xform *xform) {
     VESmail_free(xform->parse->mail);
-//    VESmail_xform_free(xform->chain);
 }
 
 VESmail_xform *VESmail_now_store_put(VESmail_server *srv) {
@@ -256,3 +257,88 @@ VESmail_xform *VESmail_now_store_put(VESmail_server *srv) {
     return in;
 }
 
+int VESmail_now_store_reqStack(VESmail_now_req *req) {
+    if (strcmp(req->method, "PUT")) return VESMAIL_E_HOLD;
+    if (!(req->xform->chain = VESmail_now_store_put(req->xform->server))) return VESMAIL_E_HOLD;
+    VESmail_now_req_cont(req);
+    return 0;
+}
+
+int VESmail_now_store_postStack(VESmail_server *srv, jVar *req) {
+    int rs = 0;
+    char *msgid = jVar_getStringP(jVar_get(req, "messageId"));
+    char *token = jVar_getStringP(jVar_get(req, "token"));
+    char *extid = jVar_getStringP(jVar_get(req, "externalId"));
+    jVar *veskey = jVar_get(req, "VESkey");
+    libVES_Ref *ref = extid ? libVES_External_new(srv->optns->vesDomain, extid) : NULL;
+    libVES *ves = libVES_fromRef(ref);
+    if (srv->debug > 1) ves->debug = srv->debug - 1;
+    VESmail_tls_initVES(ves);
+    if (token) libVES_setSessionToken(ves, token);
+    if (veskey && (!jVar_isString(veskey) || !libVES_unlock(ves, veskey->len, veskey->vString))) {
+	rs = VESmail_now_errorlog(srv, 401, "Unlock failed\r\n", "POST[store]", "msgid", msgid);
+    } else if (msgid) {
+	libVES_Ref *msgref = libVES_External_new(srv->optns->vesDomain, msgid);
+	libVES_VaultItem *vi = libVES_VaultItem_get(msgref, ves);
+	libVES_Ref_free(msgref);
+	const char *email;
+	if (vi) {
+	    libVES_File *fi = libVES_VaultItem_getFile(vi);
+	    libVES_User *u = libVES_File_getCreator(fi);
+	    email = libVES_User_getEmail(u);
+	} else {
+	    email = NULL;
+	}
+	char *fname = VESmail_now_filename(msgid, email, srv->optns);
+	int fd = VESmail_arch_openr(fname);
+	if (fd >= 0) {
+	    if (!VESmail_tls_server_allow_plain(srv)) {
+		rs = VESmail_now_errorlog(srv, 426, "TLS required\r\n", "POST[store]", "msgid", msgid);
+	    } else {
+		VESmail *mail = VESmail_new_decrypt(ves, srv->optns);
+		if (!veskey) mail->flags |= VESMAIL_F_PASS;
+		char buf[16384];
+		int r = VESmail_now_send_status(srv, 200);
+		if (r >= 0) rs += r;
+		else rs = r;
+		if (rs >= 0) {
+		    r = VESmail_now_send(srv, 0, "Content-Type: message/rfc822\r\n");
+		    if (r >= 0) rs += r;
+		    else rs = r;
+		}
+		if (rs >= 0) {
+		    r = VESmail_now_sendhdrs(srv);
+		    if (r >= 0) rs += r;
+		    else rs = r;
+		}
+		VESmail_set_out(mail, (srv->req_in->chain ? srv->req_in->chain : srv->rsp_out));
+		int rd;
+		while (rs >= 0 && (rd = VESmail_arch_read(fd, buf, sizeof(buf))) > 0) {
+		    r = VESmail_convert(mail, NULL, 0, buf, rd);
+		    if (r >= 0) rs += r;
+		    else rs = r;
+		}
+		if (rs >= 0 && rd >= 0) {
+		    r = VESmail_convert(mail, NULL, 1, buf, 0);
+		    if (r >= 0) rs += r;
+		    else rs = r;
+		}
+		VESmail_set_out(mail, NULL);
+		VESmail_free(mail);
+		srv->flags |= VESMAIL_SRVF_SHUTDOWN;
+		VESmail_now_log(srv, "POST[store]", 200, "msgid", msgid, NULL);
+	    }
+	    VESmail_arch_close(fd);
+	} else if (!email) {
+	    rs = VESmail_now_errorlog(srv, 403, "Invalid token or messageId\r\n", "POST[store]", "msgid", msgid);
+	} else {
+	    rs = VESmail_now_errorlog(srv, 404, "This message is not spooled here\r\n", "POST[store]", "msgid", msgid);
+	}
+	free(fname);
+	libVES_VaultItem_free(vi);
+    } else rs = VESMAIL_E_HOLD;
+    libVES_free(ves);
+    libVES_cleanseJVar(req);
+    jVar_free(req);
+    return rs;
+}

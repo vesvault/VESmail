@@ -30,51 +30,50 @@
  *
  ***************************************************************************/
 
-struct VESmail_optns;
-struct VESmail_xform;
-
-typedef struct VESmail_now_req {
-    struct VESmail_xform *xform;
-    char method[16];
-    struct {
-	const char *start;
-	const char *path;
-	const char *search;
-	const char *hash;
-	const char *end;
-    } uri;
-    struct {
-	const char *start;
-	const char *end;
-    } hdr;
-    struct VESmail_now_hdr {
-	struct VESmail_now_hdr *chain;
-	const char *val;
-	const char *end;
-	char key[0];
-    } *headers;
-} VESmail_now_req;
-
-struct VESmail_server *VESmail_server_new_now(struct VESmail_optns *optns);
-int VESmail_now_error(struct VESmail_server *srv, int code, const char *msg);
-void VESmail_now_log(struct VESmail_server *srv, const char *meth, int code, ...);
-int VESmail_now_send(struct VESmail_server *srv, int final, const char *str);
-int VESmail_now_send_status(struct VESmail_server *srv, int code);
-int VESmail_now_sendhdrs(struct VESmail_server *srv);
-int VESmail_now_sendcl(struct VESmail_server *srv, const char *body);
-int VESmail_now_req_cont(struct VESmail_now_req *req);
-
-#define VESmail_now_errorlog(srv, code, msg, meth, ...) (VESmail_now_log(srv, meth, code, __VA_ARGS__), VESmail_now_error(srv, code, msg))
-#define VESmail_now_CONF(srv, key)	((srv)->optns->ref ? ((VESmail_conf *) srv->optns->ref)->key : NULL)
-#define VESmail_now_PCONF(srv, key)	((srv)->optns->ref ? &((VESmail_conf *) srv->optns->ref)->key : NULL)
+#include <sys/types.h>
+#include <stddef.h>
+#include <string.h>
+#include <stdlib.h>
+#include "../VESmail.h"
+#include "../srv/server.h"
+#include "../lib/optns.h"
+#include "../lib/xform.h"
+#include "../srv/conf.h"
+#include "now.h"
+#include "now_manifest.h"
 
 
-#define	VESMAIL_MERR_NOW	0x0100
+int VESmail_now_xform_fn_manifest(VESmail_xform *xform, int final, const char *src, int *srclen) {
+    if (!src) return 0;
+    VESmail_server *srv = xform->server;
+    const char *mft = srv->optns->ref ? ((VESmail_conf *) srv->optns->ref)->now.manifest : NULL;
+    VESmail_now_log(srv, "GET", (mft ? 200 : 404), NULL);
+    if (mft) {
+	int rs = VESmail_now_send_status(srv, 200);
+	if (rs < 0) return rs;
+	int r = VESmail_now_sendcl(srv, mft);
+	if (r < 0) return r;
+	rs += r;
+	r = VESmail_now_send(srv, 0, "Content-Type: application/json\r\n");
+	if (r < 0) return r;
+	rs += r;
+	r = VESmail_now_sendhdrs(srv);
+	if (r < 0) return r;
+	rs += r;
+	r = VESmail_now_send(srv, 1, mft);
+	if (r < 0) return r;
+	rs += r;
+	srv->flags |= VESMAIL_SRVF_SHUTDOWN;
+	return rs;
+    } else {
+	return VESmail_now_error(srv, 404, "Manifest is not supplied\r\n");
+    }
+}
 
-#ifndef VESMAIL_NOW_REQ_SAFEBYTES
-#define	VESMAIL_NOW_REQ_SAFEBYTES	32767
-#endif
+int VESmail_now_manifest_reqStack(VESmail_now_req *req) {
+    if (strcmp(req->method, "GET")) return VESMAIL_E_HOLD;
+    if (req->uri.search - req->uri.path != 8 || memcmp(req->uri.path, "ves.json", 8)) return VESMAIL_E_HOLD;
+    req->xform->chain = VESmail_xform_new(&VESmail_now_xform_fn_manifest, NULL, req->xform->server);
+    return VESmail_xform_process(req->xform->chain, 1, "", 0);
+}
 
-#ifndef VESMAIL_NOW_TMOUT
-#define	VESMAIL_NOW_TMOUT	20
-#endif

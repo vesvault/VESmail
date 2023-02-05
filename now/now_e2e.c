@@ -30,51 +30,41 @@
  *
  ***************************************************************************/
 
-struct VESmail_optns;
-struct VESmail_xform;
-
-typedef struct VESmail_now_req {
-    struct VESmail_xform *xform;
-    char method[16];
-    struct {
-	const char *start;
-	const char *path;
-	const char *search;
-	const char *hash;
-	const char *end;
-    } uri;
-    struct {
-	const char *start;
-	const char *end;
-    } hdr;
-    struct VESmail_now_hdr {
-	struct VESmail_now_hdr *chain;
-	const char *val;
-	const char *end;
-	char key[0];
-    } *headers;
-} VESmail_now_req;
-
-struct VESmail_server *VESmail_server_new_now(struct VESmail_optns *optns);
-int VESmail_now_error(struct VESmail_server *srv, int code, const char *msg);
-void VESmail_now_log(struct VESmail_server *srv, const char *meth, int code, ...);
-int VESmail_now_send(struct VESmail_server *srv, int final, const char *str);
-int VESmail_now_send_status(struct VESmail_server *srv, int code);
-int VESmail_now_sendhdrs(struct VESmail_server *srv);
-int VESmail_now_sendcl(struct VESmail_server *srv, const char *body);
-int VESmail_now_req_cont(struct VESmail_now_req *req);
-
-#define VESmail_now_errorlog(srv, code, msg, meth, ...) (VESmail_now_log(srv, meth, code, __VA_ARGS__), VESmail_now_error(srv, code, msg))
-#define VESmail_now_CONF(srv, key)	((srv)->optns->ref ? ((VESmail_conf *) srv->optns->ref)->key : NULL)
-#define VESmail_now_PCONF(srv, key)	((srv)->optns->ref ? &((VESmail_conf *) srv->optns->ref)->key : NULL)
+#include <sys/types.h>
+#include <stddef.h>
+#include <string.h>
+#include <stdlib.h>
+#include "../VESmail.h"
+#include "../srv/server.h"
+#include "../lib/xform.h"
+#include "now.h"
+#include "now_e2e.h"
 
 
-#define	VESMAIL_MERR_NOW	0x0100
-
-#ifndef VESMAIL_NOW_REQ_SAFEBYTES
-#define	VESMAIL_NOW_REQ_SAFEBYTES	32767
-#endif
-
-#ifndef VESMAIL_NOW_TMOUT
-#define	VESMAIL_NOW_TMOUT	20
-#endif
+int VESmail_now_e2e_reqStack(VESmail_now_req *req) {
+    if (strcmp(req->method, "GET") || req->uri.search - req->uri.path < 4 || memcmp(req->uri.path, "e2e/", 4)) return VESMAIL_E_HOLD;
+    const char *u = req->uri.path + 3;
+    VESmail_server *srv = req->xform->server;
+    int rs = VESmail_now_send_status(srv, 302);
+    if (rs < 0) return rs;
+    int r = VESmail_now_send(srv, 0, "Location: " VESMAIL_NOW_E2EURL);
+    if (r < 0) return r;
+    rs += r;
+    r = VESmail_xform_process(srv->rsp_out, 0, u, req->uri.search - u);
+    if (r < 0) return r;
+    rs += r;
+    u = req->uri.search;
+    if (req->uri.hash > u) {
+	r = VESmail_now_send(srv, 0, "#");
+	if (r < 0) return r;
+	rs += r;
+	u += 1;
+    }
+    r = VESmail_xform_process(srv->rsp_out, 0, u, req->uri.end - u);
+    if (r < 0) return r;
+    rs += r;
+    r = VESmail_now_send(srv, 1, "\r\n\r\n");
+    if (r < 0) return r;
+    srv->flags |= VESMAIL_SRVF_SHUTDOWN;
+    return rs + r;
+}

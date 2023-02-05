@@ -51,16 +51,21 @@ typedef struct VESmail_sasl {
     short int state;
     char *(* tokenfn)(struct VESmail_sasl *, const char *token, int len);
     void (* freefn)(struct VESmail_sasl *);
+    struct VESmail_server *srv;
     struct VESmail_sasl *chain;
     char data[0];
 } VESmail_sasl;
 
+#ifdef VESMAIL_NOW_OAUTH
+#define	VESMAIL_SASL_SRV_LAST	VESMAIL_SASL_M_XOAUTH2
+#else
 #define	VESMAIL_SASL_SRV_LAST	VESMAIL_SASL_M_LOGIN
+#endif
 
 extern const char *VESmail_sasl_mechs[];
 
 struct VESmail_sasl *VESmail_sasl_new_client(int mech);
-struct VESmail_sasl *VESmail_sasl_new_server(int mech);
+struct VESmail_sasl *VESmail_sasl_new_server(int mech, struct VESmail_server *srv);
 void VESmail_sasl_set_user(struct VESmail_sasl *sasl, const char *user, int len);
 void VESmail_sasl_set_passwd(struct VESmail_sasl *sasl, const char *passwd, int len);
 char *VESmail_sasl_process(struct VESmail_sasl *sasl, const char *token, int len);

@@ -46,8 +46,40 @@
 #include "tls.h"
 #include "override.h"
 #include "arch.h"
+
+#ifdef VESMAIL_NOW_OAUTH
+#include "../now/now_oauth.h"
+#endif
+
 #include "conf.h"
 
+
+char *VESmail_conf_get_content(const char *path) {
+    int fd = VESmail_arch_openr(path);
+    if (fd < 0) return NULL;
+    int max = 65536;
+    int len = 0;
+    char *cont = malloc(max);
+    int r;
+    while (1) {
+	r = VESmail_arch_read(fd, cont + len, max - len);
+	if (r <= 0) break;
+	len += r;
+	if (len == max) {
+	    max += 65536;
+	    cont = realloc(cont, max);
+	}
+    }
+    VESmail_arch_close(fd);
+    if (r < 0) {
+	free(cont);
+	cont = NULL;
+    } else {
+	cont = realloc(cont, len + 1);
+	cont[len] = 0;
+    }
+    return cont;
+}
 
 #ifndef VESMAIL_LOCAL
 
@@ -56,6 +88,7 @@
 #define VESmail_conf_ALLOCD_now_headers		0x08
 #define VESmail_conf_ALLOCD_audit		0x10
 #define VESmail_conf_ALLOCD_bcc			0x20
+#define VESmail_conf_ALLOCD_oauth		0x40
 
 jVar *VESmail_conf_read(const char *path, void (* errfn)(const char *fmt, ...)) {
     int fd = VESmail_arch_openr(path);
@@ -106,33 +139,6 @@ jVar *VESmail_conf_read(const char *path, void (* errfn)(const char *fmt, ...)) 
 	return NULL;
     }
     return jVarParser_done(jp);
-}
-
-char *VESmail_conf_get_content(const char *path) {
-    int fd = VESmail_arch_openr(path);
-    if (fd < 0) return NULL;
-    int max = 65536;
-    int len = 0;
-    char *cont = malloc(max);
-    int r;
-    while (1) {
-	r = VESmail_arch_read(fd, cont + len, max - len);
-	if (r <= 0) break;
-	len += r;
-	if (len == max) {
-	    max += 65536;
-	    cont = realloc(cont, max);
-	}
-    }
-    VESmail_arch_close(fd);
-    if (r < 0) {
-	free(cont);
-	cont = NULL;
-    } else {
-	cont = realloc(cont, len + 1);
-	cont[len] = 0;
-    }
-    return cont;
 }
 
 char *VESmail_conf_add_banner(VESmail_conf *conf, const char *path) {
@@ -271,6 +277,13 @@ void VESmail_conf_apply(VESmail_conf *conf, jVar *jconf) {
     if (VESmail_conf_setpstr(&conf->optns->bcc, jVar_get(jconf, "bcc"), (conf->allocd & VESmail_conf_ALLOCD_bcc))) conf->allocd |= VESmail_conf_ALLOCD_bcc;
     jVar *jovrs = jVar_get(jconf, "overrides");
     if (jovrs) conf->overrides = jVar_getEnum(jovrs, VESmail_override_modes);
+#ifdef VESMAIL_NOW_OAUTH
+    jVar *joauth = jVar_get(jconf, "oauth-key");
+    if (joauth) {
+	if (conf->allocd & VESmail_conf_ALLOCD_oauth) VESmail_now_oauth_free(conf->oauth);
+	if ((conf->oauth = VESmail_now_oauth_new(jVar_getStringP(joauth), NULL, NULL))) conf->allocd |= VESmail_conf_ALLOCD_oauth;
+    }
+#endif
     conf->optns->getBanners = &VESmail_conf_get_banners;
     conf->optns->getApp = &VESmail_conf_get_app;
     conf->optns->ref = conf;
@@ -394,6 +407,9 @@ void VESmail_conf_free(VESmail_conf *conf) {
 	if (conf->allocd & VESmail_conf_ALLOCD_bannerPath) free(conf->bannerPath);
 	if (conf->allocd & VESmail_conf_ALLOCD_now_manifest) free(conf->now.manifest);
 	if (conf->allocd & VESmail_conf_ALLOCD_now_headers) free(conf->now.headers);
+#ifdef VESMAIL_NOW_OAUTH
+	if (conf->allocd & VESmail_conf_ALLOCD_oauth) VESmail_now_oauth_free(conf->oauth);
+#endif
 	VESmail_arch_mutex_done(conf->mutex);
     }
     free(conf);

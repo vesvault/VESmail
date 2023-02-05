@@ -30,51 +30,17 @@
  *
  ***************************************************************************/
 
-struct VESmail_optns;
-struct VESmail_xform;
+struct VESmail_now_req;
+struct VESmail_server;
 
-typedef struct VESmail_now_req {
-    struct VESmail_xform *xform;
-    char method[16];
-    struct {
-	const char *start;
-	const char *path;
-	const char *search;
-	const char *hash;
-	const char *end;
-    } uri;
-    struct {
-	const char *start;
-	const char *end;
-    } hdr;
-    struct VESmail_now_hdr {
-	struct VESmail_now_hdr *chain;
-	const char *val;
-	const char *end;
-	char key[0];
-    } *headers;
-} VESmail_now_req;
-
-struct VESmail_server *VESmail_server_new_now(struct VESmail_optns *optns);
-int VESmail_now_error(struct VESmail_server *srv, int code, const char *msg);
-void VESmail_now_log(struct VESmail_server *srv, const char *meth, int code, ...);
-int VESmail_now_send(struct VESmail_server *srv, int final, const char *str);
-int VESmail_now_send_status(struct VESmail_server *srv, int code);
-int VESmail_now_sendhdrs(struct VESmail_server *srv);
-int VESmail_now_sendcl(struct VESmail_server *srv, const char *body);
-int VESmail_now_req_cont(struct VESmail_now_req *req);
-
-#define VESmail_now_errorlog(srv, code, msg, meth, ...) (VESmail_now_log(srv, meth, code, __VA_ARGS__), VESmail_now_error(srv, code, msg))
-#define VESmail_now_CONF(srv, key)	((srv)->optns->ref ? ((VESmail_conf *) srv->optns->ref)->key : NULL)
-#define VESmail_now_PCONF(srv, key)	((srv)->optns->ref ? &((VESmail_conf *) srv->optns->ref)->key : NULL)
-
-
-#define	VESMAIL_MERR_NOW	0x0100
-
-#ifndef VESMAIL_NOW_REQ_SAFEBYTES
-#define	VESMAIL_NOW_REQ_SAFEBYTES	32767
+#ifndef VESMAIL_NOW_OAUTH_KEYPASSWD
+#define	VESMAIL_NOW_OAUTH_KEYPASSWD	"oauth"
+#endif
+#ifndef VESMAIL_NOW_OAUTH_KEYALGO
+#define	VESMAIL_NOW_OAUTH_KEYALGO	"ECDH"
 #endif
 
-#ifndef VESMAIL_NOW_TMOUT
-#define	VESMAIL_NOW_TMOUT	20
-#endif
+int VESmail_now_oauth_reqStack(struct VESmail_now_req *req);
+struct VESmail_now_oauth *VESmail_now_oauth_new(const char *path, const char *passphrase, const char *algo);
+int VESmail_now_oauth_decrypt(struct VESmail_now_oauth *oauth, char **ppass, const char *token, int len);
+void VESmail_now_oauth_free(struct VESmail_now_oauth *oauth);
