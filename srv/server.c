@@ -35,20 +35,8 @@
 #include <string.h>
 #include <stdlib.h>
 #include <errno.h>
-
-#ifdef _WIN32
-#include <winsock2.h>
-#include <ws2tcpip.h>
-#else
-#include <sys/socket.h>
-#include <netdb.h>
-#include <netinet/ip.h>
-#endif
-
 #include <time.h>
-
 #include <openssl/bio.h>
-
 #include <libVES.h>
 #include <libVES/VaultItem.h>
 #include <libVES/Cipher.h>
@@ -247,7 +235,7 @@ int VESmail_server_run(VESmail_server *srv, int flags) {
 	    if (rs < 0) break;
 	    srv->reqbytes += rs;
 	}
-	int pl = VESmail_arch_polltm(
+	int pl = (flags & VESMAIL_SRVR_NOPOLL) ? 0 : VESmail_arch_polltm(
 	    (srv->tmout > 1 ? srv->tmout : 1),
 	    (srv->rsp_bio ? 2 : 1),
 	    BIO_get_fd(srv->req_bio, NULL),
@@ -278,7 +266,7 @@ int VESmail_server_run(VESmail_server *srv, int flags) {
 	if (flags & VESMAIL_SRVR_NOLOOP) break;
     }
     if (rs > 0) rs = 0;
-    if (!(flags & VESMAIL_SRVR_NOLOG)) VESmail_server_bytes(srv, 1, rs);
+    if (!(flags & VESMAIL_SRVR_NOLOG) && ((srv->flags & VESMAIL_SRVF_SHUTDOWN) || rs < 0)) VESmail_server_bytes(srv, 1, rs);
     return rs;
 }
 

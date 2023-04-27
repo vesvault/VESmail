@@ -60,7 +60,9 @@ struct VESmail_now_oauth *VESmail_now_oauth_new(const char *path, const char *pa
     libVES_VaultKey *vkey = priv || !pem ? libVES_VaultKey_new(LIBVES_VK_PENDING, a, priv, veskey, dummy_vkey.ves) : NULL;
     if (!vkey) {
 	free(pem);
-//	a->privfreefn(a, priv);
+#if LIBVES_VERSION >= 0x01020000
+	libVES_KeyAlgo_pkeyfree(a, priv);
+#endif
 	pem = NULL;
     } else if (!pem) {
 	int fd = VESmail_arch_creat(path);
@@ -76,6 +78,7 @@ struct VESmail_now_oauth *VESmail_now_oauth_new(const char *path, const char *pa
 	vkey = NULL;
     }
     libVES_veskey_free(veskey);
+    free(pem);
     return (void *) vkey;
 }
 

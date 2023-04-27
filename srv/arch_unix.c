@@ -132,36 +132,33 @@ void VESmail_arch_mutex_done(void *mutex) {
 
 int VESmail_arch_polltm(long tmout, int len, ...) {
     int r, i;
-#ifdef HAVE_POLL_H
-    struct pollfd pl[4];
     va_list va;
     va_start(va, len);
-    if (len > sizeof(pl) / sizeof(*pl)) len = sizeof(pl) / sizeof(*pl);
-    for (i = 0; i < len; i++) {
-	pl[i].fd = va_arg(va, int);
+    int **ap = len < 0 ? va_arg(va, int**) : NULL;
+#ifdef HAVE_POLL_H
+    struct pollfd pl[64];
+    for (i = 0; (ap ? !!*ap : i < len) && i < sizeof(pl) / sizeof(*pl); i++) {
+	pl[i].fd = ap ? **ap++ : va_arg(va, int);
 	pl[i].events = POLLIN | POLLHUP | POLLERR | POLLNVAL;
     }
-    va_end(va);
-    r = poll(pl, len, tmout * 1000);
+    r = poll(pl, i, tmout * 1000);
 #else
     fd_set rd;
-    struct timeval tmout = {
+    struct timeval tm = {
 	.tv_sec = tmout,
 	.tv_usec = 0
     };
     FD_ZERO(&rd);
     int nfds = 1;
-    va_list va;
-    va_start(va, len);
-    for (i = 0; i < len; i++) {
-	int fd = va_arg(va, int);
-	if (fd >= FD_SETSIZE) return VESMAIL_E_PARAM;
+    for (i = 0; (ap ? !!*ap : i < len) && i < sizeof(pl) / sizeof(*pl); i++) {
+	int fd = ap ? **ap++ : va_arg(va, int);
+	if (fd >= FD_SETSIZE) return va_end(va), VESMAIL_E_PARAM;
 	if (fd >= nfds) nfds = fd + 1;
 	FD_SET(fd, &rd);
     }
-    va_end(va);
-    r = select(nfds, &rd, NULL, NULL, &tmout);
+    r = select(nfds, &rd, NULL, NULL, &tm);
 #endif
+    va_end(va);
     if (r < 0) switch (errno) {
 	case EINTR:
 	case EAGAIN:

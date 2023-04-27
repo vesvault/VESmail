@@ -391,6 +391,7 @@ int main(int argc, char **argv) {
 		strcpy(f, params.veskeyPath);
 		strcat(f, params.user);
 		params.veskey = VESmail_conf_get_content(f);
+		free(f);
 		if (!params.veskey) {
 		    if (params.debug >= 0) fprintf(stderr, "Error reading VESkey from %s\n", f);
 		    return E_IO;
@@ -455,17 +456,21 @@ int main(int argc, char **argv) {
 		VESmail_daemon **d;
 		for (d = daemons; *d; d++) (*d)->debug += params.debug;
 	    }
-	    int g = VESmail_guard(daemons, cli_conf.guard);
-	    if (g > 0) {
-		if (VESmail_daemon_launchall(daemons) > 0) {
-		    VESmail_arch_usleep(2000000);
+	    int n = VESmail_daemon_prepall(daemons, NULL);
+	    if (n >= 0) {
+		int g = VESmail_guard(daemons, cli_conf.guard);
+		if (g > 0) {
+		    int **fdbuf = malloc((n + 1) * sizeof(int*));
+		    VESmail_daemon_prepall(daemons, fdbuf);
 		    while (VESmail_daemon_watchall(daemons, NULL, NULL) > 0) {
-			VESmail_arch_usleep(2000000);
+			VESmail_arch_poll(-1, fdbuf);
+			VESmail_daemon_pollall(daemons);
 		    }
-		} else {
+		    free(fdbuf);
+		} else if (g < 0) {
 		    rs = E_IO;
 		}
-	    } else if (g < 0) {
+	    } else {
 		rs = E_IO;
 	    }
 	    VESmail_daemon_freeall(daemons);

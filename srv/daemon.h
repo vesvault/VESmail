@@ -59,6 +59,7 @@ typedef struct VESmail_daemon {
 
 #define	VESMAIL_DMF_KEEPSOCK		0x01
 #define	VESMAIL_DMF_RECONNECT		0x02
+#define	VESMAIL_DMF_NB			0x04
 
 #define	VESMAIL_DMSK_NONE		-1
 #define	VESMAIL_DMSK_DOWN		-2
@@ -95,6 +96,8 @@ int VESmail_daemon_watch(struct VESmail_daemon *daemon, void (* watchfn)(struct 
 int VESmail_daemon_shutdown(struct VESmail_daemon *daemon);
 
 struct VESmail_daemon **VESmail_daemon_execute(struct VESmail_conf_daemon *cds);
+int VESmail_daemon_prepall(struct VESmail_daemon **daemons, int **pfd);
+int VESmail_daemon_pollall(struct VESmail_daemon **daemons);
 int VESmail_daemon_launchall(struct VESmail_daemon **daemons);
 int VESmail_daemon_watchall(struct VESmail_daemon **daemons, void (* watchfn)(struct VESmail_proc *proc, void *arg), void *arg);
 void VESmail_daemon_killall(struct VESmail_daemon **daemons);

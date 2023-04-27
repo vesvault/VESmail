@@ -69,6 +69,9 @@ int VESmail_arch_mkdir(const char *path, short mod);
 
 #ifdef _WIN32
 
+#include <winsock2.h>
+#include <ws2tcpip.h>
+
 #ifndef VESMAIL_CONF_PATH
 #define VESMAIL_CONF_PATH	""
 #endif
@@ -78,6 +81,10 @@ int VESmail_arch_mkdir(const char *path, short mod);
 #endif
 
 #else
+
+#include <sys/socket.h>
+#include <netdb.h>
+#include <netinet/ip.h>
 
 #ifndef VESMAIL_CONF_PATH
 #define VESMAIL_CONF_PATH	"/etc/vesmail/"

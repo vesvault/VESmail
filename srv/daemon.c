@@ -37,15 +37,6 @@
 #include <stddef.h>
 #include <string.h>
 #include <stdlib.h>
-
-#ifdef _WIN32
-#include <winsock2.h>
-#include <ws2tcpip.h>
-#else
-#include <sys/socket.h>
-#include <netdb.h>
-#endif
-
 #include <jVar.h>
 #include <stdarg.h>
 #include <stdio.h>
@@ -121,16 +112,15 @@ int VESmail_daemon_sock_error(struct VESmail_daemon_sock *sk) {
 }
 
 int VESmail_daemon_sock_listen(struct VESmail_daemon_sock *sk) {
-    if (sk->sock < 0) {
-	int fd = socket(sk->ainfo->ai_family, sk->ainfo->ai_socktype, sk->ainfo->ai_protocol);
-	if (fd < 0) return VESMAIL_E_CONN;
-	int flg = 1;
-	setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, (void *) &flg, sizeof(flg));
+    if (sk->sock >= 0) return 0;
+    int fd = socket(sk->ainfo->ai_family, sk->ainfo->ai_socktype, sk->ainfo->ai_protocol);
+    if (fd < 0) return VESMAIL_E_CONN;
+    int flg = 1;
+    setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, (void *) &flg, sizeof(flg));
 #ifdef SO_REUSEPORT
-	setsockopt(fd, SOL_SOCKET, SO_REUSEPORT, (void *) &flg, sizeof(flg));
+    setsockopt(fd, SOL_SOCKET, SO_REUSEPORT, (void *) &flg, sizeof(flg));
 #endif
-	sk->sock = fd;
-    }
+    sk->sock = fd;
     VESMAIL_DAEMON_DEBUG(sk->daemon, 1, {
 	char abuf[64];
 	char pbuf[16];
@@ -146,6 +136,10 @@ int VESmail_daemon_sock_listen(struct VESmail_daemon_sock *sk) {
 	VESMAIL_DAEMON_DEBUG(sk->daemon, 1, fprintf(stderr, "... listen failed (%d)\n", connr));
 	return VESmail_daemon_sock_error(sk);
     }
+    if ((sk->daemon->flags & VESMAIL_DMF_NB) && (connr = VESmail_arch_set_nb(sk->sock, 1)) < 0) {
+	VESMAIL_DAEMON_DEBUG(sk->daemon, 1, fprintf(stderr, "... set_nb failed (%d)\n", connr));
+	return VESmail_daemon_sock_error(sk);
+    }
     VESMAIL_DAEMON_DEBUG(sk->daemon, 1, fprintf(stderr, "... success\n"));
     return 0;
 }
@@ -153,7 +147,7 @@ int VESmail_daemon_sock_listen(struct VESmail_daemon_sock *sk) {
 int VESmail_daemon_listen(VESmail_daemon *daemon) {
     struct VESmail_daemon_sock *sk;
     for (sk = daemon->sock; sk; sk = sk->chain) {
-	int r = VESmail_daemon_sock_listen(sk);
+	int r = sk->ainfo ? VESmail_daemon_sock_listen(sk) : 0;
 	if (r < 0) return r;
     }
     return 0;
@@ -161,6 +155,7 @@ int VESmail_daemon_listen(VESmail_daemon *daemon) {
 
 int VESmail_daemon_sock_run(struct VESmail_daemon_sock *sk) {
     if (sk->sock < 0) while (VESmail_daemon_sock_listen(sk)) {
+	if (sk->daemon->flags & VESMAIL_DMF_NB) return VESMAIL_E_CONN;
 	VESmail_arch_usleep(15000000);
     }
     int fd;
@@ -179,15 +174,19 @@ int VESmail_daemon_sock_run(struct VESmail_daemon_sock *sk) {
 	    }
 	} else {
 	    int er = errno;
-	    VESmail_arch_usleep(1000000);
+	    if (!(sk->daemon->flags & VESMAIL_DMF_NB) && !(er == EINTR || er == EAGAIN || er == EWOULDBLOCK)) {
+		VESmail_arch_usleep(1000000);
+	    }
 	    if ((sk->daemon->flags & VESMAIL_DMF_RECONNECT) && er == EBADF) {
 		VESmail_daemon_sock_error(sk);
 		VESmail_arch_log("reconnect daemon=%s", sk->daemon->type);
+		if (sk->daemon->flags & VESMAIL_DMF_NB) return VESMAIL_E_IO;
 		while (VESmail_daemon_sock_listen(sk)) {
 		    VESmail_arch_usleep(5000000);
 		};
 	    }
 	}
+	if (sk->daemon->flags & VESMAIL_DMF_NB) break;
     }
     return 0;
 }
@@ -375,6 +374,36 @@ VESmail_daemon **VESmail_daemon_execute(struct VESmail_conf_daemon *cds) {
     }
     *dp = NULL;
     return daemons;
+}
+
+int VESmail_daemon_prepall(VESmail_daemon **daemons, int **pfd) {
+    VESmail_daemon **pd, *d;
+    int ct = 0;
+    for (pd = daemons; (d = *pd); pd++) {
+	d->flags |= VESMAIL_DMF_NB;
+	struct VESmail_daemon_sock *sk;
+	for (sk = d->sock; sk; sk = sk->chain) {
+	    if (!sk->ainfo) continue;
+	    if (sk->sock == VESMAIL_DMSK_NONE) VESmail_daemon_sock_listen(sk);
+	    if (pfd) *pfd++ = &sk->sock;
+	    ct++;
+	}
+    }
+    if (pfd) *pfd = NULL;
+    return ct;
+}
+
+int VESmail_daemon_pollall(VESmail_daemon **daemons) {
+    VESmail_daemon **pd, *d;
+    int rs = 0;
+    for (pd = daemons; (d = *pd); pd++) if (d->flags & VESMAIL_DMF_NB) {
+	struct VESmail_daemon_sock *sk;
+	for (sk = d->sock; sk; sk = sk->chain) if (sk->ainfo) {
+	    int r = VESmail_daemon_sock_run(sk);
+	    if (rs >= 0) rs = r >= 0 ? rs + r : r;
+	}
+    }
+    return rs;
 }
 
 int VESmail_daemon_launchall(VESmail_daemon **daemons) {

@@ -57,6 +57,7 @@
 #include "x509store.h"
 #endif
 #include "../now/now.h"
+#include "../now/now_options.h"
 #include "../now/now_post.h"
 #include "../now/now_manifest.h"
 #include "../now/now_e2e.h"
@@ -93,6 +94,7 @@ char *VESmail_local_bcc[] = { "my@now.vesmail.email", NULL };
 void VESmail_local_wakefn(struct VESmail_conf *conf);
 
 int (* VESmail_local_reqStack[])(VESmail_now_req *) = {
+    &VESmail_now_options_reqStack,
     &VESmail_now_post_reqStack,
     &VESmail_now_manifest_reqStack,
     &VESmail_now_e2e_reqStack,
@@ -314,7 +316,11 @@ VESmail_daemon **VESmail_local_start() {
 	if (!VESmail_local_daemons) return NULL;
 	VESmail_daemon **dp = VESmail_local_daemons;
 	while (*dp) (*dp++)->flags |= VESMAIL_DMF_RECONNECT;
+#ifdef VESMAIL_LOCAL_SNIF
+	VESmail_daemon_prepall(VESmail_local_daemons, NULL);
+#else
 	VESmail_daemon_launchall(VESmail_local_daemons);
+#endif
 	struct VESmail_local_stat *st = VESmail_local_stat;
 	for (dp = VESmail_local_daemons; st < VESmail_local_stat + sizeof(VESmail_local_stat) / sizeof(*VESmail_local_stat); st++) {
 	    VESmail_local_stat_init(st);
@@ -560,7 +566,7 @@ VESmail_server *VESmail_local_snif(const char *crt, const char *pkey, const char
 	for (port = VESmail_local_snif_ports; port->port; port++) {
 	    port->sock = VESmail_snif_daemonsock(VESmail_local_daemons[(long long)port->sock]);
 	}
-	VESmail_local_snif_srv = VESmail_snif_new(&VESmail_local_snif_cert, VESmail_local_snif_ports);
+	VESmail_local_snif_srv = VESmail_snif_new(&VESmail_local_snif_cert, VESmail_local_snif_ports, VESmail_local_daemons);
     }
     return VESmail_local_snif_srv;
 }

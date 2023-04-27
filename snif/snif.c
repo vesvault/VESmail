@@ -209,12 +209,16 @@ int VESmail_snif_xform_fn(VESmail_xform *xform, int final, const char *src, int 
 int VESmail_snif_run(VESmail_server *srv) {
     VESmail_snif *snif = (VESmail_snif *)&srv->ctl;
     int certerr = 0;
+    int sniffd = -1;
+    int *pfd[32] = { &sniffd, NULL };
+    if (snif->daemons && VESmail_daemon_prepall(snif->daemons, pfd + 1) < 0) return VESMAIL_E_CONN;
     while (!(srv->flags & VESMAIL_SRVF_KILL)) {
 	if (snif->hold) {
 	    srv->flags &= ~VESMAIL_SRVF_SHUTDOWN;
 	    VESmail_arch_usleep(15000000);
 	    continue;
 	}
+	if (snif->daemons) VESmail_daemon_pollall(snif->daemons);
 	int lck = snif->mutex ? VESmail_arch_mutex_lock(&snif->mutex) : -1;
 	void *ctx = snif_cert_ctx(snif->cert);
 	const char *host = snif_cert_hostname(snif->cert);
@@ -230,29 +234,29 @@ int VESmail_snif_run(VESmail_server *srv) {
 	}
 	if (lck >= 0) VESmail_arch_mutex_unlock(&snif->mutex);
 	if (!ctx) {
-	    VESmail_arch_usleep((long long) snif->backoff * 1000000);
+	    VESmail_arch_polltm(snif->backoff, -1, pfd);
 	    snif->backoff += snif->backoff / 32 + 1;
 	    continue;
 	}
 	certerr = 0;
 	snif->backoff = VESMAIL_SNIF_BACKOFF;
 	snif->tls->ctx = ctx;
-	int fd = VESmail_server_connectsk(srv, host, VESMAIL_SNIF_RPORT);
-	if (fd < 0) {
-	    VESmail_arch_usleep(15000000);
+	sniffd = VESmail_server_connectsk(srv, host, VESMAIL_SNIF_RPORT);
+	if (sniffd < 0) {
+	    VESmail_arch_polltm(15, -1, pfd);
 	    continue;
 	}
 	srv->req_in->eof = 0;
-	VESmail_arch_keepalive(fd);
+	VESmail_arch_keepalive(sniffd);
 	char buf[128];
 	char *p = buf;
 	snif_conn_start(&p, sizeof(buf), host);
-	if (VESmail_server_set_sock(srv, fd) < 0
+	if (VESmail_server_set_sock(srv, sniffd) < 0
 	    || VESmail_tls_server_start(srv, 1) < 0
 	    || VESmail_xform_process(srv->rsp_out, 0, buf, p - buf) < 0
 	) {
 	    VESmail_server_unset_fd(srv);
-	    VESmail_arch_usleep(15000000);
+	    VESmail_arch_polltm(15, -1, pfd);
 	    continue;
 	}
 	char *local = VESmail_server_sockname(srv, 0);
@@ -263,7 +267,11 @@ int VESmail_snif_run(VESmail_server *srv) {
 	snif->running = 1;
 	snif->waiting = 0;
 	srv->tmout = VESMAIL_SNIF_ALIVE;
-	VESmail_server_run(srv, VESMAIL_SRVR_NOTHR);
+	while (!(srv->flags & VESMAIL_SRVF_SHUTDOWN)) {
+	    VESmail_arch_poll(-1, pfd);
+	    if (VESmail_server_run(srv, VESMAIL_SRVR_NOTHR | VESMAIL_SRVR_NOLOOP | VESMAIL_SRVR_NOPOLL) < 0) break;
+	    if (snif->daemons) VESmail_daemon_pollall(snif->daemons);
+	}
 	snif->running = 0;
 	VESmail_server_unset_fd(srv);
 	srv->flags &= ~(VESMAIL_SRVF_TMOUT | VESMAIL_SRVF_SHUTDOWN);
@@ -339,7 +347,7 @@ void VESmail_snif_fn_free(VESmail_server *srv, int final) {
     }
 }
 
-VESmail_server *VESmail_snif_new(snif_cert *cert, struct VESmail_snif_port *ports) {
+VESmail_server *VESmail_snif_new(snif_cert *cert, struct VESmail_snif_port *ports, struct VESmail_daemon **daemons) {
     VESmail_server *srv = VESmail_server_init(malloc(sizeof(VESmail_server) + sizeof(VESmail_snif)), NULL);
     srv->type = "snif";
     srv->req_in = VESmail_xform_new(&VESmail_snif_xform_fn, NULL, srv);
@@ -361,6 +369,7 @@ VESmail_server *VESmail_snif_new(snif_cert *cert, struct VESmail_snif_port *port
     snif->running = snif->hold = 0;
     snif->backoff = VESMAIL_SNIF_BACKOFF;
     snif->mutex = NULL;
+    snif->daemons = daemons;
     int r = VESmail_arch_thread(srv, &VESmail_snif_run_fn, &snif->thread);
     if (r < 0) {
 	VESmail_server_free(srv);
@@ -372,14 +381,14 @@ VESmail_server *VESmail_snif_new(snif_cert *cert, struct VESmail_snif_port *port
 struct VESmail_daemon_sock *VESmail_snif_daemonsock(VESmail_daemon *daemon) {
     struct VESmail_daemon_sock **psk = &daemon->sock;
     while (*psk) psk = &(*psk)->chain;
-    struct VESmail_daemon_sock *sk = *psk = malloc(sizeof(*sk));
+    struct VESmail_daemon_sock *sk = malloc(sizeof(*sk));
     sk->daemon = daemon;
     sk->ainfo = NULL;
     sk->procs = NULL;
     sk->thread = NULL;
     sk->sock = VESMAIL_DMSK_NONE;
     sk->chain = NULL;
-    return sk;
+    return *psk = sk;
 }
 
 

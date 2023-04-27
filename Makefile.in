@@ -74,12 +74,12 @@ am__vesmail_SOURCES_DIST = lib/mail.c lib/optns.c lib/parse.c \
 	smtp/smtp_cmd.c smtp/smtp_reply.c smtp/smtp_track.c \
 	smtp/smtp_start.c smtp/smtp_proxy.c smtp/smtp_xves.c now/now.c \
 	now/now_store.c now/now_probe.c now/now_post.c \
-	now/now_manifest.c now/now_oauth.c cli/vesmail.c cli/cli.c \
-	cli/help.c cli/tty.c lib/mail.h lib/optns.h lib/parse.h \
-	lib/header.h lib/xform.h lib/multi.h lib/cte.h lib/ves.h \
-	lib/encrypt.h lib/decrypt.h lib/banner.h lib/util.h \
-	srv/server.h srv/arch.h srv/tls.h srv/sasl.h srv/conf.h \
-	srv/daemon.h srv/proc.h srv/override.h srv/guard.h \
+	now/now_manifest.c now/now_options.c now/now_oauth.c \
+	cli/vesmail.c cli/cli.c cli/help.c cli/tty.c lib/mail.h \
+	lib/optns.h lib/parse.h lib/header.h lib/xform.h lib/multi.h \
+	lib/cte.h lib/ves.h lib/encrypt.h lib/decrypt.h lib/banner.h \
+	lib/util.h srv/server.h srv/arch.h srv/tls.h srv/sasl.h \
+	srv/conf.h srv/daemon.h srv/proc.h srv/override.h srv/guard.h \
 	srv/x509store.h srv/curlsh.h imap/imap.h imap/imap_xform.h \
 	imap/imap_token.h imap/imap_track.h imap/imap_start.h \
 	imap/imap_proxy.h imap/imap_msg.h imap/imap_fetch.h \
@@ -87,9 +87,9 @@ am__vesmail_SOURCES_DIST = lib/mail.c lib/optns.c lib/parse.c \
 	imap/imap_xves.h smtp/smtp.h smtp/smtp_cmd.h smtp/smtp_reply.h \
 	smtp/smtp_track.h smtp/smtp_start.h smtp/smtp_proxy.h \
 	smtp/smtp_xves.h now/now.h now/now_store.h now/now_probe.h \
-	now/now_post.h now/now_manifest.h now/now_oauth.h \
-	cli/vesmail.h cli/cli.h cli/help.h cli/tty.h util/jTree.c \
-	util/jTree.h VESmail.h
+	now/now_post.h now/now_manifest.h now/now_options.h \
+	now/now_oauth.h cli/vesmail.h cli/cli.h cli/help.h cli/tty.h \
+	util/jTree.c util/jTree.h VESmail.h
 am__dirstamp = $(am__leading_dot)dirstamp
 am__objects_1 = lib/vesmail-mail.$(OBJEXT) lib/vesmail-optns.$(OBJEXT) \
 	lib/vesmail-parse.$(OBJEXT) lib/vesmail-header.$(OBJEXT) \
@@ -131,7 +131,8 @@ am__objects_6 = smtp/vesmail-smtp.$(OBJEXT) \
 am__objects_8 = now/vesmail-now.$(OBJEXT) \
 	now/vesmail-now_store.$(OBJEXT) \
 	now/vesmail-now_probe.$(OBJEXT) now/vesmail-now_post.$(OBJEXT) \
-	now/vesmail-now_manifest.$(OBJEXT) $(am__objects_7)
+	now/vesmail-now_manifest.$(OBJEXT) \
+	now/vesmail-now_options.$(OBJEXT) $(am__objects_7)
 am__objects_9 = cli/vesmail-vesmail.$(OBJEXT) \
 	cli/vesmail-cli.$(OBJEXT) cli/vesmail-help.$(OBJEXT) \
 	cli/vesmail-tty.$(OBJEXT)
@@ -337,9 +338,9 @@ smtp/smtp_proxy.h \
 smtp/smtp_xves.h
 
 NOW_CFILES = now/now.c now/now_store.c now/now_probe.c now/now_post.c \
-	now/now_manifest.c $(am__append_5)
+	now/now_manifest.c now/now_options.c $(am__append_5)
 NOW_HFILES = now/now.h now/now_store.h now/now_probe.h now/now_post.h \
-	now/now_manifest.h $(am__append_6)
+	now/now_manifest.h now/now_options.h $(am__append_6)
 CLI_CFILES = cli/vesmail.c \
 cli/cli.c \
 cli/help.c \
@@ -578,6 +579,8 @@ now/vesmail-now_post.$(OBJEXT): now/$(am__dirstamp) \
 	now/$(DEPDIR)/$(am__dirstamp)
 now/vesmail-now_manifest.$(OBJEXT): now/$(am__dirstamp) \
 	now/$(DEPDIR)/$(am__dirstamp)
+now/vesmail-now_options.$(OBJEXT): now/$(am__dirstamp) \
+	now/$(DEPDIR)/$(am__dirstamp)
 now/vesmail-now_oauth.$(OBJEXT): now/$(am__dirstamp) \
 	now/$(DEPDIR)/$(am__dirstamp)
 cli/$(am__dirstamp):
@@ -640,6 +643,7 @@ mostlyclean-compile:
 	-rm -f now/vesmail-now.$(OBJEXT)
 	-rm -f now/vesmail-now_manifest.$(OBJEXT)
 	-rm -f now/vesmail-now_oauth.$(OBJEXT)
+	-rm -f now/vesmail-now_options.$(OBJEXT)
 	-rm -f now/vesmail-now_post.$(OBJEXT)
 	-rm -f now/vesmail-now_probe.$(OBJEXT)
 	-rm -f now/vesmail-now_store.$(OBJEXT)
@@ -698,6 +702,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@now/$(DEPDIR)/vesmail-now.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@now/$(DEPDIR)/vesmail-now_manifest.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@now/$(DEPDIR)/vesmail-now_oauth.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@now/$(DEPDIR)/vesmail-now_options.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@now/$(DEPDIR)/vesmail-now_post.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@now/$(DEPDIR)/vesmail-now_probe.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@now/$(DEPDIR)/vesmail-now_store.Po@am__quote@
@@ -1408,6 +1413,20 @@ now/vesmail-now_manifest.obj: now/now_manifest.c
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	source='now/now_manifest.c' object='now/vesmail-now_manifest.obj' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(vesmail_CFLAGS) $(CFLAGS) -c -o now/vesmail-now_manifest.obj `if test -f 'now/now_manifest.c'; then $(CYGPATH_W) 'now/now_manifest.c'; else $(CYGPATH_W) '$(srcdir)/now/now_manifest.c'; fi`
+
+now/vesmail-now_options.o: now/now_options.c
+@am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(vesmail_CFLAGS) $(CFLAGS) -MT now/vesmail-now_options.o -MD -MP -MF now/$(DEPDIR)/vesmail-now_options.Tpo -c -o now/vesmail-now_options.o `test -f 'now/now_options.c' || echo '$(srcdir)/'`now/now_options.c
+@am__fastdepCC_TRUE@	$(am__mv) now/$(DEPDIR)/vesmail-now_options.Tpo now/$(DEPDIR)/vesmail-now_options.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='now/now_options.c' object='now/vesmail-now_options.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(vesmail_CFLAGS) $(CFLAGS) -c -o now/vesmail-now_options.o `test -f 'now/now_options.c' || echo '$(srcdir)/'`now/now_options.c
+
+now/vesmail-now_options.obj: now/now_options.c
+@am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(vesmail_CFLAGS) $(CFLAGS) -MT now/vesmail-now_options.obj -MD -MP -MF now/$(DEPDIR)/vesmail-now_options.Tpo -c -o now/vesmail-now_options.obj `if test -f 'now/now_options.c'; then $(CYGPATH_W) 'now/now_options.c'; else $(CYGPATH_W) '$(srcdir)/now/now_options.c'; fi`
+@am__fastdepCC_TRUE@	$(am__mv) now/$(DEPDIR)/vesmail-now_options.Tpo now/$(DEPDIR)/vesmail-now_options.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='now/now_options.c' object='now/vesmail-now_options.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(vesmail_CFLAGS) $(CFLAGS) -c -o now/vesmail-now_options.obj `if test -f 'now/now_options.c'; then $(CYGPATH_W) 'now/now_options.c'; else $(CYGPATH_W) '$(srcdir)/now/now_options.c'; fi`
 
 now/vesmail-now_oauth.o: now/now_oauth.c
 @am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(vesmail_CFLAGS) $(CFLAGS) -MT now/vesmail-now_oauth.o -MD -MP -MF now/$(DEPDIR)/vesmail-now_oauth.Tpo -c -o now/vesmail-now_oauth.o `test -f 'now/now_oauth.c' || echo '$(srcdir)/'`now/now_oauth.c

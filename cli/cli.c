@@ -46,6 +46,7 @@
 #include "../srv/arch.h"
 #include "../srv/tls.h"
 #include "../now/now.h"
+#include "../now/now_options.h"
 #include "../now/now_post.h"
 #include "../now/now_store.h"
 #include "../now/now_manifest.h"
@@ -61,6 +62,7 @@
 
 
 int (* cli_reqStack[])(VESmail_now_req *) = {
+    &VESmail_now_options_reqStack,
     &VESmail_now_post_reqStack,
     &VESmail_now_store_reqStack,
     &VESmail_now_manifest_reqStack,

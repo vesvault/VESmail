@@ -52,6 +52,7 @@ typedef struct VESmail_snif {
     struct VESmail_conf *mftconf;
     char *msgout;
     void *mutex;
+    struct VESmail_daemon **daemons;
     unsigned long backoff;
     char running;
     char waiting;
@@ -91,7 +92,7 @@ struct VESmail_daemon;
 #define	VESMAIL_SNIF_ABUSE	1
 #endif
 
-struct VESmail_server *VESmail_snif_new(struct snif_cert *cert, struct VESmail_snif_port *ports);
+struct VESmail_server *VESmail_snif_new(struct snif_cert *cert, struct VESmail_snif_port *ports, struct VESmail_daemon **daemons);
 struct VESmail_daemon_sock *VESmail_snif_daemonsock(struct VESmail_daemon *daemon);
 void VESmail_snif_initcert(struct snif_cert *cert);
 int VESmail_snif_stat(struct VESmail_server *srv);

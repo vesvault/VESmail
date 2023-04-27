@@ -30,52 +30,34 @@
  *
  ***************************************************************************/
 
-struct VESmail;
-struct libVES;
+#include <sys/types.h>
+#include <stddef.h>
+#include <string.h>
+#include <stdlib.h>
+#include "../VESmail.h"
+#include "../srv/server.h"
+#include "../lib/optns.h"
+#include "../lib/xform.h"
+#include "../srv/conf.h"
+#include "now.h"
+#include "now_options.h"
 
-#ifdef HAVE_CONFIG_H
-#ifndef PACKAGE_VERSION
-#include "config.h"
-#endif
-#endif
 
-#ifdef	PACKAGE_VERSION
-#define	VESMAIL_VERSION		PACKAGE_VERSION
-#else
-#define	VESMAIL_VERSION		"1.65"
-#endif
+int VESmail_now_xform_fn_options(VESmail_xform *xform, int final, const char *src, int *srclen) {
+    if (!src) return 0;
+    VESmail_server *srv = xform->server;
+    srv->flags |= VESMAIL_SRVF_SHUTDOWN;
+    int rs = VESmail_now_send_status(srv, 200);
+    if (rs < 0) return rs;
+    int r = VESmail_now_sendhdrs(srv);
+    if (r < 0) return r;
+    rs += r;
+    return rs;
+}
 
-#define	VESMAIL_SHORT_NAME	"VESmail"
-
-#define	VESMAIL_VES_DOMAIN	"vesmail"
-
-#define	VESMAIL_E_OK		0
-#define	VESMAIL_E_PARAM		-1
-#define	VESMAIL_E_BUF		-2
-#define	VESMAIL_E_VES		-3
-#define	VESMAIL_E_IO		-4
-#define	VESMAIL_E_UNKNOWN	-5
-#define	VESMAIL_E_AUTH		-6
-#define	VESMAIL_E_CONF		-7
-#define	VESMAIL_E_DENIED	-8
-#define	VESMAIL_E_RESOLV	-16
-#define	VESMAIL_E_CONN		-17
-#define	VESMAIL_E_TLS		-18
-#define	VESMAIL_E_SASL		-19
-#define	VESMAIL_E_RELAY		-20
-#define	VESMAIL_E_ABUSE		-21
-#define	VESMAIL_E_OVRD		-22
-#define	VESMAIL_E_RAUTH		-31
-#define	VESMAIL_E_INTERNAL	-32
-#define	VESMAIL_E_HOLD		-100
-
-#define VESMAIL_DEBUG_LIBVES	4
-
-#ifdef VESMAIL_MT
-#include "mt.h"
-#endif
-
-/*
-libVESmail interface calls to be defined here
-*/
+int VESmail_now_options_reqStack(VESmail_now_req *req) {
+    if (strcmp(req->method, "OPTIONS")) return VESMAIL_E_HOLD;
+    req->xform->chain = VESmail_xform_new(&VESmail_now_xform_fn_options, NULL, req->xform->server);
+    return VESmail_xform_process(req->xform->chain, 1, "", 0);
+}
 

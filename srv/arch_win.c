@@ -127,16 +127,16 @@ void VESmail_arch_mutex_done(void *mutex) {
 
 int VESmail_arch_polltm(long tmout, int len, ...) {
     int r, i;
-    WSAPOLLFD pl[4];
+    WSAPOLLFD pl[64];
     va_list va;
     va_start(va, len);
-    if (len > sizeof(pl) / sizeof(*pl)) len = sizeof(pl) / sizeof(*pl);
-    for (i = 0; i < len; i++) {
-	pl[i].fd = va_arg(va, int);
+    int **ap = (len < 0 ? va_arg(va, int**) : NULL);
+    for (i = 0; (len >= 0 ? i < len : !!*ap) && i < sizeof(pl) / sizeof(*pl); i++) {
+	pl[i].fd = ap ? **ap++ : va_arg(va, int);
 	pl[i].events = POLLIN;
     }
     va_end(va);
-    r = WSAPoll(pl, len, tmout * 1000);
+    r = WSAPoll(pl, i, tmout * 1000);
     return r < 0 ? VESMAIL_E_IO : 0;
 }
 
