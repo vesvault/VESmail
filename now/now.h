@@ -51,6 +51,8 @@ typedef struct VESmail_now_req {
 	struct VESmail_now_hdr *chain;
 	const char *val;
 	const char *end;
+	const char *lcval;
+	const char *next;
 	char key[0];
     } *headers;
 } VESmail_now_req;
@@ -67,6 +69,9 @@ int VESmail_now_req_cont(struct VESmail_now_req *req);
 #define VESmail_now_errorlog(srv, code, msg, meth, ...) (VESmail_now_log(srv, meth, code, __VA_ARGS__), VESmail_now_error(srv, code, msg))
 #define VESmail_now_CONF(srv, key)	((srv)->optns->ref ? ((VESmail_conf *) srv->optns->ref)->key : NULL)
 #define VESmail_now_PCONF(srv, key)	((srv)->optns->ref ? &((VESmail_conf *) srv->optns->ref)->key : NULL)
+
+struct VESmail_now_hdr *VESmail_now_req_header(struct VESmail_now_req *req, struct VESmail_now_hdr *prev);
+void VESmail_now_req_cleanup(struct VESmail_now_req *req);
 
 
 #define	VESMAIL_MERR_NOW	0x0100

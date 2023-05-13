@@ -63,6 +63,7 @@ typedef struct VESmail_conf {
 	void *reqStack;
 	void *postStack;
 	int (* feedbackFn)(const char *fbk);
+	struct jVar *websock;
 	long long int maxSize;
     } now;
     struct VESmail_now_oauth *oauth;
@@ -101,3 +102,5 @@ int VESmail_conf_setpstr(char ***d, struct jVar *b, int f);
 
 struct VESmail_conf_daemon *VESmail_conf_daemon_build(struct VESmail_conf *conf, struct jVar *jconf);
 void VESmail_conf_daemon_free(struct VESmail_conf_daemon *cfd);
+
+void VESmail_conf_addwebsock(struct VESmail_conf *conf, struct VESmail_conf_daemon *cd);

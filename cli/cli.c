@@ -51,6 +51,7 @@
 #include "../now/now_store.h"
 #include "../now/now_manifest.h"
 #include "../now/now_probe.h"
+#include "../now/now_websock.h"
 
 #ifdef VESMAIL_NOW_OAUTH
 #include "../now/now_oauth.h"
@@ -69,6 +70,7 @@ int (* cli_reqStack[])(VESmail_now_req *) = {
 #ifdef VESMAIL_NOW_OAUTH
     &VESmail_now_oauth_reqStack,
 #endif
+    &VESmail_now_websock_reqStack,
     NULL
 };
 
@@ -97,6 +99,7 @@ struct VESmail_conf cli_conf = {
 	.headers = NULL,
 	.reqStack = cli_reqStack,
 	.postStack = cli_postStack,
+	.websock = NULL,
 	.maxSize = 1048576
     },
     .abuseSense = 0,

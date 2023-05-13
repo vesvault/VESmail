@@ -30,31 +30,14 @@
  *
  ***************************************************************************/
 
-#include <sys/types.h>
-#include <stddef.h>
-#include <string.h>
-#include <stdlib.h>
-#include <jVar.h>
-#include "../VESmail.h"
-#include "../srv/server.h"
-#include "../srv/arch.h"
-#include "../lib/mail.h"
-#include "../lib/optns.h"
-#include "../lib/xform.h"
-#include "../srv/conf.h"
-#include "now.h"
-#include "now_post.h"
+#ifndef VESMAIL_WEBSOCK_MAX
+#define VESMAIL_WEBSOCK_MAX	1048576
+#endif
+#ifndef VESMAIL_WEBSOCK_OUT
+#define VESMAIL_WEBSOCK_OUT	32768
+#endif
 
+struct VESmail_now_req;
 
-int VESmail_now_feedback_postStack(VESmail_server *srv, jVar *req) {
-    int (* fbkfn)(const char *fbk) = VESmail_now_CONF(srv, now.feedbackFn);
-    if (!fbkfn) return VESMAIL_E_HOLD;
-    jVar *fbk = jVar_get(req, "feedback");
-    if (!fbk) return VESMAIL_E_HOLD;
-    const char *fbks = jVar_getStringP(fbk);
-    void **pmutex = VESmail_now_PCONF(srv, mutex);
-    VESmail_arch_mutex_lock(pmutex);
-    int rs = fbkfn(fbks);
-    VESmail_arch_mutex_unlock(pmutex);
-    return VESmail_now_errorlog(srv, (rs >= 0 ? 202 : 502), (rs >= 0 ? NULL : "Feedback not accepted"), "POST[feedback]", "feedback", fbks, NULL);
-}
+int VESmail_now_websock_reqStack(struct VESmail_now_req *req);
+

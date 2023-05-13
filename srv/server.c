@@ -259,12 +259,11 @@ int VESmail_server_run(VESmail_server *srv, int flags) {
 		if (!(flags & VESMAIL_SRVR_NOLOG)) VESmail_server_log(srv, (srv->flags & VESMAIL_SRVF_TMOUT ? "timeout proto=%s" : "shutdown proto=%s"), srv->type);
 		rs = VESmail_xform_process(srv->req_in, 1, "", 0);
 		if (rs < 0) break;
-		rs = VESmail_xform_process(srv->req_out, 1, "", 0);
-		if (rs < 0) break;
 	    }
 	}
 	if (flags & VESMAIL_SRVR_NOLOOP) break;
     }
+    if ((srv->flags & VESMAIL_SRVF_SHUTDOWN) && rs >= 0) rs = VESmail_xform_process(srv->rsp_out, 1, "", 0);
     if (rs > 0) rs = 0;
     if (!(flags & VESMAIL_SRVR_NOLOG) && ((srv->flags & VESMAIL_SRVF_SHUTDOWN) || rs < 0)) VESmail_server_bytes(srv, 1, rs);
     return rs;
@@ -548,8 +547,8 @@ char *VESmail_server_sockname(VESmail_server *srv, int peer) {
     char *name;
     struct sockaddr_in6 sa;
     socklen_t l = sizeof(sa);
-    int sk = BIO_get_fd(srv->req_bio, NULL);
-    if (sk >= 0 && (peer ? getpeername(sk, (struct sockaddr *)&sa, &l) : getsockname(sk, (struct sockaddr *)&sa, &l)) >= 0) {
+    int sk = BIO_get_fd(((peer & 0x0e) == 2 ? srv->rsp_bio : srv->req_bio), NULL);
+    if (sk >= 0 && (peer & 0x01 ? getpeername(sk, (struct sockaddr *)&sa, &l) : getsockname(sk, (struct sockaddr *)&sa, &l)) >= 0) {
 	char abuf[64];
 	char pbuf[16];
 	if (getnameinfo((struct sockaddr *)&sa, l, abuf, sizeof(abuf), pbuf, sizeof(pbuf), NI_NUMERICHOST | NI_NUMERICSERV) >= 0) {

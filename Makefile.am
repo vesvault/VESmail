@@ -101,14 +101,16 @@ now/now_store.c \
 now/now_probe.c \
 now/now_post.c \
 now/now_manifest.c \
-now/now_options.c
+now/now_options.c \
+now/now_websock.c
 
 NOW_HFILES = now/now.h \
 now/now_store.h \
 now/now_probe.h \
 now/now_post.h \
 now/now_manifest.h \
-now/now_options.h
+now/now_options.h \
+now/now_websock.h
 
 if VESMAIL_NOW_OAUTH
 NOW_CFILES += now/now_oauth.c

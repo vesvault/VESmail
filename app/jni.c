@@ -202,6 +202,17 @@ JNIEXPORT jboolean JNICALL VESMAIL_JNI(snif)(JNIEnv *env, jobject obj, jstring c
     return rs;
 }
 
+#ifdef VESMAIL_NOW_OAUTH
+JNIEXPORT jboolean JNICALL VESMAIL_JNI(setoauth)(JNIEnv *env, jobject obj, jstring pkey, jstring passphrase) {
+    const char *k = (*env)->GetStringUTFChars(env, pkey, NULL);
+    const char *p = passphrase ? (*env)->GetStringUTFChars(env, passphrase, NULL) : NULL;
+    jboolean rs = !!VESmail_local_setoauth(k, p);
+    (*env)->ReleaseStringUTFChars(env, pkey, k);
+    if (p) (*env)->ReleaseStringUTFChars(env, passphrase, p);
+    return rs;
+}
+#endif
+
 JNIEXPORT jint JNICALL VESMAIL_JNI(snifstat)(JNIEnv *env, jobject obj) {
     return VESmail_local_snifstat();
 }

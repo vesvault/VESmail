@@ -81,14 +81,15 @@ char *VESmail_conf_get_content(const char *path) {
     return cont;
 }
 
-#ifndef VESMAIL_LOCAL
-
 #define VESmail_conf_ALLOCD_bannerPath		0x01
+#define VESmail_conf_ALLOCD_now_websock		0x02
 #define VESmail_conf_ALLOCD_now_manifest	0x04
 #define VESmail_conf_ALLOCD_now_headers		0x08
 #define VESmail_conf_ALLOCD_audit		0x10
 #define VESmail_conf_ALLOCD_bcc			0x20
 #define VESmail_conf_ALLOCD_oauth		0x40
+
+#ifndef VESMAIL_LOCAL
 
 jVar *VESmail_conf_read(const char *path, void (* errfn)(const char *fmt, ...)) {
     int fd = VESmail_arch_openr(path);
@@ -257,6 +258,12 @@ void VESmail_conf_apply(VESmail_conf *conf, jVar *jconf) {
 	if (VESmail_conf_setpstr(&conf->now.headers, jVar_get(jnow, "headers"), (conf->allocd & VESmail_conf_ALLOCD_now_headers))) conf->allocd |= VESmail_conf_ALLOCD_now_headers;
 	jVar *max = jVar_get(jnow, "maxsize");
 	if (jVar_isInt(max)) conf->now.maxSize = jVar_getInt(max);
+	jVar *ws = jVar_get(jnow, "websock");
+	if (ws) {
+	    if (conf->allocd & VESmail_conf_ALLOCD_now_websock) jVar_free(conf->now.websock);
+	    conf->now.websock = ws;
+	    conf->allocd &= ~VESmail_conf_ALLOCD_now_websock;
+	}
     }
     jVar *jtls = jVar_get(jconf, "tls");
     if (jtls) {
@@ -383,6 +390,26 @@ void VESmail_conf_log(VESmail_conf *conf, const char *fmt, ...) {
     va_end(va);
 }
 
+void VESmail_conf_addwebsock(VESmail_conf *conf, struct VESmail_conf_daemon *cd) {
+    if (!cd) {
+	if (!(conf->allocd & VESmail_conf_ALLOCD_now_websock)) return;
+	jVar_free(conf->now.websock);
+	conf->allocd &= ~VESmail_conf_ALLOCD_now_websock;
+	return;
+    }
+    if (conf->now.websock) return;
+    jVar *ws = conf->now.websock = jVar_object();
+    conf->allocd |= VESmail_conf_ALLOCD_now_websock;
+    struct VESmail_conf_daemon *c;
+    for (c = cd; c->type; c++) {
+	if (c->conf && !c->conf->now.websock) c->conf->now.websock = ws;
+	if (jVar_get(ws, c->type)) continue;
+	jVar *cf = jVar_put(jVar_put(jVar_object(), "host", jVar_string(conf->hostname)), "port", jVar_string(c->port));
+	if (c->conf->tls && c->conf->tls->persist) jVar_put(cf, "tls", jVar_put(jVar_object(), "persist", jVar_bool(1)));
+	jVar_put(ws, c->type, cf);
+    }
+}
+
 #ifndef VESMAIL_LOCAL
 
 void VESmail_conf_closelog(VESmail_conf *conf) {
@@ -407,6 +434,7 @@ void VESmail_conf_free(VESmail_conf *conf) {
 	if (conf->allocd & VESmail_conf_ALLOCD_bannerPath) free(conf->bannerPath);
 	if (conf->allocd & VESmail_conf_ALLOCD_now_manifest) free(conf->now.manifest);
 	if (conf->allocd & VESmail_conf_ALLOCD_now_headers) free(conf->now.headers);
+	if (conf->allocd & VESmail_conf_ALLOCD_now_websock) jVar_free(conf->now.websock);
 #ifdef VESMAIL_NOW_OAUTH
 	if (conf->allocd & VESmail_conf_ALLOCD_oauth) VESmail_now_oauth_free(conf->oauth);
 #endif

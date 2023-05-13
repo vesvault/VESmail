@@ -83,6 +83,9 @@ void VESmail_now_log(VESmail_server *srv, const char *meth, int code, ...) {
 int VESmail_now_send_status(VESmail_server *srv, int code) {
     const char *m;
     switch (code) {
+	case 101:
+	    m = "Switching Protocols";
+	    break;
 	case 200:
 	    m = "Ok";
 	    break;
@@ -190,9 +193,9 @@ int VESmail_now_cont(VESmail_server *srv) {
 }
 
 int VESmail_now_req_cont(VESmail_now_req *req) {
-    struct VESmail_now_hdr *h;
-    for (h = req->headers; h; h = h->chain) {
-	if (!strcmp(h->key, "expect") && h->end > h->val + 4 && !memcmp(h->val, "100-", 4)) return VESmail_now_cont(req->xform->server);
+    struct VESmail_now_hdr *h = NULL;
+    while ((h = VESmail_now_req_header(req, h))) {
+	if (!strcmp(h->key, "expect") && h->end > h->val + 4 && !memcmp(h->lcval, "100-", 4)) return VESmail_now_cont(req->xform->server);
     }
     return 0;
 }
@@ -208,11 +211,62 @@ int VESmail_now_process_chain(VESmail_xform *xform, int final, const char *src, 
     return VESmail_xform_process(xform->chain, final, src, srclen);
 }
 
+struct VESmail_now_hdr *VESmail_now_req_header(struct VESmail_now_req *req, struct VESmail_now_hdr *prev) {
+    struct VESmail_now_hdr **ph = prev ? &prev->chain : &req->headers;
+    if (*ph) return *ph;
+    const char *s = prev ? prev->next : req->hdr.start;
+    if (s >= req->hdr.end) return NULL;
+    const char *lf = memchr(s, '\n', req->hdr.end - s);
+    if (!lf) return NULL;
+    const char *e = (lf > s && lf[-1] == '\r') ? lf - 1 : lf;
+    struct VESmail_now_hdr *h = malloc(sizeof(struct VESmail_now_hdr) + e - s + 1);
+    if (!h) return NULL;
+    h->chain = NULL;
+    h->end = h->val = e;
+    h->next = lf + 1;
+    h->lcval = NULL;
+    char *d = h->key;
+    enum { kst_init, kst_colon, kst_done } kst = kst_init;
+    while (s < e) {
+	char c = *s++;
+	switch (c) {
+	    case ' ': case '\t':
+		continue;
+	    case ':':
+		if (kst == kst_init) {
+		    kst = kst_colon;
+		    c = 0;
+		}
+		break;
+	    default:
+		if (kst == kst_colon) {
+		    kst = kst_done;
+		    h->val = s - 1;
+		    h->lcval = d;
+		}
+		if (c >= 'A' && c <= 'Z') c |= 0x20;
+		break;
+	}
+	*d++ = c;
+    }
+    if (!h->lcval) h->lcval = d;
+    *d++ = 0;
+    return *ph = h;
+}
+
+void VESmail_now_req_cleanup(struct VESmail_now_req *req) {
+    while (req->headers) {
+	struct VESmail_now_hdr *h = req->headers->chain;
+	free(req->headers);
+	req->headers = h;
+    }
+}
+
 int VESmail_now_xform_fn_req(VESmail_xform *xform, int final, const char *src, int *srclen) {
     if (!src) return 0;
     if (final && !(xform->server->flags & VESMAIL_SRVF_SHUTDOWN)) {
-	if (xform->server->flags & VESMAIL_SRVF_TMOUT) VESmail_now_send_status(xform->server, 408);
 	xform->server->flags |= VESMAIL_SRVF_SHUTDOWN;
+	if (xform->server->flags & VESMAIL_SRVF_TMOUT) return VESmail_now_errorlog(xform->server, 408, "Timeout\r\n", "-", NULL);
     }
     if (xform->chain) return VESmail_now_process_chain(xform, final, src, *srclen);
     const char *s = src;
@@ -237,12 +291,12 @@ int VESmail_now_xform_fn_req(VESmail_xform *xform, int final, const char *src, i
 	if (req.hdr.end) break;
 	if (!req.hdr.start) req.hdr.start = s;
     }
-    if (!req.hdr.end) return final ? VESmail_now_error(xform->server, 400, "Unexpected end of headers\r\n") : (*srclen = 0);
-    if (!req.hdr.start) return VESmail_now_error(xform->server, 400, "Invalid HTTP request\r\n");
+    if (!req.hdr.end) return final ? VESmail_now_errorlog(xform->server, 400, "Unexpected end of headers\r\n", "-", NULL) : (*srclen = 0);
+    if (!req.hdr.start) return VESmail_now_errorlog(xform->server, 400, "Invalid HTTP request\r\n", "-", NULL);
     char *d = req.method;
     for (s = src; ;) {
 	char c = *s++;
-	if (d >= req.method + sizeof(req.method) - 1 || s >= req.hdr.start) return VESmail_now_error(xform->server, 400, "Invalid request line\r\n");
+	if (d >= req.method + sizeof(req.method) - 1 || s >= req.hdr.start) return VESmail_now_errorlog(xform->server, 400, "Invalid request line\r\n", "-", NULL);
 	if (c >= 'a' && c <= 'z') *d++ = c - 0x20;
 	else if (c == ' ') break;
 	else *d++ = c;
@@ -250,7 +304,7 @@ int VESmail_now_xform_fn_req(VESmail_xform *xform, int final, const char *src, i
     *d = 0;
     req.uri.start = s;
     req.uri.end = memchr(s, ' ', req.hdr.start - s);
-    if (!req.uri.end) return VESmail_now_error(xform->server, 400, "Invalid HTTP request\r\n");
+    if (!req.uri.end) return VESmail_now_errorlog(xform->server, 400, "Invalid HTTP request\r\n", req.method, NULL);
     req.uri.hash = memchr(s, '#', req.uri.end - s);
     if (!req.uri.hash) req.uri.hash = req.uri.end;
     req.uri.search = memchr(s, '?', req.uri.hash - s);
@@ -270,12 +324,13 @@ int VESmail_now_xform_fn_req(VESmail_xform *xform, int final, const char *src, i
 	if (rs != VESMAIL_E_HOLD) break;
 	reqfn++;
     }
-    if (rs == VESMAIL_E_HOLD) return VESmail_now_error(xform->server, 405, "Not supported\r\n");
+    if (rs == VESMAIL_E_HOLD) rs = VESmail_now_errorlog(xform->server, 405, "Not supported\r\n", req.method, NULL);
     else if (rs >= 0 && xform->chain) {
 	int r = VESmail_now_process_chain(xform, final, body, tail - body);
-	if (r < 0) return r;
-	return rs + r;
+	if (r < 0) rs = r;
+	else rs += r;
     }
+    VESmail_now_req_cleanup(&req);
     return rs;
 }
 

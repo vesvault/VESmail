@@ -63,6 +63,7 @@
 #include "../now/now_e2e.h"
 #include "../now/now_probe.h"
 #include "../now/now_feedback.h"
+#include "../now/now_websock.h"
 #ifdef VESMAIL_NOW_OAUTH
 #include "../now/now_oauth.h"
 #endif
@@ -98,6 +99,7 @@ int (* VESmail_local_reqStack[])(VESmail_now_req *) = {
     &VESmail_now_post_reqStack,
     &VESmail_now_manifest_reqStack,
     &VESmail_now_e2e_reqStack,
+    &VESmail_now_websock_reqStack,
 #ifdef VESMAIL_NOW_OAUTH
     &VESmail_now_oauth_reqStack,
 #endif
@@ -110,6 +112,7 @@ int (* VESmail_local_postStack[])(VESmail_server *, jVar *) = {
     NULL
 };
 
+struct VESmail_conf_daemon VESmail_local_conf_daemon[];
 
 VESmail_conf VESmail_local_conf = {
     .hostname = VESmail_local_host,
@@ -157,7 +160,8 @@ VESmail_conf VESmail_local_conf = {
 	.headers = VESmail_local_cors,
 	.reqStack = VESmail_local_reqStack,
 	.postStack = VESmail_local_postStack,
-	.feedbackFn = NULL
+	.feedbackFn = NULL,
+	.websock = NULL
     },
     .tls = &VESmail_local_tls,
     .mutex = NULL,
@@ -312,6 +316,7 @@ VESmail_daemon **VESmail_local_start() {
 	struct VESmail_conf_daemon *cd;
 	int idx = 0;
 	for (cd = VESmail_local_conf_daemon; cd->type; cd++) cd->tag = idx++;
+	VESmail_conf_addwebsock(&VESmail_local_conf, VESmail_local_conf_daemon);
 	VESmail_local_daemons = VESmail_daemon_execute(VESmail_local_conf_daemon);
 	if (!VESmail_local_daemons) return NULL;
 	VESmail_daemon **dp = VESmail_local_daemons;
@@ -415,6 +420,7 @@ void VESmail_local_done() {
 #ifdef VESMAIL_NOW_OAUTH
     VESmail_now_oauth_free(VESmail_local_conf.oauth);
 #endif
+    VESmail_conf_addwebsock(&VESmail_local_conf, NULL);
     VESmail_tls_done();
     VESmail_arch_done();
 }

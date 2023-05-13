@@ -42,7 +42,7 @@ struct libVES;
 #ifdef	PACKAGE_VERSION
 #define	VESMAIL_VERSION		PACKAGE_VERSION
 #else
-#define	VESMAIL_VERSION		"1.65"
+#define	VESMAIL_VERSION		"1.66"
 #endif
 
 #define	VESMAIL_SHORT_NAME	"VESmail"

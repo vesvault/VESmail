@@ -223,7 +223,10 @@ int VESmail_snif_run(VESmail_server *srv) {
 	void *ctx = snif_cert_ctx(snif->cert);
 	const char *host = snif_cert_hostname(snif->cert);
 	if (!ctx || !(srv->flags & VESMAIL_SRVF_TLSS)) {
-	    VESmail_server_log(srv, "snif cert host=%s error=%d", (host ? host : ""), snif->cert->error);
+	    char cerr[80];
+	    if (snif->cert->error == SNIF_CE_LIB) sprintf(cerr, " (l=%hd;e=%lx;c=%hd;d=%hd)", snif->cert->tlserr.line, snif->cert->tlserr.code, snif->cert->tlserr.ctxcode, snif->cert->tlserr.ctxdepth);
+	    else cerr[0] = 0;
+	    VESmail_server_log(srv, "snif cert host=%s error=%d%s", (host ? host : ""), snif->cert->error, cerr);
 	}
 	if (!ctx) {
 	    if (snif->cert->error == SNIF_CE_CERT) {

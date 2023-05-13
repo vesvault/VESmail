@@ -447,6 +447,7 @@ int main(int argc, char **argv) {
 	    if (params.dumpfd) sscanf(params.dumpfd, "%d", &cli_conf.dumpfd);
 	    else cli_conf.dumpfd = -1;
 	    struct VESmail_conf_daemon *cds = VESmail_conf_daemon_build(&cli_conf, jconf);
+	    VESmail_conf_addwebsock(&cli_conf, cds);
 	    VESmail_daemon **daemons = VESmail_daemon_execute(cds);
 	    if (!daemons) {
 		rs = E_CONF;
@@ -481,6 +482,7 @@ int main(int argc, char **argv) {
 	default:
 	    break;
     }
+    VESmail_conf_addwebsock(&cli_conf, NULL);
     free(cli_conf.optns->idBase);
     VESmail_optns_free(cli_conf.optns);
     VESmail_tls_server_free(cli_conf.tls);
