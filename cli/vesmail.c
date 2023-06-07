@@ -386,18 +386,15 @@ int main(int argc, char **argv) {
 	case cmd_enc:
 	    cli_conf.optns->flags |= VESMAIL_O_VRFY_TKN;
 	case cmd_dec: {
+	    cli_conf.optns->flags |= VESMAIL_O_KEYSTORE;
 	    if (params.user && !params.veskey && params.veskeyPath) {
 		char *f = malloc(strlen(params.user) + strlen(params.veskeyPath) + 2);
 		strcpy(f, params.veskeyPath);
 		strcat(f, params.user);
 		params.veskey = VESmail_conf_get_content(f);
 		free(f);
-		if (!params.veskey) {
-		    if (params.debug >= 0) fprintf(stderr, "Error reading VESkey from %s\n", f);
-		    return E_IO;
-		}
 	    }
-	    if ((!params.user || !params.veskey) && !params.token) {
+	    if (!params.user && !params.token) {
 		fprintf(stderr, "Required: -a <email> [-u <VESkey>] | -T <token>\n");
 		return E_PARAM;
 	    }

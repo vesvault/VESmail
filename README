@@ -314,3 +314,27 @@ Write access to the main vesmail.conf and all SNI conf files should be
 appropriately restricted to avoid any kind of unauthorized access to the
 content of the encrypted emails.
 
+
+CLI MODE WITH VES KEYSTORE:
+
+The CLI encrypt and decrypt commands will invoke libVES KeyStore dialog
+for the selected VESmail user, if built with libVES >= 1.24:
+
+vesmail encrypt -a user@domail.com
+vesmail decrypt -a user@domain.com
+
+To bypass the PIN dialog and enable batch mode for the specific user, use
+the following commands:
+
+PIN-less session (for batch encrypt only, no reused Message-Id's):
+
+ves -a //vesmail/user@domain.com/ -E sess,save
+
+PIN-less app key (for batch encrypt & decrypt, use wisely)
+
+ves -a //vesmail/user@domain.com/ -E save
+
+Remove the PIN-less app key and session respectively:
+
+ves -a //vesmail/user@domain.com/ -E forget,nopin
+ves -a //vesmail/user@domain.com/ -E forget,sess

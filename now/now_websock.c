@@ -95,7 +95,7 @@ int VESmail_now_xform_fn_websock_rx(VESmail_xform *xform, int final, const char 
 	    for (i = 0; i < len; i++) mbuf[i] = msg[i] ^ msk[i & 0x03];
 	    msg = mbuf;
 	}
-	int r = (op <= 2 || op == 8) ? VESmail_xform_process(xform->chain, (op == 8), msg, len) : 0;
+	int r = (op <= 2 || op == 8) ? VESmail_xform_process(xform->chain, (op == 8), (const char *)msg, len) : 0;
 	free(mbuf);
 	if (op == 8) final = 0;
 	if (r < 0) {
@@ -135,7 +135,7 @@ int VESmail_now_xform_fn_websock_tx(VESmail_xform *xform, int final, const char 
 	    msg += 2;
 	} else sbuf[1] = len;
 	memcpy(msg, s, len);
-	int r = VESmail_xform_process(xform->chain, 0, sbuf, msg - sbuf + len);
+	int r = VESmail_xform_process(xform->chain, 0, (char *)sbuf, msg - sbuf + len);
 	if (r < 0) {
 	    rs = r;
 	    break;
@@ -181,7 +181,7 @@ int VESmail_now_websock_reqStack(VESmail_now_req *req) {
 	&& EVP_DigestInit_ex(mdctx, EVP_sha1(), NULL) > 0
 	&& EVP_DigestUpdate(mdctx, wskey, strlen(wskey)) > 0
 	&& EVP_DigestUpdate(mdctx, VESmail_now_websock_uuid, strlen(VESmail_now_websock_uuid)) > 0
-	&& EVP_DigestFinal_ex(mdctx, shabuf, &shalen) > 0) {
+	&& EVP_DigestFinal_ex(mdctx, (unsigned char *)shabuf, &shalen) > 0) {
 	strcpy(mdhdr, "Sec-WebSocket-Accept: ");
 	VESmail_b64encode(shabuf, shalen, mdhdr + strlen(mdhdr));
 	strcat(mdhdr + 22, "\r\n");

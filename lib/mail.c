@@ -41,6 +41,9 @@
 #include <libVES/User.h>
 #include <libVES/VaultKey.h>
 #include <libVES/List.h>
+#if LIBVES_VERSION_NUMBER >= 0x01020400
+#include <libVES/KeyStore.h>
+#endif
 #include "../VESmail.h"
 #include "parse.h"
 #include "header.h"
@@ -96,16 +99,26 @@ VESmail *VESmail_set_out(VESmail *mail, VESmail_xform *xform) {
 
 libVES_VaultItem *VESmail_get_vaultItem(VESmail *mail) {
     if (!mail->vaultItem) {
+#if LIBVES_VERSION_NUMBER >= 0x01020400
+	if (mail->optns->flags & VESMAIL_O_KEYSTORE) libVES_KeyStore_unlock(NULL, mail->ves, LIBVES_KS_SESS);
+#endif
 	libVES_Ref *ref = libVES_External_new(mail->optns->vesDomain, mail->msgid);
 	if (!ref) return NULL;
 	if ((mail->vaultItem = libVES_VaultItem_get(ref, mail->ves))) {
-	    libVES_Ref_free(ref);
+#if LIBVES_VERSION_NUMBER >= 0x01020400
+	    if ((mail->optns->flags & VESMAIL_O_KEYSTORE) && !mail->vaultItem->value && !libVES_unlock(mail->ves, 0, NULL)) {
+		VESmail_unset_vaultItem(mail);
+		libVES_KeyStore_unlock(NULL, mail->ves, 0);
+		mail->vaultItem = libVES_VaultItem_get(ref, mail->ves);
+	    }
+#endif
 	} else {
 	    mail->vaultItem = libVES_VaultItem_create(ref);
 	    libVES_Cipher *ci = libVES_Cipher_generate(mail->ves);
 	    libVES_VaultItem_setCipher(mail->vaultItem, ci);
 	    libVES_Cipher_free(ci);
 	}
+	libVES_Ref_free(ref);
     }
     return mail->vaultItem;
 }
@@ -202,17 +215,18 @@ int VESmail_save_ves(VESmail *mail) {
 		VESmail_logrcpt(mail, vkey, "audit");
 		libVES_List_push(lst, vkey);
 	    }
-	    if (!mail->share) libVES_List_push(lst, mail->ves->vaultKey);
+	    if (!mail->share) libVES_List_push(lst, libVES_getVaultKey(mail->ves));
 	    void *r = libVES_VaultItem_entries(vi, lst, LIBVES_SH_ADD);
 	    libVES_List_free(lst);
 	    if (!r) return VESMAIL_E_VES;
 	}
 	bad = (mail->share || libVES_VaultItem_isNew(vi)) && !libVES_VaultItem_post(vi, mail->ves);
 	if (bad) {
+/* Retry in case of a race condition between imap/smtp processes */
 	    if (!retry && libVES_checkError(mail->ves, LIBVES_E_DENIED)) retry = 1;
 	    else return VESMAIL_E_VES;
+	    VESmail_unset_vaultItem(mail);
 	}
-	VESmail_unset_vaultItem(mail);
     }
     return 0;
 }
@@ -250,7 +264,7 @@ int VESmail_add_rcpt(VESmail *mail, const char *rcpt, int update_only) {
 		    if (vkey) {
 			if (!mail->share) {
 			    mail->share = libVES_List_new(&libVES_VaultKey_ListCtl);
-			    libVES_List_push(mail->share, mail->ves->vaultKey);
+			    libVES_List_push(mail->share, libVES_getVaultKey(mail->ves));
 			}
 			if (vkey->user != u) libVES_User_free(u);
 			if (vkey->external != ref) libVES_Ref_free(ref);
