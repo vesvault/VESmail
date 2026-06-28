@@ -17,16 +17,16 @@
  *                   > | /   |                              https://vesvault.com
  *                   > |/____|                                  https://ves.host
  *
- * (c) 2020 VESvault Corp
+ * (c) 2020-2026 VESvault Corp
  * Jim Zubov <jz@vesvault.com>
  *
- * GNU General Public License v3
- * You may opt to use, copy, modify, merge, publish, distribute and/or sell
- * copies of the Software, and permit persons to whom the Software is
- * furnished to do so, under the terms of the COPYING file.
+ * Apache License, Version 2.0
+ * You may use, copy, modify, merge, publish, distribute and/or sell copies
+ * of the Software under the terms of the Apache License, Version 2.0, a copy
+ * of which is provided in the COPYING file, or http://www.apache.org/licenses/LICENSE-2.0
  *
- * This software is distributed on an "AS IS" basis, WITHOUT WARRANTY OF ANY
- * KIND, either express or implied.
+ * This software is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
+ * CONDITIONS OF ANY KIND, either express or implied.
  *
  ***************************************************************************/
 
@@ -58,6 +58,15 @@
 #endif
 #include "../now/now.h"
 #include "../now/now_options.h"
+
+#ifndef VESMAIL_LOCAL_IMAP_PORT
+#define VESMAIL_LOCAL_IMAP_PORT 7143
+#endif
+#ifndef VESMAIL_LOCAL_SMTP_PORT
+#define VESMAIL_LOCAL_SMTP_PORT 7125
+#endif
+#define VESmail_local_STR_(x) #x
+#define VESmail_local_STR(x) VESmail_local_STR_(x)
 #include "../now/now_post.h"
 #include "../now/now_manifest.h"
 #include "../now/now_e2e.h"
@@ -138,7 +147,7 @@ VESmail_conf VESmail_local_conf = {
 		"{"
 		    "\"server\": \"ves-imap\","
 		    "\"host\": \"localhost\","
-		    "\"port\": 7143,"
+		    "\"port\": " VESmail_local_STR(VESMAIL_LOCAL_IMAP_PORT) ","
 		    "\"proto\": \"tcp\","
 		    "\"tls\": {"
 			"\"persist\": false,"
@@ -148,7 +157,7 @@ VESmail_conf VESmail_local_conf = {
 		"{"
 		    "\"server\": \"ves-smtp\","
 		    "\"host\": \"localhost\","
-		    "\"port\": 7125,"
+		    "\"port\": " VESmail_local_STR(VESMAIL_LOCAL_SMTP_PORT) ","
 		    "\"proto\": \"tcp\","
 		    "\"tls\": {"
 			"\"persist\": false,"
@@ -181,14 +190,14 @@ struct VESmail_conf_daemon VESmail_local_conf_daemon[] = {
     {
 	.type = "imap",
 	.host = VESmail_local_host,
-	.port = "7143",
+	.port = VESmail_local_STR(VESMAIL_LOCAL_IMAP_PORT),
 	.conf = &VESmail_local_conf,
 	.debug = VESMAIL_APP_DEBUG
     },
     {
 	.type = "smtp",
 	.host = VESmail_local_host,
-	.port = "7125",
+	.port = VESmail_local_STR(VESMAIL_LOCAL_SMTP_PORT),
 	.conf = &VESmail_local_conf,
 	.debug = VESMAIL_APP_DEBUG
     },

@@ -1,0 +1,121 @@
+name: CI
+
+# Build-only CI across the three platforms VESmail targets (Linux, macOS,
+# Windows/MSYS2). The proxies and the encrypt/decrypt engine all link libVES,
+# which in turn requires liboqs (post-quantum, on by default), OpenSSL and cURL.
+# So each job bootstraps the dependency chain liboqs -> libVES -> VESmail, then
+# configures and compiles the `vesmail` binary.
+#
+# The test/ suite is intentionally NOT run here: it exercises live encryption
+# against the VES API and needs real, synced VES accounts that can't be
+# provisioned from public CI. This workflow guards that everything still builds.
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  linux:
+    name: Linux (gcc)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libssl-dev libcurl4-openssl-dev cmake ninja-build
+      - name: Build & install liboqs (not packaged on Debian/Ubuntu)
+        run: |
+          git clone --depth 1 https://github.com/open-quantum-safe/liboqs
+          cmake -S liboqs -B liboqs/build -GNinja \
+            -DBUILD_SHARED_LIBS=ON -DOQS_BUILD_ONLY_LIB=ON \
+            -DCMAKE_INSTALL_PREFIX=/usr/local
+          sudo cmake --build liboqs/build --target install
+          sudo ldconfig
+      - name: Build & install libVES
+        run: |
+          git clone --depth 1 https://github.com/vesvault/libVES.c
+          cd libVES.c
+          ./configure
+          make
+          sudo make install
+          sudo ldconfig
+      - name: Configure
+        run: ./configure
+      - name: Build
+        run: make
+      - name: Verify vesmail built
+        run: test -x ./vesmail && echo "vesmail built OK"
+
+  macos:
+    name: macOS (clang)
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install dependencies
+        run: brew install openssl@3 liboqs curl
+      - name: Build & install libVES
+        run: |
+          OPENSSL_PREFIX="$(brew --prefix openssl@3)"
+          OQS_PREFIX="$(brew --prefix liboqs)"
+          git clone --depth 1 https://github.com/vesvault/libVES.c
+          cd libVES.c
+          # Install into /usr/local (not the autoconf default /usr): a dylib whose
+          # install_name is under /usr/lib is treated as dyld-shared-cache eligible
+          # by recent ld and then refuses to link against Homebrew libraries.
+          ./configure --prefix=/usr/local \
+            CPPFLAGS="-I$OPENSSL_PREFIX/include -I$OQS_PREFIX/include" \
+            LDFLAGS="-L$OPENSSL_PREFIX/lib -L$OQS_PREFIX/lib"
+          make
+          sudo make install
+      - name: Configure
+        run: |
+          OPENSSL_PREFIX="$(brew --prefix openssl@3)"
+          CURL_PREFIX="$(brew --prefix curl)"
+          ./configure --prefix=/usr/local \
+            CPPFLAGS="-I/usr/local/include -I$OPENSSL_PREFIX/include -I$CURL_PREFIX/include" \
+            LDFLAGS="-L/usr/local/lib -L$OPENSSL_PREFIX/lib -L$CURL_PREFIX/lib"
+      - name: Build
+        run: make
+      - name: Verify vesmail built
+        run: test -x ./vesmail && echo "vesmail built OK"
+
+  windows:
+    name: Windows (MSYS2/MinGW)
+    runs-on: windows-latest
+    defaults:
+      run:
+        shell: msys2 {0}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: msys2/setup-msys2@v2
+        with:
+          msystem: MINGW64
+          update: true
+          install: >-
+            git
+            mingw-w64-x86_64-gcc
+            mingw-w64-x86_64-openssl
+            mingw-w64-x86_64-curl
+            mingw-w64-x86_64-liboqs
+            autoconf automake libtool make
+      - name: Build & install libVES
+        run: |
+          git clone --depth 1 https://github.com/vesvault/libVES.c
+          cd libVES.c
+          # Install into the MinGW sysroot so VESmail's compiler finds -lVES and the headers.
+          ./configure --prefix=/mingw64
+          make
+          make install
+      - name: Configure
+        run: ./configure
+      - name: Build
+        run: make
+      - name: Verify vesmail.exe built
+        run: test -x ./vesmail.exe && echo "vesmail.exe built OK"

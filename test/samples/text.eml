@@ -1,0 +1,11 @@
+From: alice@example.com
+To: bob@example.com
+Subject: a plain text message
+Date: Sat, 31 May 2026 12:00:00 +0000
+MIME-Version: 1.0
+Content-Type: text/plain; charset=utf-8
+
+Hello, world.
+
+This is a single-part text/plain message. The composer should pass it
+through verbatim — no Content-Transfer-Encoding header, so no encoding.

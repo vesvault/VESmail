@@ -17,16 +17,16 @@
  *                   > | /   |                              https://vesvault.com
  *                   > |/____|                                  https://ves.host
  *
- * (c) 2020 VESvault Corp
+ * (c) 2020-2026 VESvault Corp
  * Jim Zubov <jz@vesvault.com>
  *
- * GNU General Public License v3
- * You may opt to use, copy, modify, merge, publish, distribute and/or sell
- * copies of the Software, and permit persons to whom the Software is
- * furnished to do so, under the terms of the COPYING file.
+ * Apache License, Version 2.0
+ * You may use, copy, modify, merge, publish, distribute and/or sell copies
+ * of the Software under the terms of the Apache License, Version 2.0, a copy
+ * of which is provided in the COPYING file, or http://www.apache.org/licenses/LICENSE-2.0
  *
- * This software is distributed on an "AS IS" basis, WITHOUT WARRANTY OF ANY
- * KIND, either express or implied.
+ * This software is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
+ * CONDITIONS OF ANY KIND, either express or implied.
  *
  ***************************************************************************/
 
@@ -40,6 +40,7 @@
 #include "../lib/xform.h"
 #include "../lib/parse.h"
 #include "../lib/util.h"
+#include "../lib/memdbg.h"
 #include "imap_token.h"
 
 
@@ -49,6 +50,7 @@ VESmail_imap_token *VESmail_imap_token_new(int type, unsigned int len) {
 	case VESMAIL_IMAP_T_ATOM:
 	case VESMAIL_IMAP_T_QUOTED: {
 	    token = malloc(offsetof(VESmail_imap_token, data) + len);
+	    VESMAIL_MEMDBG_BIGALLOC(len);
 	    break;
 	}
 	case VESMAIL_IMAP_T_LITERAL: {
@@ -67,6 +69,7 @@ VESmail_imap_token *VESmail_imap_token_new(int type, unsigned int len) {
     token->state = VESMAIL_IMAP_P_INIT;
     token->flags = VESMAIL_IMAP_PF_INIT;
     token->len = 0;
+    VESMAIL_MEMDBG_INC(VESMAIL_MEMDBG_TOKEN);
     return token;
 }
 
@@ -103,6 +106,7 @@ VESmail_imap_token *VESmail_imap_token_clone(VESmail_imap_token *orig) {
 	    break;
 	}
     }
+    VESMAIL_MEMDBG_INC(VESMAIL_MEMDBG_TOKEN);
     return token;
 }
 
@@ -502,6 +506,7 @@ void VESmail_imap_token_free(VESmail_imap_token *token) {
 		break;
 	    }
 	}
+	VESMAIL_MEMDBG_DEC(VESMAIL_MEMDBG_TOKEN);
     }
     free(token);
 }

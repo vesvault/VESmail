@@ -17,16 +17,16 @@
  *                   > | /   |                              https://vesvault.com
  *                   > |/____|                                  https://ves.host
  *
- * (c) 2020 VESvault Corp
+ * (c) 2020-2026 VESvault Corp
  * Jim Zubov <jz@vesvault.com>
  *
- * GNU General Public License v3
- * You may opt to use, copy, modify, merge, publish, distribute and/or sell
- * copies of the Software, and permit persons to whom the Software is
- * furnished to do so, under the terms of the COPYING file.
+ * Apache License, Version 2.0
+ * You may use, copy, modify, merge, publish, distribute and/or sell copies
+ * of the Software under the terms of the Apache License, Version 2.0, a copy
+ * of which is provided in the COPYING file, or http://www.apache.org/licenses/LICENSE-2.0
  *
- * This software is distributed on an "AS IS" basis, WITHOUT WARRANTY OF ANY
- * KIND, either express or implied.
+ * This software is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
+ * CONDITIONS OF ANY KIND, either express or implied.
  *
  ***************************************************************************/
 
@@ -338,6 +338,38 @@ int VESmail_imap_sect_render_params(void *ctparams, const char *key, const char 
     return 0;
 }
 
+/***************************************************************************
+* Size estimate for an encrypted part whose body has not been decrypted yet
+* (no MF_BODY). The octet count the upstream server reports is the base64
+* ciphertext of the encrypted part, which inflates the size the client
+* eventually sees. For an identity Content-Transfer-Encoding the decrypted
+* output equals the plaintext verbatim, and since the encrypted part is always
+* base64 (VESmail forces dstenc = B64 on encrypt), plaintext <= cipher / 1.368.
+* So cipher * 0.76 is a guaranteed upper bound with a small cushion over the
+* 0.731 limit -- it de-inflates the estimate without ever under-promising the
+* literal (which would silently truncate). base64 and quoted-printable parts
+* keep the pass-through ciphertext size: base64 output ~= ciphertext anyway,
+* and QP is unbounded upward, so lowering it is the unsafe direction. Exact
+* sizes still come from MF_BODY / F_CALC when those kick in.
+***************************************************************************/
+#define VESMAIL_IMAP_EST_IDENT_NUM	76
+#define VESMAIL_IMAP_EST_IDENT_DEN	100
+
+static int VESmail_imap_sect_ctenc_identity(const char *ctenc) {
+    static const char *const idents[] = { "7bit", "8bit", "binary", NULL };
+    const char *const *ip;
+    for (ip = idents; *ip; ip++) {
+	const char *s = ctenc, *lc = *ip;
+	while (*lc) {
+	    char c = *s++;
+	    if (c >= 'A' && c <= 'Z') c += 'a' - 'A';
+	    if (c != *lc++) break;
+	}
+	if (!*lc && !*s) return 1;
+    }
+    return 0;
+}
+
 int VESmail_imap_sect_apply_part(VESmail_imap_token *token, VESmail_imap_msg *msg, int flags) {
     if (!VESmail_imap_token_isList(token) || token->len < 2 || !msg || !(msg->flags & VESMAIL_IMAP_MF_HDR)) return VESMAIL_E_UNKNOWN;
     VESmail_imap_token **lst = token->list;
@@ -403,6 +435,13 @@ int VESmail_imap_sect_apply_part(VESmail_imap_token *token, VESmail_imap_msg *ms
 	);
 	if (msg->flags & VESMAIL_IMAP_MF_BODY) {
 	    VESmail_imap_token_splice(token, 6, 1, 1, VESmail_imap_token_uint(msg->bbytes));
+	} else if (VESmail_imap_sect_ctenc_identity(ctenc)) {
+	    unsigned int oct;
+	    if (VESmail_imap_token_getuint(token->list[6], &oct) >= 0) {
+		VESmail_imap_token_splice(token, 6, 1, 1, VESmail_imap_token_uint(
+		    (unsigned int) ((unsigned long long) oct * VESMAIL_IMAP_EST_IDENT_NUM / VESMAIL_IMAP_EST_IDENT_DEN)
+		));
+	    }
 	}
 	if (ftxt) {
 	    unsigned int lines;

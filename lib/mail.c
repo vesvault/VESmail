@@ -17,16 +17,16 @@
  *                   > | /   |                              https://vesvault.com
  *                   > |/____|                                  https://ves.host
  *
- * (c) 2020 VESvault Corp
+ * (c) 2020-2026 VESvault Corp
  * Jim Zubov <jz@vesvault.com>
  *
- * GNU General Public License v3
- * You may opt to use, copy, modify, merge, publish, distribute and/or sell
- * copies of the Software, and permit persons to whom the Software is
- * furnished to do so, under the terms of the COPYING file.
+ * Apache License, Version 2.0
+ * You may use, copy, modify, merge, publish, distribute and/or sell copies
+ * of the Software under the terms of the Apache License, Version 2.0, a copy
+ * of which is provided in the COPYING file, or http://www.apache.org/licenses/LICENSE-2.0
  *
- * This software is distributed on an "AS IS" basis, WITHOUT WARRANTY OF ANY
- * KIND, either express or implied.
+ * This software is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
+ * CONDITIONS OF ANY KIND, either express or implied.
  *
  ***************************************************************************/
 
@@ -134,6 +134,45 @@ int VESmail_cipher_ready(VESmail *mail) {
 
 libVES_Cipher *VESmail_get_cipher(VESmail *mail) {
     return libVES_VaultItem_getCipher(VESmail_get_vaultItem(mail), mail->ves);
+}
+
+/* Classify a VES decryption failure into one of three levels, based on the
+ * libVES error code recorded on the last failing call. Peeks ves->error
+ * (does NOT reset it, so the XVES diagnostic can still read the subcode).
+ * The level drives the IMAP-proxy reaction (see imap_result_proc.c):
+ *  - VESMAIL_E_VES: clearly transient / account-wide infrastructure error
+ *    (connection, quota, server). IMAP has no per-message error channel, so
+ *    the caller fails closed -- close the connection rather than silently
+ *    drop mail the account could otherwise read.
+ *  - VESMAIL_E_DECRYPT: clearly permanent "this account cannot decrypt this
+ *    message" -- bad ciphertext (CRYPTO), value not unlocked / not shared
+ *    (UNLOCK), no access (DENIED), missing item or key (NOTFOUND). The
+ *    message is passed through as-is -- but only when the policy flag
+ *    VESMAIL_O_DECRYPT_PASS is set (default on); with the flag off this
+ *    bucket collapses to E_VESDROP and the message is dropped instead.
+ *  - VESMAIL_E_VESDROP (default): anything else -- unexpected, structural,
+ *    or no recorded code. Retains the legacy behavior of dropping just this
+ *    message, neither tearing down the session nor leaking raw ciphertext.
+ *    A dedicated code (rather than E_UNKNOWN) so the XVES diagnostic can still
+ *    surface the libVES subcode.
+ * Both "clear" buckets are explicit allowlists; ambiguity falls to the safe
+ * middle (drop one message). */
+int VESmail_decrypt_error(VESmail *mail) {
+    if (mail && mail->ves) switch (mail->ves->error) {
+	case LIBVES_E_CONN:
+	case LIBVES_E_QUOTA:
+	case LIBVES_E_SERVER:
+	    return VESMAIL_E_VES;
+	case LIBVES_E_CRYPTO:
+	case LIBVES_E_UNLOCK:
+	case LIBVES_E_DENIED:
+	case LIBVES_E_NOTFOUND:
+	    return (mail->optns && (mail->optns->flags & VESMAIL_O_DECRYPT_PASS))
+		? VESMAIL_E_DECRYPT : VESMAIL_E_VESDROP;
+	default:
+	    break;
+    }
+    return VESMAIL_E_VESDROP;
 }
 
 void VESmail_logrcpt(VESmail *mail, libVES_VaultKey *vkey, const char *mode) {

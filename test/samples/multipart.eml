@@ -1,0 +1,22 @@
+From: alice@example.com
+To: bob@example.com
+Subject: multipart with raw-binary attachment
+Date: Sat, 31 May 2026 12:00:00 +0000
+MIME-Version: 1.0
+Content-Type: multipart/mixed; boundary=BOUNDARY1
+
+--BOUNDARY1
+Content-Type: text/plain; charset=utf-8
+
+This is the first part. No Content-Transfer-Encoding header, so the
+composer should pass this body through verbatim.
+
+--BOUNDARY1
+Content-Type: application/octet-stream; name=blob.bin
+Content-Disposition: attachment; filename=blob.bin
+Content-Transfer-Encoding: base64
+
+Binary data here.
+This text is the raw input body. The composer should base64-encode it
+because the part declares Content-Transfer-Encoding: base64.
+--BOUNDARY1--

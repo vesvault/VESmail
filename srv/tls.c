@@ -17,16 +17,16 @@
  *                   > | /   |                              https://vesvault.com
  *                   > |/____|                                  https://ves.host
  *
- * (c) 2020 VESvault Corp
+ * (c) 2020-2026 VESvault Corp
  * Jim Zubov <jz@vesvault.com>
  *
- * GNU General Public License v3
- * You may opt to use, copy, modify, merge, publish, distribute and/or sell
- * copies of the Software, and permit persons to whom the Software is
- * furnished to do so, under the terms of the COPYING file.
+ * Apache License, Version 2.0
+ * You may use, copy, modify, merge, publish, distribute and/or sell copies
+ * of the Software under the terms of the Apache License, Version 2.0, a copy
+ * of which is provided in the COPYING file, or http://www.apache.org/licenses/LICENSE-2.0
  *
- * This software is distributed on an "AS IS" basis, WITHOUT WARRANTY OF ANY
- * KIND, either express or implied.
+ * This software is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
+ * CONDITIONS OF ANY KIND, either express or implied.
  *
  ***************************************************************************/
 
@@ -339,6 +339,92 @@ void VESmail_tls_initclientctx(void *sslctx) {
 #endif
 }
 
+#if defined(HAVE_CURL_CURL_H) && defined(__ANDROID__)
+#include <sys/socket.h>
+#include <unistd.h>
+#include <stdint.h>
+
+// fdsan tagging was introduced in Android Q (API 29). minSdk on this app
+// is 21, so the public header hides the prototypes behind __ANDROID_API__
+// >= 29. Forward-declare with weak linkage so we compile against older
+// platform headers; at runtime, null-check before calling — pre-29 devices
+// have no fdsan, so raw close() is fine there.
+enum android_fdsan_owner_type {
+    ANDROID_FDSAN_OWNER_TYPE_GENERIC_00 = 0,
+};
+uint64_t android_fdsan_create_owner_tag(enum android_fdsan_owner_type, uint64_t)
+    __attribute__((weak));
+void android_fdsan_exchange_owner_tag(int, uint64_t, uint64_t) __attribute__((weak));
+int android_fdsan_close_with_tag(int, uint64_t) __attribute__((weak));
+uint64_t android_fdsan_get_owner_tag(int) __attribute__((weak));
+enum android_fdsan_error_level {
+    ANDROID_FDSAN_ERROR_LEVEL_DISABLED,
+    ANDROID_FDSAN_ERROR_LEVEL_WARN_ONCE,
+    ANDROID_FDSAN_ERROR_LEVEL_WARN_ALWAYS,
+    ANDROID_FDSAN_ERROR_LEVEL_FATAL,
+};
+enum android_fdsan_error_level android_fdsan_set_error_level(enum android_fdsan_error_level)
+    __attribute__((weak));
+
+// Tag every curl-owned socket FD with fdsan ownership, so the Android
+// network stack cannot silently take over a recycled FD number, and so a
+// stray double-close from curl/openssl cleanup gets noticed at the
+// offending close rather than aborting on a later, unrelated close from
+// Parcel/unique_fd. Without this, the snif and libVES curl call sites
+// race with Binder/Parcel FD handout and trigger SIGABRT in fdsan_error.
+static uint64_t VESmail_tls_curl_fdtag() {
+    // The NDK helper just packs (type, value) into a u64 — pure function
+    // of fixed inputs. Cache the result so each open/close/get does one
+    // load instead of three weak-symbol calls. Benign race if first hit
+    // is concurrent: both threads compute the same tag and overwrite.
+    static uint64_t cached = 0;
+    if (cached) return cached;
+    if (!android_fdsan_create_owner_tag) return 0;
+    cached = android_fdsan_create_owner_tag(ANDROID_FDSAN_OWNER_TYPE_GENERIC_00,
+	(uint64_t)(uintptr_t) &VESmail_tls_curl_fdtag);
+    return cached;
+}
+
+static curl_socket_t VESmail_tls_curl_open(void *clientp, curlsocktype purpose,
+	struct curl_sockaddr *addr) {
+    int fd = socket(addr->family, addr->socktype, addr->protocol);
+    if (fd >= 0 && android_fdsan_exchange_owner_tag) {
+	android_fdsan_exchange_owner_tag(fd, 0, VESmail_tls_curl_fdtag());
+    }
+    return fd;
+}
+
+static int VESmail_tls_curl_close(void *clientp, curl_socket_t fd) {
+    if (android_fdsan_close_with_tag) {
+	// libcurl/openssl teardown is known to issue close() twice for the
+	// same socket in some paths. The first close clears our tag; on
+	// the second call, the FD slot is either freed or has been handed
+	// to another subsystem — either way fdsan would abort. Skip when
+	// the FD no longer carries our tag.
+	if (android_fdsan_get_owner_tag &&
+	    android_fdsan_get_owner_tag(fd) != VESmail_tls_curl_fdtag()) {
+	    return 0;
+	}
+	return android_fdsan_close_with_tag(fd, VESmail_tls_curl_fdtag());
+    }
+    return close(fd);
+}
+#endif
+
+void VESmail_tls_initcurl(void *curl) {
+#if defined(HAVE_CURL_CURL_H) && defined(__ANDROID__)
+    static int level_set = 0;
+    if (!level_set) {
+	level_set = 1;
+	if (android_fdsan_set_error_level) {
+	    android_fdsan_set_error_level(ANDROID_FDSAN_ERROR_LEVEL_WARN_ALWAYS);
+	}
+    }
+    curl_easy_setopt((CURL *) curl, CURLOPT_OPENSOCKETFUNCTION, &VESmail_tls_curl_open);
+    curl_easy_setopt((CURL *) curl, CURLOPT_CLOSESOCKETFUNCTION, &VESmail_tls_curl_close);
+#endif
+}
+
 #ifndef VESMAIL_X509STORE
 #ifdef HAVE_CURL_CURL_H
 CURLcode VESmail_tls_fn_curlctx(CURL *curl, void *sslctx, void *parm) {
@@ -348,6 +434,7 @@ CURLcode VESmail_tls_fn_curlctx(CURL *curl, void *sslctx, void *parm) {
 #endif
 
 void VESmail_tls_setcurlctx(void *curl) {
+    VESmail_tls_initcurl(curl);
 #ifdef HAVE_CURL_CURL_H
     curl_easy_setopt(curl, CURLOPT_SSL_CTX_FUNCTION, &VESmail_tls_fn_curlctx);
     if (VESmail_tls_caBundle) curl_easy_setopt(curl, CURLOPT_CAINFO, VESmail_tls_caBundle);
@@ -364,11 +451,30 @@ static void VESmail_tls_fn_veshttp(libVES *ves) {
     VESmail_tls_setcurlctx(ves->curl);
 }
 
+static char *VESmail_tls_VES_apiUrl = NULL;
+static char *VESmail_tls_VES_wwwUrl = NULL;
+
+/* Replace the cached URL strings, freeing any previous copy. The function
+ * owns its storage — callers can pass transient pointers (JNI UTF chars,
+ * stack buffers) without strdup'ing. Pass NULL to clear a slot. */
+void VESmail_tls_setVESurls(const char *apiUrl, const char *wwwUrl) {
+    if (apiUrl != VESmail_tls_VES_apiUrl) {
+	free(VESmail_tls_VES_apiUrl);
+	VESmail_tls_VES_apiUrl = apiUrl ? strdup(apiUrl) : NULL;
+    }
+    if (wwwUrl != VESmail_tls_VES_wwwUrl) {
+	free(VESmail_tls_VES_wwwUrl);
+	VESmail_tls_VES_wwwUrl = wwwUrl ? strdup(wwwUrl) : NULL;
+    }
+}
+
 libVES *VESmail_tls_initVES(libVES *ves) {
     ves->httpInitFn = &VESmail_tls_fn_veshttp;
 #ifdef LIBVES_SESS_TMOUT
     ves->sessionTimeout = LIBVES_SESS_TMOUT;
 #endif
+    if (VESmail_tls_VES_apiUrl) libVES_setOption(ves, LIBVES_O_APIURL, (void *)VESmail_tls_VES_apiUrl);
+    if (VESmail_tls_VES_wwwUrl) libVES_setOption(ves, LIBVES_O_WWWURL, (void *)VESmail_tls_VES_wwwUrl);
     return ves;
 }
 

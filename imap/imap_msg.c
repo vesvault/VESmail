@@ -17,16 +17,16 @@
  *                   > | /   |                              https://vesvault.com
  *                   > |/____|                                  https://ves.host
  *
- * (c) 2020 VESvault Corp
+ * (c) 2020-2026 VESvault Corp
  * Jim Zubov <jz@vesvault.com>
  *
- * GNU General Public License v3
- * You may opt to use, copy, modify, merge, publish, distribute and/or sell
- * copies of the Software, and permit persons to whom the Software is
- * furnished to do so, under the terms of the COPYING file.
+ * Apache License, Version 2.0
+ * You may use, copy, modify, merge, publish, distribute and/or sell copies
+ * of the Software under the terms of the Apache License, Version 2.0, a copy
+ * of which is provided in the COPYING file, or http://www.apache.org/licenses/LICENSE-2.0
  *
- * This software is distributed on an "AS IS" basis, WITHOUT WARRANTY OF ANY
- * KIND, either express or implied.
+ * This software is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
+ * CONDITIONS OF ANY KIND, either express or implied.
  *
  ***************************************************************************/
 
@@ -102,7 +102,7 @@ union VESmail_imap_msg_page *VESmail_imap_msg_page_ptr(VESmail_imap *imap, unsig
 }
 
 int VESmail_imap_msg_pass(VESmail_imap_msg *msg) {
-    return msg == &VESmail_imap_msg_PASS || (msg && (msg->flags & VESMAIL_IMAP_MF_PASS));
+    return msg == &VESmail_imap_msg_PASS || (msg && (msg->flags & (VESMAIL_IMAP_MF_PASS | VESMAIL_IMAP_MF_DECERR)));
 }
 
 VESmail_imap_msg **VESmail_imap_msg_ptr(VESmail_imap *imap, unsigned int seq) {
@@ -412,7 +412,12 @@ int VESmail_imap_msg_decrypt(VESmail_imap_msg *msg, VESmail_imap_msg *root, int 
 	if (!(msg->flags & VESMAIL_IMAP_MF_HDR)) return VESMAIL_E_UNKNOWN;
     }
     VESmail_xform *out = VESmail_imap_token_xform_new(token);
-    VESmail_parse *parse = VESmail_parse_new(VESMAIL_IMAP_MAIL(root), &VESmail_header_process_dec, out, VESMAIL_EN_UNDEF);
+    /* Root message envelopes get EN_ROOT so they're distinguishable from
+     * sub-section parses (BODY[N], BODY[N.MIME], etc.) which keep EN_UNDEF.
+     * Decryption-side stampers (X-VESmail-Message) gate on EN_ROOT to avoid
+     * leaking into every sub-section. */
+    int parse_encap = (msg->flags & VESMAIL_IMAP_MF_ROOT) ? VESMAIL_EN_ROOT : VESMAIL_EN_UNDEF;
+    VESmail_parse *parse = VESmail_parse_new(VESMAIL_IMAP_MAIL(root), &VESmail_header_process_dec, out, parse_encap);
     out->parse = parse;
     parse->ref = msg;
     parse->outfn = &VESmail_imap_msg_fn_hdr;

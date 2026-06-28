@@ -17,16 +17,16 @@
  *                   > | /   |                              https://vesvault.com
  *                   > |/____|                                  https://ves.host
  *
- * (c) 2020 VESvault Corp
+ * (c) 2020-2026 VESvault Corp
  * Jim Zubov <jz@vesvault.com>
  *
- * GNU General Public License v3
- * You may opt to use, copy, modify, merge, publish, distribute and/or sell
- * copies of the Software, and permit persons to whom the Software is
- * furnished to do so, under the terms of the COPYING file.
+ * Apache License, Version 2.0
+ * You may use, copy, modify, merge, publish, distribute and/or sell copies
+ * of the Software under the terms of the Apache License, Version 2.0, a copy
+ * of which is provided in the COPYING file, or http://www.apache.org/licenses/LICENSE-2.0
  *
- * This software is distributed on an "AS IS" basis, WITHOUT WARRANTY OF ANY
- * KIND, either express or implied.
+ * This software is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
+ * CONDITIONS OF ANY KIND, either express or implied.
  *
  ***************************************************************************/
 
@@ -131,7 +131,7 @@ int VESmail_header_push_dec(VESmail_parse *parse, VESmail_header *hdr, int bufd)
 	case VESMAIL_H_VES: {
 	    if (!VESmail_cipher_ready(parse->mail)) return VESMAIL_E_HOLD;
 	    VESmail_header *dec = VESmail_header_decrypt(parse, hdr);
-	    if (!dec) return VESMAIL_E_VES;
+	    if (!dec) return VESmail_decrypt_error(parse->mail);
 	    parse->dechdrs |= 1 << dec->type;
 	    switch (dec->type) {
 		case VESMAIL_H_CTENC: {
@@ -201,6 +201,16 @@ int VESmail_header_push_dec(VESmail_parse *parse, VESmail_header *hdr, int bufd)
 		if (r < 0) return r;
 		return rs + r;
 	    }
+	    break;
+	case VESMAIL_H_BLANK:
+	    if (parse->encap == VESMAIL_EN_ROOT && (parse->mail->flags & VESMAIL_F_ENCD)) {
+		int r = VESmail_header_send_vesmsg(parse, hdr, "decrypted");
+		if (r < 0) return r;
+		rs += r;
+	    }
+	    break;
+	case VESMAIL_H_VESMSG:
+	    return rs;
 	default:
 	    break;
     }
@@ -270,7 +280,16 @@ int VESmail_header_process_dec(struct VESmail_parse *parse, struct VESmail_heade
 		parse->mail->msgid = strdup("");
 	    }
 	    if ((parse->mail->flags & VESMAIL_F_ENCD) && !VESmail_cipher_ready(parse->mail)) {
-		return VESMAIL_E_VES;
+		int e = VESmail_decrypt_error(parse->mail);
+		if (e != VESMAIL_E_DECRYPT) return e;
+		/* This account permanently cannot decrypt this message, and the
+		 * pass-through policy (VESMAIL_O_DECRYPT_PASS, evaluated inside
+		 * VESmail_decrypt_error) is on. Switch to verbatim pass-through:
+		 * F_PASS makes push_dec commit every header (including the held
+		 * ones) as-is, and the F_ENCD body-setup below is skipped, so
+		 * the original encrypted message -- banner parts and all --
+		 * streams through unchanged instead of being dropped. */
+		parse->mail->flags |= VESMAIL_F_PASS;
 	    }
 	    break;
 	}
@@ -282,7 +301,7 @@ int VESmail_header_process_dec(struct VESmail_parse *parse, struct VESmail_heade
 	if (r < 0) return r;
 	rs += r;
     }
-    if (parse->mail->flags & VESMAIL_F_ENCD) switch (hdr->type) {
+    if ((parse->mail->flags & (VESMAIL_F_ENCD | VESMAIL_F_PASS)) == VESMAIL_F_ENCD) switch (hdr->type) {
 	case VESMAIL_H_BLANK: {
 	    if (parse->ctype == VESMAIL_T_VES) {
 		int r = VESmail_parse_apply_encode(parse);
@@ -305,10 +324,10 @@ int VESmail_header_process_dec(struct VESmail_parse *parse, struct VESmail_heade
 int VESmail_xform_fn_decrypt(VESmail_xform *xform, int final, const char *src, int *srclen) {
     if (!src) return *srclen = 0;
     libVES_Cipher *ci = VESmail_xform_ves_cipher(xform);
-    if (!ci) return VESMAIL_E_VES;
+    if (!ci) return VESmail_decrypt_error(xform->parse->mail);
     char *dst = NULL;
     int ptlen = libVES_Cipher_decrypt(ci, final, src, *srclen, &dst);
-    if (ptlen < 0) return VESMAIL_E_VES;
+    if (ptlen < 0) return VESmail_decrypt_error(xform->parse->mail);
     int r = VESmail_xform_process(xform->chain, final, dst, ptlen);
     VESmail_cleanse(dst, ptlen);
     free(dst);

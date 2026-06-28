@@ -17,16 +17,16 @@
  *                   > | /   |                              https://vesvault.com
  *                   > |/____|                                  https://ves.host
  *
- * (c) 2020 VESvault Corp
+ * (c) 2020-2026 VESvault Corp
  * Jim Zubov <jz@vesvault.com>
  *
- * GNU General Public License v3
- * You may opt to use, copy, modify, merge, publish, distribute and/or sell
- * copies of the Software, and permit persons to whom the Software is
- * furnished to do so, under the terms of the COPYING file.
+ * Apache License, Version 2.0
+ * You may use, copy, modify, merge, publish, distribute and/or sell copies
+ * of the Software under the terms of the Apache License, Version 2.0, a copy
+ * of which is provided in the COPYING file, or http://www.apache.org/licenses/LICENSE-2.0
  *
- * This software is distributed on an "AS IS" basis, WITHOUT WARRANTY OF ANY
- * KIND, either express or implied.
+ * This software is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
+ * CONDITIONS OF ANY KIND, either express or implied.
  *
  ***************************************************************************/
 
@@ -60,6 +60,7 @@ const struct {
     {.key = "x-vesmail-xchg", .type = VESMAIL_H_XCHG},
     {.key = "x-vesmail-verify", .type = VESMAIL_H_VRFY},
     {.key = "x-ves-action", .type = VESMAIL_H_VESACTN},
+    {.key = "x-vesmail-message", .type = VESMAIL_H_VESMSG},
     {.key = "to", .type = VESMAIL_H_RCPT},
     {.key = "cc", .type = VESMAIL_H_RCPT},
     {.key = "bcc", .type = VESMAIL_H_RCPT},

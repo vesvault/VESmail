@@ -17,16 +17,16 @@
  *                   > | /   |                              https://vesvault.com
  *                   > |/____|                                  https://ves.host
  *
- * (c) 2020 VESvault Corp
+ * (c) 2020-2026 VESvault Corp
  * Jim Zubov <jz@vesvault.com>
  *
- * GNU General Public License v3
- * You may opt to use, copy, modify, merge, publish, distribute and/or sell
- * copies of the Software, and permit persons to whom the Software is
- * furnished to do so, under the terms of the COPYING file.
+ * Apache License, Version 2.0
+ * You may use, copy, modify, merge, publish, distribute and/or sell copies
+ * of the Software under the terms of the Apache License, Version 2.0, a copy
+ * of which is provided in the COPYING file, or http://www.apache.org/licenses/LICENSE-2.0
  *
- * This software is distributed on an "AS IS" basis, WITHOUT WARRANTY OF ANY
- * KIND, either express or implied.
+ * This software is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
+ * CONDITIONS OF ANY KIND, either express or implied.
  *
  ***************************************************************************/
 
@@ -38,6 +38,7 @@
 #include "parse.h"
 #include "mail.h"
 #include "util.h"
+#include "memdbg.h"
 #include "xform.h"
 
 VESmail_xform *VESmail_xform_new(int (* xformfn)(VESmail_xform *xform, int final, const char *src, int *srclen), VESmail_xform *chain, void *obj) {
@@ -50,6 +51,7 @@ VESmail_xform *VESmail_xform_new(int (* xformfn)(VESmail_xform *xform, int final
     xform->buflen = xform->bufmax = xform->offset = 0;
     xform->eof = 0;
     xform->data = NULL;
+    VESMAIL_MEMDBG_INC(VESMAIL_MEMDBG_XFORM);
     return xform;
 }
 
@@ -219,6 +221,7 @@ void VESmail_xform_free(VESmail_xform *xform) {
 	if (xform->freefn) xform->freefn(xform);
 	VESmail_cleanse(xform->buf, xform->buflen);
 	free(xform->buf);
+	VESMAIL_MEMDBG_DEC(VESMAIL_MEMDBG_XFORM);
     }
     free(xform);
 }

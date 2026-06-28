@@ -37,7 +37,7 @@ EXTRA_OBJS=applink.obj
 
 COBJS=lib\\mail.obj lib\\optns.obj lib\\parse.obj lib\\header.obj lib\\xform.obj \
     lib\\multi.obj lib\\cte.obj lib\\ves.obj lib\\encrypt.obj lib\\decrypt.obj \
-    lib\\banner.obj lib\\util.obj \
+    lib\\banner.obj lib\\util.obj lib\\composer.obj \
     srv\\server.obj srv\\arch.obj srv\\sasl.obj srv\\override.obj srv\\curlsh.obj \
     imap\\imap.obj imap\\imap_xform.obj imap\\imap_token.obj imap\\imap_track.obj \
     imap\\imap_start.obj imap\\imap_proxy.obj imap\\imap_msg.obj \

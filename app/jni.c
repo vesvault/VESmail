@@ -17,16 +17,16 @@
  *                   > | /   |                              https://vesvault.com
  *                   > |/____|                                  https://ves.host
  *
- * (c) 2020 VESvault Corp
+ * (c) 2020-2026 VESvault Corp
  * Jim Zubov <jz@vesvault.com>
  *
- * GNU General Public License v3
- * You may opt to use, copy, modify, merge, publish, distribute and/or sell
- * copies of the Software, and permit persons to whom the Software is
- * furnished to do so, under the terms of the COPYING file.
+ * Apache License, Version 2.0
+ * You may use, copy, modify, merge, publish, distribute and/or sell copies
+ * of the Software under the terms of the Apache License, Version 2.0, a copy
+ * of which is provided in the COPYING file, or http://www.apache.org/licenses/LICENSE-2.0
  *
- * This software is distributed on an "AS IS" basis, WITHOUT WARRANTY OF ANY
- * KIND, either express or implied.
+ * This software is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
+ * CONDITIONS OF ANY KIND, either express or implied.
  *
  ***************************************************************************/
 
@@ -38,7 +38,9 @@
 #include "../VESmail.h"
 #include "../srv/daemon.h"
 #include "../srv/local.h"
+#include "../srv/tls.h"
 #include "../srv/x509store.h"
+#include "../lib/memdbg.h"
 
 #ifndef VESMAIL_JNI
 #define	VESMAIL_JNI(_name)	Java_com_vesvault_vesmail_Proxy_ ## _name
@@ -61,6 +63,14 @@ JNIEXPORT jint JNICALL VESMAIL_JNI(start)(JNIEnv *env, jobject obj) {
     VESmail_local_init(NULL);
     if (!VESmail_local_start()) return 0;
     return 1;
+}
+
+JNIEXPORT void JNICALL VESMAIL_JNI(setVESurls)(JNIEnv *env, jobject obj, jstring japi, jstring jwww) {
+    const char *api = japi ? (*env)->GetStringUTFChars(env, japi, NULL) : NULL;
+    const char *www = jwww ? (*env)->GetStringUTFChars(env, jwww, NULL) : NULL;
+    VESmail_tls_setVESurls(api, www);   /* setVESurls owns the duplication */
+    if (api) (*env)->ReleaseStringUTFChars(env, japi, api);
+    if (www) (*env)->ReleaseStringUTFChars(env, jwww, www);
 }
 
 JNIEXPORT jintArray JNICALL VESMAIL_JNI(watch)(JNIEnv *env, jobject obj) {
@@ -232,4 +242,30 @@ JNIEXPORT void JNICALL VESMAIL_JNI(snifawake)(JNIEnv *env, jobject obj, jboolean
 JNIEXPORT jstring JNICALL VESMAIL_JNI(feedback)(JNIEnv *env, jobject obj) {
     VESmail_local_setfeedback(NULL);
     return (*env)->NewStringUTF(env, VESmail_local_feedback);
+}
+
+/* Diagnostic allocation snapshot for the proxy-OOM hunt. Returns a
+ * one-line "token live=N total=N xform live=N total=N" string, or NULL
+ * unless the native lib was built with -DVESMAIL_MEMDBG. */
+JNIEXPORT jstring JNICALL VESMAIL_JNI(memdbg)(JNIEnv *env, jobject obj) {
+#ifdef VESMAIL_MEMDBG
+    char buf[256];
+    VESmail_memdbg_snprintf(buf, sizeof(buf));
+    return (*env)->NewStringUTF(env, buf);
+#else
+    return NULL;
+#endif
+}
+
+/* Drains a one-shot diagnostic event (e.g. the wire snippet captured when a
+ * parser runaway tripped the allocation guard). Returns NULL when nothing is
+ * pending or the lib was built without -DVESMAIL_MEMDBG. */
+JNIEXPORT jstring JNICALL VESMAIL_JNI(memdbgevent)(JNIEnv *env, jobject obj) {
+#ifdef VESMAIL_MEMDBG
+    char buf[512];
+    if (VESmail_memdbg_event(buf, sizeof(buf)) <= 0) return NULL;
+    return (*env)->NewStringUTF(env, buf);
+#else
+    return NULL;
+#endif
 }

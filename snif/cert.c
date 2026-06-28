@@ -6,17 +6,17 @@
  *  | |     |  ``/`````\___/       e2e TLS CA Proxy
  *  | |     | . | <"""""""~~
  *  |  \___/ ``  \________/        https://snif.host
- *   \  '''  ``` /````````         (C) 2021 VESvault Corp
+ *   \  '''  ``` /````````         (C) 2021-2026 VESvault Corp
  *    \_________/                  Jim Zubov <jz@vesvault.com>
  *
  *
- * GNU General Public License v3
- * You may opt to use, copy, modify, merge, publish, distribute and/or sell
- * copies of the Software, and permit persons to whom the Software is
- * furnished to do so, under the terms of the COPYING file.
+ * Apache License, Version 2.0
+ * You may use, copy, modify, merge, publish, distribute and/or sell copies
+ * of the Software under the terms of the Apache License, Version 2.0, a copy
+ * of which is provided in the COPYING file, or http://www.apache.org/licenses/LICENSE-2.0
  *
- * This software is distributed on an "AS IS" basis, WITHOUT WARRANTY OF ANY
- * KIND, either express or implied.
+ * This software is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
+ * CONDITIONS OF ANY KIND, either express or implied.
  *
  **************************************************************************/
 
@@ -136,6 +136,7 @@ CURLcode snif_cert_curlctxfn(CURL *curl, void *sslctx, void *parm) {
 
 void *snif_cert_curlfn(snif_cert *cert) {
     struct CURL *curl = curl_easy_init();
+    if (cert->curlinitfn) cert->curlinitfn(curl);
     curl_easy_setopt(curl, CURLOPT_SSL_CTX_FUNCTION, &snif_cert_curlctxfn);
     curl_easy_setopt(curl, CURLOPT_SSL_CTX_DATA, cert);
 #ifdef SNIF_CAINFO

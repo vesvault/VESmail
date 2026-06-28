@@ -17,16 +17,16 @@
  *                   > | /   |                              https://vesvault.com
  *                   > |/____|                                  https://ves.host
  *
- * (c) 2020 VESvault Corp
+ * (c) 2020-2026 VESvault Corp
  * Jim Zubov <jz@vesvault.com>
  *
- * GNU General Public License v3
- * You may opt to use, copy, modify, merge, publish, distribute and/or sell
- * copies of the Software, and permit persons to whom the Software is
- * furnished to do so, under the terms of the COPYING file.
+ * Apache License, Version 2.0
+ * You may use, copy, modify, merge, publish, distribute and/or sell copies
+ * of the Software under the terms of the Apache License, Version 2.0, a copy
+ * of which is provided in the COPYING file, or http://www.apache.org/licenses/LICENSE-2.0
  *
- * This software is distributed on an "AS IS" basis, WITHOUT WARRANTY OF ANY
- * KIND, either express or implied.
+ * This software is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
+ * CONDITIONS OF ANY KIND, either express or implied.
  *
  ***************************************************************************/
 
@@ -99,14 +99,28 @@ int VESmail_imap_result_update(VESmail_imap_result *rslt) {
 	    ent->qchecked = 1;
 	}
 	if (val->state == VESMAIL_IMAP_P_ERROR) {
-	    ent->state = VESMAIL_IMAP_RE_DROP;
-	    VESmail_imap_msg *msg;
-	    if ((msg = *rslt->msgptr) && msg != &VESmail_imap_msg_PASS) msg->flags |= VESMAIL_IMAP_MF_ERROR;
+	    int verr = VESmail_imap_token_error(val);
 	    VESMAIL_SRV_DEBUG(rslt->server, 1, {
-		char *er = VESmail_server_errorStr(rslt->server, VESmail_imap_token_error(val));
+		char *er = VESmail_server_errorStr(rslt->server, verr);
 		sprintf(debug, "[xform error] %.160s", er);
 		free(er);
 	    })
+	    /* Three reactions, by classified level:
+	     * - E_VES (transient / account-wide): no per-message error channel
+	     *   in IMAP, so fail closed -- propagate the error to tear down the
+	     *   connection rather than silently drop mail the account could read.
+	     * - E_DECRYPT (permanent, this account cannot decrypt): flag the msg
+	     *   MF_DECERR so VESmail_imap_msg_pass() forwards it verbatim from
+	     *   here on. The current entry, whose output is already zeroed, still
+	     *   drops; subsequent fetches of the message pass through.
+	     * - anything else (E_VESDROP, structural E_UNKNOWN): drop just this
+	     *   message, as before. */
+	    if (verr == VESMAIL_E_VES) return verr;
+	    ent->state = VESMAIL_IMAP_RE_DROP;
+	    VESmail_imap_msg *msg;
+	    if ((msg = *rslt->msgptr) && msg != &VESmail_imap_msg_PASS) {
+		msg->flags |= (verr == VESMAIL_E_DECRYPT) ? VESMAIL_IMAP_MF_DECERR : VESMAIL_IMAP_MF_ERROR;
+	    }
 	}
 	switch (ent->state) {
 	    case VESMAIL_IMAP_RE_UNDEF:

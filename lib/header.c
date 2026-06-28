@@ -17,16 +17,16 @@
  *                   > | /   |                              https://vesvault.com
  *                   > |/____|                                  https://ves.host
  *
- * (c) 2020 VESvault Corp
+ * (c) 2020-2026 VESvault Corp
  * Jim Zubov <jz@vesvault.com>
  *
- * GNU General Public License v3
- * You may opt to use, copy, modify, merge, publish, distribute and/or sell
- * copies of the Software, and permit persons to whom the Software is
- * furnished to do so, under the terms of the COPYING file.
+ * Apache License, Version 2.0
+ * You may use, copy, modify, merge, publish, distribute and/or sell copies
+ * of the Software under the terms of the Apache License, Version 2.0, a copy
+ * of which is provided in the COPYING file, or http://www.apache.org/licenses/LICENSE-2.0
  *
- * This software is distributed on an "AS IS" basis, WITHOUT WARRANTY OF ANY
- * KIND, either express or implied.
+ * This software is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
+ * CONDITIONS OF ANY KIND, either express or implied.
  *
  ***************************************************************************/
 
@@ -387,6 +387,16 @@ int VESmail_header_commit_or_divert(VESmail_parse *parse, VESmail_header *hdr) {
     int inj = VESmail_check_inject(parse);
     if (inj < 0) return inj;
     return (inj ? &VESmail_header_divert : &VESmail_header_commit)(parse, hdr);
+}
+
+int VESmail_header_send_vesmsg(VESmail_parse *parse, VESmail_header *blank, const char *value) {
+    int l = strlen(value);
+    VESmail_header *h = VESmail_header_new("X-VESmail-Message:", VESMAIL_H_VESMSG, l + 4);
+    VESmail_header_add_val(h, l, value);
+    VESmail_header_add_eol(h, blank);
+    int r = VESmail_header_commit(parse, h);
+    VESmail_header_free(h);
+    return r;
 }
 
 void VESmail_header_free(VESmail_header *hdr) {

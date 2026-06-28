@@ -19,16 +19,16 @@ rem  *           \___/   > |  /  |                    without fear of losing the
 rem  *                   > | /   |                              https://vesvault.com
 rem  *                   > |/____|                                  https://ves.host
 rem  *
-rem  * (c) 2020 VESvault Corp
+rem  * (c) 2020-2026 VESvault Corp
 rem  * Jim Zubov <jz@vesvault.com>
 rem  *
-rem  * GNU General Public License v3
-rem  * You may opt to use, copy, modify, merge, publish, distribute and/or sell
-rem  * copies of the Software, and permit persons to whom the Software is
-rem  * furnished to do so, under the terms of the COPYING file.
+rem  * Apache License, Version 2.0
+rem  * You may use, copy, modify, merge, publish, distribute and/or sell copies
+rem  * of the Software under the terms of the Apache License, Version 2.0, a copy
+rem  * of which is provided in the COPYING file, or http://www.apache.org/licenses/LICENSE-2.0
 rem  *
-rem  * This software is distributed on an "AS IS" basis, WITHOUT WARRANTY OF ANY
-rem  * KIND, either express or implied.
+rem  * This software is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
+rem  * CONDITIONS OF ANY KIND, either express or implied.
 rem  *
 rem  ***************************************************************************/
 

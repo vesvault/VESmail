@@ -17,16 +17,16 @@
  *                   > | /   |                              https://vesvault.com
  *                   > |/____|                                  https://ves.host
  *
- * (c) 2020 VESvault Corp
+ * (c) 2020-2026 VESvault Corp
  * Jim Zubov <jz@vesvault.com>
  *
- * GNU General Public License v3
- * You may opt to use, copy, modify, merge, publish, distribute and/or sell
- * copies of the Software, and permit persons to whom the Software is
- * furnished to do so, under the terms of the COPYING file.
+ * Apache License, Version 2.0
+ * You may use, copy, modify, merge, publish, distribute and/or sell copies
+ * of the Software under the terms of the Apache License, Version 2.0, a copy
+ * of which is provided in the COPYING file, or http://www.apache.org/licenses/LICENSE-2.0
  *
- * This software is distributed on an "AS IS" basis, WITHOUT WARRANTY OF ANY
- * KIND, either express or implied.
+ * This software is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
+ * CONDITIONS OF ANY KIND, either express or implied.
  *
  ***************************************************************************/
 
@@ -138,51 +138,58 @@ int VESmail_banner_resolve(VESmail *mail, VESmail_xform *xform, const char *bann
 }
 
 const char *VESmail_banner_DEFAULT[] = {
-	"Content-Type: text/plain\r\n\r\n"
-	"This is a VESmail encrypted message."
-	"\r\n\r\n"
-	"If you are new to VES, check your inbox for another email message\r\n"
-	"sent to you by onboard@vesvault.com, the subject line is\r\n"
-	"\"Set up your VES account\", and follow the link in that email.\r\n\r\n"
-	"If you already have your VES account set up, use the following\r\n"
-	"link to set up your VESmail:\r\n\r\n"
-	"https://mail.ves.world\r\n\r\n",
+	"Content-Type: text/plain; charset=utf-8\r\n"
+	"Content-Transfer-Encoding: 7bit\r\n\r\n"
+	"This message was sent encrypted with VESmail. Your current email\r\n"
+	"client did not decrypt it.\r\n\r\n"
+	"To read VESmail-encrypted messages directly in your inbox, set up\r\n"
+	"VESmail for your email account:\r\n\r\n"
+	"https://vesmail.email\r\n\r\n"
+	"Your existing email account stays unchanged.\r\n",
 
-	"Content-Type: text/html\r\n\r\n"
-	"<html><head></head><body>\r\n"
-	"<p>This is a VESmail encrypted message.</p>\r\n"
-	"<p>If you are new to VES, check your inbox for another email message\r\n"
-	"sent to you by <q>onboard@vesvault.com</q>, the subject line is\r\n"
-	"<q>Set up your VES account</q>, and follow the link in that email.</p>\r\n"
-	"<p>If you already have your VES account set up, use the following\r\n"
-	"link to set up your VESmail:<br/>\r\n"
-	"<a href=\"https://mail.ves.world\">https://mail.ves.world</a></p>\r\n"
+	"Content-Type: text/html; charset=utf-8\r\n"
+	"Content-Transfer-Encoding: 7bit\r\n\r\n"
+	"<!DOCTYPE html>\r\n"
+	"<html><head><meta charset=\"utf-8\">"
+	"<title>VESmail encrypted message</title></head><body>\r\n"
+	"<p>This message was sent encrypted with VESmail. Your current\r\n"
+	"email client did not decrypt it.</p>\r\n"
+	"<p>To read VESmail-encrypted messages directly in your inbox,\r\n"
+	"set up VESmail for your email account:<br/>\r\n"
+	"<a href=\"https://vesmail.email\">https://vesmail.email</a></p>\r\n"
+	"<p>Your existing email account stays unchanged.</p>\r\n"
 	"</body></html>\r\n",
 
 	NULL
 };
 
 const char *VESmail_banner_DEFAULT_now[] = {
-	"Content-Type: text/plain\r\n\r\n"
-	"This is a VESmail encrypted message."
-	"\r\n\r\n"
-	"If you are new to VES, check your inbox for another email message\r\n"
-	"sent to you by onboard@vesvault.com, the subject line is\r\n"
-	"\"Set up your VES account\", and follow the link in that email.\r\n\r\n"
-	"If you already have your VES account set up, use the following\r\n"
-	"link to view this email online through the online viewer provided by\r\n"
-	"the Sender:\r\n\r\n"
-	"{$url}\r\n\r\n",
-	
-	"Content-Type: text/html\r\n\r\n"
-	"<html><head></head><body>\r\n"
-	"<p>This is a VESmail encrypted message.</p>\r\n"
-	"<p>If you are new to VES, check your inbox for another email message\r\n"
-	"sent to you by <q>onboard@vesvault.com</q>, the subject line is\r\n"
-	"<q>Set up your VES account</q>, and follow the link in that email.</p>\r\n"
-	"<p>If you already have your VES account set up, use the following\r\n"
-	"link to view this email online through the online viewer provided by\r\n"
-	"the Sender:<br/>\r\n<a href=\"{$url}\">{$url}</a></p>\r\n"
+	"Content-Type: text/plain; charset=utf-8\r\n"
+	"Content-Transfer-Encoding: 7bit\r\n\r\n"
+	"This message was sent encrypted with VESmail. Your current email\r\n"
+	"client did not decrypt it.\r\n\r\n"
+	"To read VESmail-encrypted messages directly in your inbox, set up\r\n"
+	"VESmail for your email account:\r\n\r\n"
+	"https://vesmail.email\r\n\r\n"
+	"Your existing email account stays unchanged.\r\n\r\n"
+	"To read just this one message without setting up VESmail, open\r\n"
+	"the VESmail end-to-end encrypted viewer:\r\n\r\n"
+	"{$url}\r\n",
+
+	"Content-Type: text/html; charset=utf-8\r\n"
+	"Content-Transfer-Encoding: 7bit\r\n\r\n"
+	"<!DOCTYPE html>\r\n"
+	"<html><head><meta charset=\"utf-8\">"
+	"<title>VESmail encrypted message</title></head><body>\r\n"
+	"<p>This message was sent encrypted with VESmail. Your current\r\n"
+	"email client did not decrypt it.</p>\r\n"
+	"<p>To read VESmail-encrypted messages directly in your inbox,\r\n"
+	"set up VESmail for your email account:<br/>\r\n"
+	"<a href=\"https://vesmail.email\">https://vesmail.email</a></p>\r\n"
+	"<p>Your existing email account stays unchanged.</p>\r\n"
+	"<p>To read just this one message without setting up VESmail,\r\n"
+	"open the VESmail end-to-end encrypted viewer:<br/>\r\n"
+	"<a href=\"{$url}\">{$url}</a></p>\r\n"
 	"</body></html>\r\n",
 
 	NULL

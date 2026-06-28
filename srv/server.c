@@ -17,16 +17,16 @@
  *                   > | /   |                              https://vesvault.com
  *                   > |/____|                                  https://ves.host
  *
- * (c) 2020 VESvault Corp
+ * (c) 2020-2026 VESvault Corp
  * Jim Zubov <jz@vesvault.com>
  *
- * GNU General Public License v3
- * You may opt to use, copy, modify, merge, publish, distribute and/or sell
- * copies of the Software, and permit persons to whom the Software is
- * furnished to do so, under the terms of the COPYING file.
+ * Apache License, Version 2.0
+ * You may use, copy, modify, merge, publish, distribute and/or sell copies
+ * of the Software under the terms of the Apache License, Version 2.0, a copy
+ * of which is provided in the COPYING file, or http://www.apache.org/licenses/LICENSE-2.0
  *
- * This software is distributed on an "AS IS" basis, WITHOUT WARRANTY OF ANY
- * KIND, either express or implied.
+ * This software is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
+ * CONDITIONS OF ANY KIND, either express or implied.
  *
  ***************************************************************************/
 
@@ -494,6 +494,23 @@ char *VESmail_server_errorStr(VESmail_server *srv, int err) {
 		}
 	    }
 	    strcpy(d, " libVES: [unspecified error]");
+	    break;
+	}
+	case VESMAIL_E_DECRYPT:
+	case VESMAIL_E_VESDROP: {
+	    const char *label = (err == VESMAIL_E_DECRYPT)
+		? "Cannot decrypt by this account" : "Message dropped, VES error";
+	    if (srv->ves) {
+		const char *str;
+		const char *msg;
+		int veserr = srv->subcode = libVES_getErrorInfo(srv->ves, &str, &msg);
+		if (str) {
+		    if (!msg) msg = "";
+		    sprintf(d, ".%d %s: %.40s: %.160s", veserr, label, str, msg);
+		    break;
+		}
+	    }
+	    sprintf(d, " %s", label);
 	    break;
 	}
 	case VESMAIL_E_TLS:

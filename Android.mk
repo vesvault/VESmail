@@ -38,7 +38,7 @@ LOCAL_STATIC_LIBRARIES += libcurl libcrypto libssl
 
 LOCAL_SRC_FILES := lib/mail.c lib/optns.c lib/parse.c lib/header.c \
     lib/xform.c lib/multi.c lib/cte.c lib/ves.c lib/encrypt.c \
-    lib/decrypt.c lib/banner.c lib/util.c \
+    lib/decrypt.c lib/banner.c lib/util.c lib/composer.c lib/memdbg.c \
     srv/server.c srv/arch.c srv/tls.c srv/sasl.c srv/proc.c srv/daemon.c \
     srv/conf.c srv/override.c srv/curlsh.c srv/local.c srv/x509store.c \
     imap/imap.c imap/imap_xform.c imap/imap_token.c imap/imap_track.c \

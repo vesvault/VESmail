@@ -17,16 +17,16 @@
  *                   > | /   |                              https://vesvault.com
  *                   > |/____|                                  https://ves.host
  *
- * (c) 2020 VESvault Corp
+ * (c) 2020-2026 VESvault Corp
  * Jim Zubov <jz@vesvault.com>
  *
- * GNU General Public License v3
- * You may opt to use, copy, modify, merge, publish, distribute and/or sell
- * copies of the Software, and permit persons to whom the Software is
- * furnished to do so, under the terms of the COPYING file.
+ * Apache License, Version 2.0
+ * You may use, copy, modify, merge, publish, distribute and/or sell copies
+ * of the Software under the terms of the Apache License, Version 2.0, a copy
+ * of which is provided in the COPYING file, or http://www.apache.org/licenses/LICENSE-2.0
  *
- * This software is distributed on an "AS IS" basis, WITHOUT WARRANTY OF ANY
- * KIND, either express or implied.
+ * This software is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
+ * CONDITIONS OF ANY KIND, either express or implied.
  *
  ***************************************************************************/
 
@@ -187,6 +187,8 @@ int VESmail_header_push_enc(VESmail_parse *parse, VESmail_header *hdr, int bufd)
     if (parse->mail->flags & VESMAIL_F_PASS) return VESmail_header_commit(parse, hdr);
     int rs = 0;
     switch (hdr->type) {
+	case VESMAIL_H_VESMSG:
+	    return rs;
 	case VESMAIL_H_CTYPE: {
 	    int inj = VESmail_check_inject(parse);
 	    if (inj < 0) return inj;
@@ -307,6 +309,9 @@ int VESmail_header_push_enc(VESmail_parse *parse, VESmail_header *hdr, int bufd)
 		    if (r < 0) return r;
 		    rs += r;
 		}
+		r = VESmail_header_send_vesmsg(parse, hdr, "encrypted");
+		if (r < 0) return r;
+		rs += r;
 	    }
 	    switch (parse->ctype) {
 		case VESMAIL_T_OTHER:

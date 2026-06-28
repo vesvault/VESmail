@@ -17,16 +17,16 @@
  *                   > | /   |                              https://vesvault.com
  *                   > |/____|                                  https://ves.host
  *
- * (c) 2020 VESvault Corp
+ * (c) 2020-2026 VESvault Corp
  * Jim Zubov <jz@vesvault.com>
  *
- * GNU General Public License v3
- * You may opt to use, copy, modify, merge, publish, distribute and/or sell
- * copies of the Software, and permit persons to whom the Software is
- * furnished to do so, under the terms of the COPYING file.
+ * Apache License, Version 2.0
+ * You may use, copy, modify, merge, publish, distribute and/or sell copies
+ * of the Software under the terms of the Apache License, Version 2.0, a copy
+ * of which is provided in the COPYING file, or http://www.apache.org/licenses/LICENSE-2.0
  *
- * This software is distributed on an "AS IS" basis, WITHOUT WARRANTY OF ANY
- * KIND, either express or implied.
+ * This software is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
+ * CONDITIONS OF ANY KIND, either express or implied.
  *
  ***************************************************************************/
 
@@ -42,7 +42,7 @@ char *VESmail_optns_default_mime[] = {"application/vnd.ves.encrypted", "applicat
 char *VESmail_optns_default_injected[] = {"--VESmail-injected-", NULL};
 
 struct VESmail_optns VESmail_optns_default = {
-    .flags = VESMAIL_O_HDR_RCPT | VESMAIL_O_XCHG | VESMAIL_O_VES_NTFY | VESMAIL_O_HDR_REFS,
+    .flags = VESMAIL_O_HDR_RCPT | VESMAIL_O_XCHG | VESMAIL_O_VES_NTFY | VESMAIL_O_HDR_REFS | VESMAIL_O_DECRYPT_PASS,
     .maxbuf = VESMAIL_OPTNSMAXBUF,
     .vesDomain = VESMAIL_VES_DOMAIN,
     .idSuffix = ".m.ves.world",

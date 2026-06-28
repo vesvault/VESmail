@@ -17,16 +17,16 @@
  *                   > | /   |                              https://vesvault.com
  *                   > |/____|                                  https://ves.host
  *
- * (c) 2020 VESvault Corp
+ * (c) 2020-2026 VESvault Corp
  * Jim Zubov <jz@vesvault.com>
  *
- * GNU General Public License v3
- * You may opt to use, copy, modify, merge, publish, distribute and/or sell
- * copies of the Software, and permit persons to whom the Software is
- * furnished to do so, under the terms of the COPYING file.
+ * Apache License, Version 2.0
+ * You may use, copy, modify, merge, publish, distribute and/or sell copies
+ * of the Software under the terms of the Apache License, Version 2.0, a copy
+ * of which is provided in the COPYING file, or http://www.apache.org/licenses/LICENSE-2.0
  *
- * This software is distributed on an "AS IS" basis, WITHOUT WARRANTY OF ANY
- * KIND, either express or implied.
+ * This software is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
+ * CONDITIONS OF ANY KIND, either express or implied.
  *
  ***************************************************************************/
 
@@ -102,6 +102,13 @@ void VESmail_tls_server_free(struct VESmail_tls_server *tls);
 
 void VESmail_tls_initclientctx(void *sslctx);
 void VESmail_tls_setcurlctx(void *curl);
+void VESmail_tls_initcurl(void *curl);
 struct libVES *VESmail_tls_initVES(struct libVES *ves);
+
+/* Set the libVES API + WWW URLs that VESmail_tls_initVES applies to every
+ * libVES instance it sees. Either may be NULL to keep the libVES default.
+ * Strings must outlive any libVES instance that was initVES'd while they
+ * were in effect (typically set once at app startup from static config). */
+void VESmail_tls_setVESurls(const char *apiUrl, const char *wwwUrl);
 
 void VESmail_tls_done();

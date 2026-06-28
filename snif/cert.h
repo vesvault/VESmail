@@ -6,17 +6,17 @@
  *  | |     |  ``/`````\___/       e2e TLS CA Proxy
  *  | |     | . | <"""""""~~
  *  |  \___/ ``  \________/        https://snif.host
- *   \  '''  ``` /````````         (C) 2021 VESvault Corp
+ *   \  '''  ``` /````````         (C) 2021-2026 VESvault Corp
  *    \_________/                  Jim Zubov <jz@vesvault.com>
  *
  *
- * GNU General Public License v3
- * You may opt to use, copy, modify, merge, publish, distribute and/or sell
- * copies of the Software, and permit persons to whom the Software is
- * furnished to do so, under the terms of the COPYING file.
+ * Apache License, Version 2.0
+ * You may use, copy, modify, merge, publish, distribute and/or sell copies
+ * of the Software under the terms of the Apache License, Version 2.0, a copy
+ * of which is provided in the COPYING file, or http://www.apache.org/licenses/LICENSE-2.0
  *
- * This software is distributed on an "AS IS" basis, WITHOUT WARRANTY OF ANY
- * KIND, either express or implied.
+ * This software is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
+ * CONDITIONS OF ANY KIND, either express or implied.
  *
  **************************************************************************/
 
@@ -35,6 +35,8 @@
  *               NULL for default
  *   .ctxfn    - SSL_CTX initialization callback for curl,
                  NULL for default
+ *   .curlinitfn - Process-wide curl handle init callback (e.g. fdsan
+                 socket ownership on Android), NULL for default
  **************************************************************************/
 typedef struct snif_cert {
     const char *certfile;
@@ -45,6 +47,7 @@ typedef struct snif_cert {
     const char *ou;
     void *(* biofn)(const char *fname, int wr);
     void (* ctxfn)(void *sslctx);
+    void (* curlinitfn)(void *curl);
     void *rootstore;
     int flags;
     void *alloc_rootstore;

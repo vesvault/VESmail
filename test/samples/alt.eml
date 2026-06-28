@@ -1,0 +1,17 @@
+From: alice@example.com
+To: bob@example.com
+Subject: multipart/alternative test
+Date: Sat, 31 May 2026 12:00:00 +0000
+MIME-Version: 1.0
+Content-Type: multipart/alternative; boundary=ALT1
+
+--ALT1
+Content-Type: text/plain; charset=utf-8
+
+Plain part body.
+
+--ALT1
+Content-Type: text/html; charset=utf-8
+
+<html><body>HTML part body.</body></html>
+--ALT1--

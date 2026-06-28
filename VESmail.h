@@ -17,16 +17,16 @@
  *                   > | /   |                              https://vesvault.com
  *                   > |/____|                                  https://ves.host
  *
- * (c) 2020 VESvault Corp
+ * (c) 2020-2026 VESvault Corp
  * Jim Zubov <jz@vesvault.com>
  *
- * GNU General Public License v3
- * You may opt to use, copy, modify, merge, publish, distribute and/or sell
- * copies of the Software, and permit persons to whom the Software is
- * furnished to do so, under the terms of the COPYING file.
+ * Apache License, Version 2.0
+ * You may use, copy, modify, merge, publish, distribute and/or sell copies
+ * of the Software under the terms of the Apache License, Version 2.0, a copy
+ * of which is provided in the COPYING file, or http://www.apache.org/licenses/LICENSE-2.0
  *
- * This software is distributed on an "AS IS" basis, WITHOUT WARRANTY OF ANY
- * KIND, either express or implied.
+ * This software is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
+ * CONDITIONS OF ANY KIND, either express or implied.
  *
  ***************************************************************************/
 
@@ -42,7 +42,7 @@ struct libVES;
 #ifdef	PACKAGE_VERSION
 #define	VESMAIL_VERSION		PACKAGE_VERSION
 #else
-#define	VESMAIL_VERSION		"1.67"
+#define	VESMAIL_VERSION		"1.68"
 #endif
 
 #define	VESMAIL_SHORT_NAME	"VESmail"
@@ -58,6 +58,8 @@ struct libVES;
 #define	VESMAIL_E_AUTH		-6
 #define	VESMAIL_E_CONF		-7
 #define	VESMAIL_E_DENIED	-8
+#define	VESMAIL_E_DECRYPT	-9
+#define	VESMAIL_E_VESDROP	-10
 #define	VESMAIL_E_RESOLV	-16
 #define	VESMAIL_E_CONN		-17
 #define	VESMAIL_E_TLS		-18

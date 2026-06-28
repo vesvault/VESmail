@@ -17,16 +17,16 @@
  *                   > | /   |                              https://vesvault.com
  *                   > |/____|                                  https://ves.host
  *
- * (c) 2020 VESvault Corp
+ * (c) 2020-2026 VESvault Corp
  * Jim Zubov <jz@vesvault.com>
  *
- * GNU General Public License v3
- * You may opt to use, copy, modify, merge, publish, distribute and/or sell
- * copies of the Software, and permit persons to whom the Software is
- * furnished to do so, under the terms of the COPYING file.
+ * Apache License, Version 2.0
+ * You may use, copy, modify, merge, publish, distribute and/or sell copies
+ * of the Software under the terms of the Apache License, Version 2.0, a copy
+ * of which is provided in the COPYING file, or http://www.apache.org/licenses/LICENSE-2.0
  *
- * This software is distributed on an "AS IS" basis, WITHOUT WARRANTY OF ANY
- * KIND, either express or implied.
+ * This software is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
+ * CONDITIONS OF ANY KIND, either express or implied.
  *
  ***************************************************************************/
 
@@ -37,6 +37,7 @@
 #include <stdio.h>
 #include "../VESmail.h"
 #include "../lib/xform.h"
+#include "../lib/memdbg.h"
 #include "../srv/server.h"
 #include "imap.h"
 #include "imap_token.h"
@@ -46,6 +47,45 @@
 
 void VESmail_imap_xform_pdone(VESmail_imap_token *token) {
     if (token && token->state != VESMAIL_IMAP_P_ERROR) token->state = VESMAIL_IMAP_P_DONE;
+}
+
+/* Buffer capacity for an unquoted atom whose first char has already been
+ * consumed and whose remainder starts at s (within [s, endl)). Scans to the
+ * next char that the parse loop below treats as a delimiter, so each atom is
+ * sized to ITS OWN length rather than to the whole remaining line -- otherwise
+ * a long line of short atoms (e.g. a "* SEARCH ..." reply with thousands of
+ * message numbers) costs O(L^2) memory and OOMs the process.
+ *
+ * The delimiter set must match the non-quoted switch cases in
+ * VESmail_imap_xform_fn EXACTLY or we under-allocate and overflow. Note ']':
+ * its case has no break and falls through to default (an atom char) UNLESS it
+ * closes an open INDEX -- so it delimits only when inIndex is set. List nesting
+ * cannot change mid-atom (every bracket/paren is itself a delimiter that ends
+ * the atom), so inIndex sampled at the atom's start holds for the whole scan. */
+static unsigned int VESmail_imap_xform_atomcap(const char *s, const char *endl, int inIndex) {
+    const char *p = s;
+    while (p < endl) {
+	char c = *p;
+	if (c == ' ' || c == '"' || c == '(' || c == ')' || c == '{' || c == '[') break;
+	if (c == ']' && inIndex) break;
+	p++;
+    }
+    return 1 + (p - s);
+}
+
+/* Stored capacity for a quoted string whose content starts at s (just past the
+ * opening quote). Counts content chars up to the closing quote, collapsing
+ * each "\x" escape to one stored char -- matching the quoted-mode branch. */
+static unsigned int VESmail_imap_xform_quotedcap(const char *s, const char *endl) {
+    const char *p = s;
+    unsigned int n = 0;
+    while (p < endl) {
+	char c = *p++;
+	if (c == '"') break;
+	if (c == '\\' && p < endl) p++;
+	n++;
+    }
+    return n;
 }
 
 int VESmail_imap_xform_fn(VESmail_xform *xform, int final, const char *src, int *srclen) {
@@ -118,7 +158,7 @@ int VESmail_imap_xform_fn(VESmail_xform *xform, int final, const char *src, int 
 	const char *endl = lthdr ? lthdr : eol;
 	VESmail_imap_token *lvl = xform->imap->list;
 	const char *s0 = s;
-	while (s < endl) {
+	while (s < endl && !VESMAIL_MEMDBG_TRIPPED()) {
 	    char c = *s++;
 	    if (q) switch (c) {
 		case '"':
@@ -144,7 +184,7 @@ int VESmail_imap_xform_fn(VESmail_xform *xform, int final, const char *src, int 
 		}
 		case '"': {
 		    q = 1;
-		    if (!curr) curr = VESmail_imap_token_push(xform->imap->list, VESmail_imap_token_new(VESMAIL_IMAP_T_QUOTED, endl - s + 1));
+		    if (!curr) curr = VESmail_imap_token_push(xform->imap->list, VESmail_imap_token_new(VESMAIL_IMAP_T_QUOTED, VESmail_imap_xform_quotedcap(s, endl)));
 		    else line->flags |= VESMAIL_IMAP_PE_ATOM;
 		    break;
 		}
@@ -211,12 +251,12 @@ int VESmail_imap_xform_fn(VESmail_xform *xform, int final, const char *src, int 
 		    }
 		}
 		default: {
-		    if (!curr) curr = VESmail_imap_token_push(xform->imap->list, VESmail_imap_token_new(VESMAIL_IMAP_T_ATOM, endl - s + 1));
+		    if (!curr) curr = VESmail_imap_token_push(xform->imap->list, VESmail_imap_token_new(VESMAIL_IMAP_T_ATOM, VESmail_imap_xform_atomcap(s, endl, xform->imap->list->type == VESMAIL_IMAP_T_INDEX)));
 		    else if (curr->type != VESMAIL_IMAP_T_ATOM) {
 			VESmail_imap_token *atom;
 			if (curr->type == VESMAIL_IMAP_T_LSET) {
 			    atom = curr->list[curr->len - 1];
-			    if (atom->type != VESMAIL_IMAP_T_ATOM) atom = VESmail_imap_token_push(curr, VESmail_imap_token_new(VESMAIL_IMAP_T_ATOM, endl - s + 1));
+			    if (atom->type != VESMAIL_IMAP_T_ATOM) atom = VESmail_imap_token_push(curr, VESmail_imap_token_new(VESMAIL_IMAP_T_ATOM, VESmail_imap_xform_atomcap(s, endl, xform->imap->list->type == VESMAIL_IMAP_T_INDEX)));
 			    VESmail_imap_token_putc(atom, c);
 			    break;
 			}
@@ -229,6 +269,29 @@ int VESmail_imap_xform_fn(VESmail_xform *xform, int final, const char *src, int 
 	    }
 	    if (line->flags & VESMAIL_IMAP_PE) break;
 	}
+#ifdef VESMAIL_MEMDBG
+	if (VESMAIL_MEMDBG_TRIPPED()) {
+	    /* Token live-count crossed the runaway threshold while parsing this
+	     * response. Snapshot the wire bytes around the parse cursor (control
+	     * chars masked) so the offending message can be replayed off-device,
+	     * then abort the session instead of OOMing the whole process. */
+	    char snip[241];
+	    const char *p = s - 64;
+	    if (p < src) p = src;
+	    int n = tail - p;
+	    if (n > (int) sizeof(snip) - 1) n = sizeof(snip) - 1;
+	    int i;
+	    for (i = 0; i < n; i++) {
+		unsigned char c = p[i];
+		snip[i] = (c >= 0x20 && c < 0x7f) ? c : '.';
+	    }
+	    snip[n] = 0;
+	    char dbg[128];
+	    VESmail_memdbg_snprintf(dbg, sizeof(dbg));
+	    VESmail_memdbg_capturef("RUNAWAY %s curoff=%d wire[%d]=<%s>", dbg, (int) (s - src), n, snip);
+	    return VESMAIL_E_BUF;
+	}
+#endif
 	if (q) {
 	    line->flags |= VESMAIL_IMAP_PE_QUOTE;
 	} else if (lthdr) {

@@ -9,7 +9,9 @@ lib/ves.c \
 lib/encrypt.c \
 lib/decrypt.c \
 lib/banner.c \
-lib/util.c
+lib/util.c \
+lib/composer.c \
+lib/memdbg.c
 
 LIB_HFILES = lib/mail.h \
 lib/optns.h \
@@ -22,7 +24,8 @@ lib/ves.h \
 lib/encrypt.h \
 lib/decrypt.h \
 lib/banner.h \
-lib/util.h
+lib/util.h \
+lib/composer.h
 
 SRV_CFILES = srv/server.c \
 srv/arch.c \
