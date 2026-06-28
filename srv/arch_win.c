@@ -36,6 +36,7 @@
 #include <stdarg.h>
 #include <windows.h>
 #include <sys/stat.h>
+#include <process.h>
 #include <stdio.h>
 
 
