@@ -139,7 +139,7 @@ VESMAIL_HFILES = VESmail.h
 
 bin_PROGRAMS = vesmail
 
-vesmail_LDADD = -lVES -lcrypto -lcurl -lssl
+vesmail_LDADD = -lVES -lcrypto -lcurl -lssl $(VESMAIL_PLATFORM_LIBS)
 if HAVE_PTHREAD_H
 vesmail_LDADD += -lpthread
 endif

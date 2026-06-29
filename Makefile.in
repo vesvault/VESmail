@@ -206,7 +206,7 @@ am_vesmail_OBJECTS = $(am__objects_1) $(am__objects_4) \
 	$(am__objects_10)
 vesmail_OBJECTS = $(am_vesmail_OBJECTS)
 am__DEPENDENCIES_1 =
-vesmail_DEPENDENCIES = $(am__DEPENDENCIES_1)
+vesmail_DEPENDENCIES = $(am__DEPENDENCIES_1) $(am__DEPENDENCIES_1)
 vesmail_LINK = $(CCLD) $(vesmail_CFLAGS) $(CFLAGS) $(AM_LDFLAGS) \
 	$(LDFLAGS) -o $@
 AM_V_P = $(am__v_P_@AM_V@)
@@ -392,6 +392,7 @@ SET_MAKE = @SET_MAKE@
 SHELL = @SHELL@
 STRIP = @STRIP@
 VERSION = @VERSION@
+VESMAIL_PLATFORM_LIBS = @VESMAIL_PLATFORM_LIBS@
 abs_builddir = @abs_builddir@
 abs_srcdir = @abs_srcdir@
 abs_top_builddir = @abs_top_builddir@
@@ -542,7 +543,8 @@ cli/tty.h
 UTIL_CFILES = util/jTree.c
 UTIL_HFILES = util/jTree.h
 VESMAIL_HFILES = VESmail.h
-vesmail_LDADD = -lVES -lcrypto -lcurl -lssl $(am__append_7)
+vesmail_LDADD = -lVES -lcrypto -lcurl -lssl $(VESMAIL_PLATFORM_LIBS) \
+	$(am__append_7)
 vesmail_CFLAGS = $(am__append_8) $(am__append_9) $(am__append_10)
 vesmail_SOURCES = $(LIB_CFILES) $(SRV_CFILES) $(IMAP_CFILES) $(SMTP_CFILES) $(NOW_CFILES) $(CLI_CFILES) \
 $(LIB_HFILES) $(SRV_HFILES) $(IMAP_HFILES) $(SMTP_HFILES) $(NOW_HFILES) $(CLI_HFILES) $(UTIL_CFILES) $(UTIL_HFILES) \

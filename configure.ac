@@ -9,6 +9,8 @@ AC_CONFIG_HEADERS([config.h])
 
 AC_CONFIG_AUX_DIR([build-aux])
 
+AC_CANONICAL_HOST
+
 AM_INIT_AUTOMAKE([1.0 subdir-objects])
 
 AM_MAINTAINER_MODE([disable])
@@ -19,6 +21,13 @@ AM_PROG_CC_C_O
 AC_PROG_RANLIB
 
 # Checks for libraries.
+
+# Winsock provides the socket API on Windows (MinGW/MSYS2/Cygwin).
+case "$host_os" in
+    mingw*|cygwin*|msys*) VESMAIL_PLATFORM_LIBS="-lws2_32" ;;
+    *)                    VESMAIL_PLATFORM_LIBS="" ;;
+esac
+AC_SUBST([VESMAIL_PLATFORM_LIBS])
 
 AC_ARG_WITH([x509store],
     [AS_HELP_STRING([--without-x509store],
