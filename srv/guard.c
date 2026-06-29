@@ -42,7 +42,10 @@
 #include "daemon.h"
 #include "guard.h"
 
-#ifdef HAVE_UNISTD_H
+/* The guard supervises forked workers, so it needs the POSIX process API.
+ * MinGW provides <unistd.h> but not fork()/<sys/wait.h>, so exclude _WIN32
+ * (which falls through to the stub below). */
+#if defined(HAVE_UNISTD_H) && !defined(_WIN32)
 
 #include <errno.h>
 #include <unistd.h>
