@@ -37,11 +37,11 @@
 
 int tty_get_width(int fd) {
     CONSOLE_SCREEN_BUFFER_INFO csbi;
-    GetConsoleScreenBufferInfo(_get_osfhandle(fd), &csbi);
+    GetConsoleScreenBufferInfo((HANDLE) _get_osfhandle(fd), &csbi);
     return csbi.srWindow.Right - csbi.srWindow.Left;
 }
 
 int tty_is_ansi(int fd) {
-    int mode;
-    return GetConsoleMode(_get_osfhandle(fd), &mode) && (mode |= ENABLE_VIRTUAL_TERMINAL_PROCESSING) && SetConsoleMode(_get_osfhandle(fd), mode);
+    DWORD mode;
+    return GetConsoleMode((HANDLE) _get_osfhandle(fd), &mode) && (mode |= ENABLE_VIRTUAL_TERMINAL_PROCESSING) && SetConsoleMode((HANDLE) _get_osfhandle(fd), mode);
 }
