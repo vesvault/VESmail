@@ -134,18 +134,19 @@ am__vesmail_SOURCES_DIST = lib/mail.c lib/optns.c lib/parse.c \
 	cli/help.c cli/tty.c lib/mail.h lib/optns.h lib/parse.h \
 	lib/header.h lib/xform.h lib/multi.h lib/cte.h lib/ves.h \
 	lib/encrypt.h lib/decrypt.h lib/banner.h lib/util.h \
-	lib/composer.h srv/server.h srv/arch.h srv/tls.h srv/sasl.h \
-	srv/conf.h srv/daemon.h srv/proc.h srv/override.h srv/guard.h \
-	srv/x509store.h srv/curlsh.h imap/imap.h imap/imap_xform.h \
-	imap/imap_token.h imap/imap_track.h imap/imap_start.h \
-	imap/imap_proxy.h imap/imap_msg.h imap/imap_fetch.h \
-	imap/imap_result.h imap/imap_sect.h imap/imap_append.h \
-	imap/imap_xves.h smtp/smtp.h smtp/smtp_cmd.h smtp/smtp_reply.h \
-	smtp/smtp_track.h smtp/smtp_start.h smtp/smtp_proxy.h \
-	smtp/smtp_xves.h now/now.h now/now_store.h now/now_probe.h \
-	now/now_post.h now/now_manifest.h now/now_options.h \
-	now/now_websock.h now/now_oauth.h cli/vesmail.h cli/cli.h \
-	cli/help.h cli/tty.h util/jTree.c util/jTree.h VESmail.h
+	lib/composer.h lib/memdbg.h srv/server.h srv/arch.h srv/tls.h \
+	srv/sasl.h srv/conf.h srv/daemon.h srv/proc.h srv/override.h \
+	srv/guard.h srv/x509store.h srv/curlsh.h imap/imap.h \
+	imap/imap_xform.h imap/imap_token.h imap/imap_track.h \
+	imap/imap_start.h imap/imap_proxy.h imap/imap_msg.h \
+	imap/imap_fetch.h imap/imap_result.h imap/imap_sect.h \
+	imap/imap_append.h imap/imap_xves.h smtp/smtp.h \
+	smtp/smtp_cmd.h smtp/smtp_reply.h smtp/smtp_track.h \
+	smtp/smtp_start.h smtp/smtp_proxy.h smtp/smtp_xves.h now/now.h \
+	now/now_store.h now/now_probe.h now/now_post.h \
+	now/now_manifest.h now/now_options.h now/now_websock.h \
+	now/now_oauth.h cli/vesmail.h cli/cli.h cli/help.h cli/tty.h \
+	util/jTree.c util/jTree.h VESmail.h
 am__dirstamp = $(am__leading_dot)dirstamp
 am__objects_1 = lib/vesmail-mail.$(OBJEXT) lib/vesmail-optns.$(OBJEXT) \
 	lib/vesmail-parse.$(OBJEXT) lib/vesmail-header.$(OBJEXT) \
@@ -473,7 +474,8 @@ lib/encrypt.h \
 lib/decrypt.h \
 lib/banner.h \
 lib/util.h \
-lib/composer.h
+lib/composer.h \
+lib/memdbg.h
 
 SRV_CFILES = srv/server.c srv/arch.c srv/tls.c srv/sasl.c srv/conf.c \
 	srv/daemon.c srv/proc.c srv/override.c srv/guard.c \
@@ -549,6 +551,24 @@ vesmail_CFLAGS = $(am__append_8) $(am__append_9) $(am__append_10)
 vesmail_SOURCES = $(LIB_CFILES) $(SRV_CFILES) $(IMAP_CFILES) $(SMTP_CFILES) $(NOW_CFILES) $(CLI_CFILES) \
 $(LIB_HFILES) $(SRV_HFILES) $(IMAP_HFILES) $(SMTP_HFILES) $(NOW_HFILES) $(CLI_HFILES) $(UTIL_CFILES) $(UTIL_HFILES) \
 $(VESMAIL_HFILES)
+
+
+# Platform sources pulled in via #include (srv/arch.c, cli/tty.c), plus the
+# sample configs README.md points users at.
+EXTRA_DIST = cli/tty_u.c \
+cli/tty_w.c \
+srv/arch_unix.c \
+srv/arch_win.c \
+etc/systemd/system/vesmail.service \
+etc/vesmail/vesmail.conf \
+etc/vesmail/vesmail-banner-html \
+etc/vesmail/vesmail-banner-txt \
+etc/vesmail/sni/mydomain.com/vesmail.conf \
+etc/vesmail/veskeys/acme@example.com \
+etc/xinetd.d/ves-imap \
+etc/xinetd.d/ves-imap-tls \
+etc/xinetd.d/ves-smtp \
+etc/xinetd.d/ves-smtp-tls
 
 all: config.h
 	$(MAKE) $(AM_MAKEFLAGS) all-am
