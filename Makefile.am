@@ -25,7 +25,8 @@ lib/encrypt.h \
 lib/decrypt.h \
 lib/banner.h \
 lib/util.h \
-lib/composer.h
+lib/composer.h \
+lib/memdbg.h
 
 SRV_CFILES = srv/server.c \
 srv/arch.c \
@@ -159,3 +160,20 @@ endif
 vesmail_SOURCES = $(LIB_CFILES) $(SRV_CFILES) $(IMAP_CFILES) $(SMTP_CFILES) $(NOW_CFILES) $(CLI_CFILES) \
 $(LIB_HFILES) $(SRV_HFILES) $(IMAP_HFILES) $(SMTP_HFILES) $(NOW_HFILES) $(CLI_HFILES) $(UTIL_CFILES) $(UTIL_HFILES) \
 $(VESMAIL_HFILES)
+
+# Platform sources pulled in via #include (srv/arch.c, cli/tty.c), plus the
+# sample configs README.md points users at.
+EXTRA_DIST = cli/tty_u.c \
+cli/tty_w.c \
+srv/arch_unix.c \
+srv/arch_win.c \
+etc/systemd/system/vesmail.service \
+etc/vesmail/vesmail.conf \
+etc/vesmail/vesmail-banner-html \
+etc/vesmail/vesmail-banner-txt \
+etc/vesmail/sni/mydomain.com/vesmail.conf \
+etc/vesmail/veskeys/acme@example.com \
+etc/xinetd.d/ves-imap \
+etc/xinetd.d/ves-imap-tls \
+etc/xinetd.d/ves-smtp \
+etc/xinetd.d/ves-smtp-tls
