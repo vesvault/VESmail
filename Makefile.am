@@ -162,8 +162,9 @@ $(LIB_HFILES) $(SRV_HFILES) $(IMAP_HFILES) $(SMTP_HFILES) $(NOW_HFILES) $(CLI_HF
 $(VESMAIL_HFILES)
 
 # Platform sources pulled in via #include (srv/arch.c, cli/tty.c), plus the
-# sample configs README.md points users at.
+# sample configs and docs README.md points users at.
 EXTRA_DIST = cli/tty_u.c \
+docs/profile-cli.md \
 cli/tty_w.c \
 srv/arch_unix.c \
 srv/arch_win.c \

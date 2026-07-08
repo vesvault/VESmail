@@ -66,9 +66,15 @@ below.
 
 ## Quick start — the CLI
 
-Build VESmail (see [Installing](#installing)), then stream a message through the
-encryptor and back. The account is your VES identity in the `vesmail` domain; the first
-run opens the libVES keystore PIN dialog (libVES ≥ 1.24):
+Build VESmail (see [Installing](#installing)) and create your **VES account** — a
+one-time browser step: sign in to the
+[Profile Manager](https://my.vesmail.email/profile) with your email address, confirm
+the emailed verification code and choose a VES PIN. (Without an account, `vesmail`
+stops with *"VES account is not set up"*.)
+
+Then stream a message through the encryptor and back. The account is your VES identity
+in the `vesmail` domain; the first run opens the libVES keystore PIN dialog
+(libVES ≥ 1.24):
 
 ```sh
 vesmail encrypt -a you@example.com < message.eml > message.ves.eml
@@ -95,16 +101,19 @@ and transforms messages in flight.
 
 To use a proxy you need a **VESmail Profile** — an end-to-end encrypted JSON object
 stored in VES that holds your provider's IMAP/SMTP settings and credentials, decryptable
-only by your VES keychain. Create one through the profile management page at
-[vesmail.email](https://vesmail.email).
+only by your VES keychain. Create one in the
+[Profile Manager](https://my.vesmail.email/profile) — signing in with a new email
+address also creates the VES account (verification code + a VES PIN of your choice).
+Profiles can also be created and managed from the command line with the `ves` CLI —
+see [docs/profile-cli.md](docs/profile-cli.md).
 
 Your client then connects to the VESmail proxy and authenticates with:
 
 - **username** — your email address (optionally `address!profile` to select a named
   profile; see [Authentication](#authentication) below).
-- **password** — your VES **App Key** for VESmail, which unlocks everything pertaining to
-  your VESmail. Keep it secret; if it leaks, rekey the vault at
-  [vesvault.com](https://vesvault.com).
+- **password** — your VES **App Key** for VESmail (shown in the Profile Manager's
+  *Email App Setup* section), which unlocks everything pertaining to your VESmail. Keep
+  it secret; if it leaks, rekey the vault at [vesvault.com](https://vesvault.com).
 
 ```sh
 vesmail imap  --tls      # IMAP4rev1 proxy
@@ -193,6 +202,7 @@ and Windows.
 | `cli/`  | `vesmail` command-line front end |
 | `app/`  | Native bindings (JNI) for the GUI app builds |
 | `snif/` | SNIF connector ([snif.host](https://snif.host)) |
+| `docs/` | Additional documentation ([CLI profile setup](docs/profile-cli.md)) |
 | `etc/vesmail/`  | Sample config and template files |
 | `etc/xinetd.d/` | Sample external (xinetd) daemonizer config |
 | `etc/systemd/`  | Sample internal daemonizer config |
